@@ -127,13 +127,13 @@ include __DIR__.'/includes/header.php';
               <?php foreach ($tiposDisponiveis as $t): ?>
                 <div class="col-md-4 col-sm-6">
                   <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="tipos[]" value="<?= (int)$t['id'] ?>" id="tipo<?= (int)$t['id'] ?>">
+                    <input class="form-check-input tipo-check" type="checkbox" name="tipos[]" value="<?= (int)$t['id'] ?>" id="tipo<?= (int)$t['id'] ?>" data-nome="<?= h($t['nome']) ?>">
                     <label class="form-check-label" for="tipo<?= (int)$t['id'] ?>"><?= h($t['nome']) ?></label>
                   </div>
                 </div>
               <?php endforeach; ?>
             </div>
-            <div class="form-text mt-2">Selecione pelo menos 1. Você pode detalhar quantidades/observações nos Itens abaixo.</div>
+            <div class="form-text mt-2">Selecione pelo menos 1. Os itens abaixo são preenchidos automaticamente — ajuste Qtd/Obs se precisar.</div>
           <?php endif; ?>
         </div>
       </div>
