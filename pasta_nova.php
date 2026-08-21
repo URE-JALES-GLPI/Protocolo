@@ -119,7 +119,7 @@ include __DIR__.'/includes/header.php';
 
       <hr class="my-4">
       <div class="card border-warning mb-4">
-        <div class="card-header bg-warning bg-opacity-10"><strong><i class="bi bi-tags"></i> Quais tipos de arquivos *</strong> <small class="text-muted">— marque as caixinhas conforme o conteúdo da pasta</small> <a href="tipos_arquivo.php" target="_blank" class="float-end small">Cadastrar/gerenciar tipos</a></div>
+        <div class="card-header bg-warning bg-opacity-10"><strong><i class="bi bi-tags"></i> Quais tipos de arquivos *</strong> <small class="text-muted">— marque as caixinhas conforme o conteúdo da pasta</small> <?php if (hasPerm('pode_gerenciar_tipos')): ?><a href="tipos_arquivo.php" target="_blank" class="float-end small">Cadastrar/gerenciar tipos</a><?php endif; ?></div>
         <div class="card-body">
           <?php if (!$tiposDisponiveis): ?>
             <div class="alert alert-warning mb-0 small">Nenhum tipo cadastrado. <a href="tipos_arquivo.php">Cadastre os tipos</a> primeiro.</div>

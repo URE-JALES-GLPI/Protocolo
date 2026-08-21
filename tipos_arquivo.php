@@ -2,7 +2,7 @@
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/helpers.php';
-requireLogin();
+requirePerm('pode_gerenciar_tipos');
 $pdo = getPDO();
 
 // Ações: criar / editar / toggle / excluir

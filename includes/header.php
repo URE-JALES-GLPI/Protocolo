@@ -27,8 +27,19 @@ $user = currentUser();
         <li class="nav-item"><a class="nav-link" href="pastas.php"><i class="bi bi-collection"></i> Pastas</a></li>
         <li class="nav-item"><a class="nav-link" href="pasta_nova.php"><i class="bi bi-folder-plus"></i> Nova Pasta</a></li>
         <li class="nav-item"><a class="nav-link" href="escolas.php"><i class="bi bi-building"></i> Escolas</a></li>
-        <li class="nav-item"><a class="nav-link" href="tipos_arquivo.php"><i class="bi bi-tags"></i> Tipos</a></li>
-        <?php if ($user['perfil']==='admin'): ?><li class="nav-item"><a class="nav-link" href="usuarios.php"><i class="bi bi-people"></i> Usuários</a></li><?php endif; ?>
+        <?php if (hasPerm('pode_acessar_config')): ?>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="bi bi-gear"></i> Configurações</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="configuracoes.php"><i class="bi bi-gear"></i> Painel</a></li>
+            <?php if (hasPerm('pode_gerenciar_tipos')): ?><li><a class="dropdown-item" href="tipos_arquivo.php"><i class="bi bi-tags"></i> Tipos de Arquivos</a></li><?php endif; ?>
+            <?php if (hasPerm('pode_gerenciar_usuarios')): ?><li><a class="dropdown-item" href="usuarios.php"><i class="bi bi-people"></i> Usuários</a></li><?php endif; ?>
+            <li><a class="dropdown-item" href="escolas.php"><i class="bi bi-building"></i> Escolas</a></li>
+          </ul>
+        </li>
+        <?php else: ?>
+          <?php if ($user['perfil']==='admin'): ?><li class="nav-item"><a class="nav-link" href="usuarios.php"><i class="bi bi-people"></i> Usuários</a></li><?php endif; ?>
+        <?php endif; ?>
       </ul>
       <div class="d-flex align-items-center gap-3">
         <span class="text-white small"><i class="bi bi-person-circle"></i> <?= h($user['nome']) ?> (<?= h($user['perfil']) ?>)</span>
