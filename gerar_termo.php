@@ -40,20 +40,28 @@ $documento = $tipo==='recebimento' ? $p['recebido_documento'] : ($p['retirado_do
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-@media print { .no-print{ display:none!important; } @page{ margin:15mm; } }
 body{ background:#eee; }
-.termo{ background:white; max-width:850px; margin:20px auto; padding:50px 45px; box-shadow:0 0 15px rgba(0,0,0,.1); font-family:"Times New Roman", serif; color:#111; }
-.termo h1{ font-size:18px; font-weight:bold; text-align:center; margin-bottom:4px; letter-spacing:.5px; }
-.termo h2{ font-size:13px; font-weight:normal; text-align:center; color:#444; margin-bottom:20px; }
-.termo .cab{ text-align:center; border-bottom:2px solid #111; padding-bottom:12px; margin-bottom:20px; }
-.termo .cab small{ font-size:12px; }
-.termo .meta{ font-size:13px; margin-bottom:18px; }
-.termo .meta td{ padding:4px 8px; }
-.termo p{ font-size:13.5px; line-height:1.6; text-align:justify; }
-.termo table.itens{ font-size:13px; }
-.termo .assinaturas{ margin-top:55px; display:flex; gap:40px; justify-content:space-between; }
-.termo .assinatura{ flex:1; border-top:1px solid #000; padding-top:6px; text-align:center; font-size:12px; }
-.termo .hash{ margin-top:30px; border:1px dashed #999; padding:8px 10px; font-size:11px; background:#fafafa; }
+.termo{ background:white; max-width:800px; margin:20px auto; padding:28px 30px; box-shadow:0 0 15px rgba(0,0,0,.1); font-family:"Times New Roman", serif; color:#111; display:flex; flex-direction:column; }
+.termo .cab{ text-align:center; border-bottom:2px solid #111; padding-bottom:10px; margin-bottom:14px; }
+.termo .cab .logo{ max-height:62px; max-width:100%; object-fit:contain; margin-bottom:6px; }
+.termo .cab .org{ font-size:13px; font-weight:bold; letter-spacing:.3px; color:#222; }
+.termo .cab .setor{ font-size:11px; color:#333; }
+.termo .meta{ font-size:11.5px; margin-bottom:12px; }
+.termo .meta td{ padding:4px 7px; }
+.termo p{ font-size:11.5px; line-height:1.45; text-align:justify; margin-bottom:8px; }
+.termo table.itens{ font-size:11px; }
+.termo table.itens th, .termo table.itens td{ padding:3px 6px; }
+.termo .assinaturas{ margin-top:24px; display:flex; gap:30px; justify-content:space-between; }
+.termo .assinatura{ flex:1; border-top:1px solid #000; padding-top:5px; text-align:center; font-size:10.5px; }
+.termo .hash{ margin-top:16px; border:1px dashed #999; padding:6px 8px; font-size:9.5px; background:#fafafa; line-height:1.3; }
+@media print {
+  .no-print{ display:none!important; }
+  @page{ size:A4; margin:8mm; }
+  body{ background:white; margin:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .termo{ box-shadow:none; margin:0 auto; padding:14px 16px; max-height:277mm; overflow:hidden; }
+  .termo .cab{ padding-bottom:7px; margin-bottom:10px; }
+  .termo .cab .logo{ max-height:52px; }
+}
 </style>
 </head>
 <body>
@@ -63,16 +71,15 @@ body{ background:#eee; }
   <div class="small text-muted mt-2">Dica: na janela de impressão, escolha "Salvar como PDF" para gerar o termo sem assinatura. Depois imprima, colete assinaturas e digitalize para upload no sistema.</div>
 </div>
 
-<div class="termo">
+<div class="termo" id="termo">
   <div class="cab">
-    <!-- personalize aqui com brasão/nome da secretaria -->
-    <div style="font-size:15px; font-weight:bold;">PREFEITURA / SECRETARIA DE EDUCAÇÃO</div>
-    <div style="font-size:12px;">Setor de Protocolo de Pastas</div>
-    <small><?= htmlspecialchars($titulo) ?> &middot; <?= htmlspecialchars($subtitulo) ?></small>
+    <img src="assets/img/logo.png" alt="URE Jales" class="logo">
+    <div class="org">UNIDADE REGIONAL DE ENSINO - JALES</div>
+    <div class="setor">Setor de Protocolo</div>
   </div>
-
-  <h1><?= htmlspecialchars($titulo) ?></h1>
-  <h2>Nº <?= htmlspecialchars($termo['codigo']) ?> &middot; Pasta <?= htmlspecialchars($p['codigo']) ?></h2>
+  <div style="text-align:center; font-size:10.5px; color:#555; margin-bottom:10px; letter-spacing:.2px;">
+    Pasta <strong><?= htmlspecialchars($p['codigo']) ?></strong> &middot; Termo <strong><?= htmlspecialchars($termo['codigo']) ?></strong> &middot; <?= $tipo==='recebimento'?'Recebimento':'Retirada' ?> &middot; <?= date('d/m/Y H:i', strtotime($dataRef)) ?>
+  </div>
 
   <table class="table table-bordered meta">
     <tr><td style="width:50%"><strong>Escola destinatária:</strong><br><?= htmlspecialchars($p['escola_nome']) ?> <?= $p['escola_codigo']?'('.htmlspecialchars($p['escola_codigo']).')':'' ?></td>
@@ -145,5 +152,23 @@ body{ background:#eee; }
     <small class="text-muted">Após imprimir e colher assinaturas, digitalize e faça upload em Pasta → Termos → "Enviar arquivo assinado".</small>
   </div>
 </div>
+<script>
+(function(){
+  function fitOnePage(){
+    const t=document.getElementById('termo');
+    if(!t) return;
+    t.style.zoom='1';
+    const maxH=1050;
+    const h=t.scrollHeight;
+    if(h>maxH){
+      const s=(maxH/h).toFixed(4);
+      t.style.zoom=s;
+    }
+  }
+  window.addEventListener('load', fitOnePage);
+  window.addEventListener('beforeprint', fitOnePage);
+  window.addEventListener('afterprint', ()=>{ const t=document.getElementById('termo'); if(t) t.style.zoom='1'; });
+})();
+</script>
 </body>
 </html>
