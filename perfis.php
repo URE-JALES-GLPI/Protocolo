@@ -63,10 +63,10 @@ if(isset($_GET['edit'])){
     $edit=$stmt->fetch();
 }
 try{
-    $lista=$pdo->query("SELECT p.*, (SELECT COUNT(*) FROM usuarios WHERE perfil_id=p.id) AS total_usuarios FROM perfis ORDER BY nome")->fetchAll();
+    $lista=$pdo->query("SELECT p.*, COUNT(u.id) AS total_usuarios FROM perfis p LEFT JOIN usuarios u ON u.perfil_id=p.id GROUP BY p.id ORDER BY p.nome")->fetchAll();
 } catch(PDOException $e){
     $lista=[];
-    flash('error','Tabela perfis não existe ainda. Rode: mysql -u protocolo_user -pProtocolo@2026 protocolo < sql/migration_perfis.sql');
+    flash('error','Erro ao carregar perfis: '.$e->getMessage());
 }
 
 $pageTitle='Perfis';
