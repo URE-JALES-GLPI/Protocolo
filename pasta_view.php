@@ -13,6 +13,10 @@ if (!$p) die('Pasta não encontrada');
 
 $itens=$pdo->prepare("SELECT * FROM pasta_itens WHERE pasta_id=? ORDER BY id"); $itens->execute([$id]); $itens=$itens->fetchAll();
 $termos=$pdo->prepare("SELECT * FROM termos WHERE pasta_id=? ORDER BY criado_em"); $termos->execute([$id]); $termos=$termos->fetchAll();
+try {
+  $tipos=$pdo->prepare("SELECT t.nome FROM tipos_arquivo t JOIN pasta_tipos pt ON pt.tipo_id=t.id WHERE pt.pasta_id=? ORDER BY t.nome");
+  $tipos->execute([$id]); $tipos=$tipos->fetchAll(PDO::FETCH_COLUMN);
+} catch(PDOException $e) { $tipos=[]; }
 
 // Ações: registrar retirada, upload assinado, cancelar
 if ($_SERVER['REQUEST_METHOD']==='POST') {
@@ -87,6 +91,17 @@ include __DIR__.'/includes/header.php';
           <?php if($p['observacao']): ?><div class="col-12 mt-2"><strong>Obs. recebimento:</strong> <?= nl2br(h($p['observacao'])) ?></div><?php endif; ?>
           <?php if($p['observacao_retirada']): ?><div class="col-12"><strong>Obs. retirada:</strong> <?= nl2br(h($p['observacao_retirada'])) ?></div><?php endif; ?>
         </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white"><strong><i class="bi bi-tags"></i> Tipos de arquivos</strong></div>
+      <div class="card-body">
+        <?php if ($tipos): ?>
+          <?php foreach ($tipos as $tn): ?><span class="badge bg-warning text-dark border me-1 mb-1"><i class="bi bi-check-square"></i> <?= h($tn) ?></span><?php endforeach; ?>
+        <?php else: ?>
+          <span class="text-muted small">Nenhum tipo marcado (pastas antigas).</span>
+        <?php endif; ?>
       </div>
     </div>
 

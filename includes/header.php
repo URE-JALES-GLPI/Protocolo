@@ -27,6 +27,7 @@ $user = currentUser();
         <li class="nav-item"><a class="nav-link" href="pastas.php"><i class="bi bi-collection"></i> Pastas</a></li>
         <li class="nav-item"><a class="nav-link" href="pasta_nova.php"><i class="bi bi-folder-plus"></i> Nova Pasta</a></li>
         <li class="nav-item"><a class="nav-link" href="escolas.php"><i class="bi bi-building"></i> Escolas</a></li>
+        <li class="nav-item"><a class="nav-link" href="tipos_arquivo.php"><i class="bi bi-tags"></i> Tipos</a></li>
         <?php if ($user['perfil']==='admin'): ?><li class="nav-item"><a class="nav-link" href="usuarios.php"><i class="bi bi-people"></i> Usuários</a></li><?php endif; ?>
       </ul>
       <div class="d-flex align-items-center gap-3">

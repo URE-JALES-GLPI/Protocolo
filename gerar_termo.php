@@ -13,6 +13,7 @@ $stmt->execute([$id]); $p=$stmt->fetch();
 if (!$p) die('Pasta não encontrada');
 
 $itens=$pdo->prepare("SELECT * FROM pasta_itens WHERE pasta_id=? ORDER BY id"); $itens->execute([$id]); $itens=$itens->fetchAll();
+try { $tipos=$pdo->prepare("SELECT t.nome FROM tipos_arquivo t JOIN pasta_tipos pt ON pt.tipo_id=t.id WHERE pt.pasta_id=? ORDER BY t.nome"); $tipos->execute([$id]); $tipos=$tipos->fetchAll(PDO::FETCH_COLUMN); } catch(PDOException $e) { $tipos=[]; }
 $termo=$pdo->prepare("SELECT * FROM termos WHERE pasta_id=? AND tipo=? ORDER BY id DESC LIMIT 1"); $termo->execute([$id,$tipo]); $termo=$termo->fetch();
 
 // Se não existe termo ainda, cria na hora (evita erro ao imprimir)
@@ -85,6 +86,15 @@ body{ background:#eee; }
     <p>Declaro para os devidos fins que <strong>recebi nesta data</strong> no setor de protocolo a pasta identificada acima, destinada à <strong><?= htmlspecialchars($p['escola_nome']) ?></strong>, entregue por <strong><?= htmlspecialchars($p['recebido_de']) ?></strong><?= $p['recebido_documento']?' (doc. '.htmlspecialchars($p['recebido_documento']).')':'' ?>, contendo os seguintes itens/documentos:</p>
   <?php else: ?>
     <p>Declaro para os devidos fins que <strong>retirei nesta data</strong> junto ao setor de protocolo a pasta identificada acima, destinada à <strong><?= htmlspecialchars($p['escola_nome']) ?></strong>, contendo os seguintes itens/documentos, assumindo a responsabilidade pelo transporte e entrega:</p>
+  <?php endif; ?>
+
+  <?php if ($tipos): ?>
+  <div style="border:1px solid #111; padding:10px 12px; margin-bottom:14px; font-size:13px;">
+    <strong>Tipos de arquivos assinalados:</strong><br>
+    <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px 14px;">
+      <?php foreach ($tipos as $tn): ?><span style="border:1px solid #333; padding:2px 8px; font-size:12px;"><span style="font-weight:bold;">☑</span> <?= htmlspecialchars($tn) ?></span><?php endforeach; ?>
+    </div>
+  </div>
   <?php endif; ?>
 
   <table class="table table-bordered itens">

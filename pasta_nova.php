@@ -6,6 +6,7 @@ requireLogin();
 $pdo = getPDO();
 
 $escolas = $pdo->query("SELECT id, nome, codigo FROM escolas WHERE ativo=1 ORDER BY nome")->fetchAll();
+try { $tiposDisponiveis = $pdo->query("SELECT id, nome FROM tipos_arquivo WHERE ativo=1 ORDER BY nome")->fetchAll(); } catch(PDOException $e) { $tiposDisponiveis = []; }
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     if (!csrf_validate($_POST['csrf'] ?? null)) die('CSRF inválido');
@@ -15,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $recebido_documento = trim($_POST['recebido_documento'] ?? '');
     $data_recebimento = trim($_POST['data_recebimento'] ?? '');
     $observacao = trim($_POST['observacao'] ?? '');
+    $tipos = $_POST['tipos'] ?? [];
     $itens = $_POST['itens'] ?? [];
 
     if (!$escola_id || $recebido_de==='') {
@@ -36,6 +38,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         flash('error','Adicione pelo menos 1 item na pasta.');
         header('Location: pasta_nova.php'); exit;
     }
+    // valida tipos de arquivo (caixinhas) - só exige se houver tipos cadastrados
+    $tiposValidos = array_filter(array_map('intval', (array)$tipos));
+    if (!empty($tiposDisponiveis) && count($tiposValidos)===0) {
+        flash('error','Selecione pelo menos 1 tipo de arquivo (Quais tipos de arquivos).');
+        header('Location: pasta_nova.php'); exit;
+    }
     if ($data_recebimento==='') $data_recebimento = date('Y-m-d\TH:i');
     $data_recebimento = str_replace('T',' ',$data_recebimento) . (strlen($data_recebimento)==16?':00':'');
 
@@ -48,6 +56,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $stmtItem = $pdo->prepare("INSERT INTO pasta_itens (pasta_id, descricao, quantidade, observacao) VALUES (?,?,?,?)");
         foreach ($itensValidos as $iv) {
             $stmtItem->execute([$pasta_id, $iv['descricao'], $iv['quantidade'], $iv['observacao'] ?: null]);
+        }
+        // salva tipos marcados
+        $stmtTipo = $pdo->prepare("INSERT INTO pasta_tipos (pasta_id, tipo_id) VALUES (?,?)");
+        foreach ($tiposValidos as $tid) {
+            $stmtTipo->execute([$pasta_id, $tid]);
         }
         // registra termo de recebimento pendente
         $codigoTermo = gerarCodigoTermo('recebimento');
@@ -104,6 +117,27 @@ include __DIR__.'/includes/header.php';
       </div>
 
       <hr class="my-4">
+      <div class="card border-warning mb-4">
+        <div class="card-header bg-warning bg-opacity-10"><strong><i class="bi bi-tags"></i> Quais tipos de arquivos *</strong> <small class="text-muted">— marque as caixinhas conforme o conteúdo da pasta</small> <a href="tipos_arquivo.php" target="_blank" class="float-end small">Cadastrar/gerenciar tipos</a></div>
+        <div class="card-body">
+          <?php if (!$tiposDisponiveis): ?>
+            <div class="alert alert-warning mb-0 small">Nenhum tipo cadastrado. <a href="tipos_arquivo.php">Cadastre os tipos</a> primeiro.</div>
+          <?php else: ?>
+            <div class="row g-2">
+              <?php foreach ($tiposDisponiveis as $t): ?>
+                <div class="col-md-4 col-sm-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="tipos[]" value="<?= (int)$t['id'] ?>" id="tipo<?= (int)$t['id'] ?>">
+                    <label class="form-check-label" for="tipo<?= (int)$t['id'] ?>"><?= h($t['nome']) ?></label>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+            <div class="form-text mt-2">Selecione pelo menos 1. Você pode detalhar quantidades/observações nos Itens abaixo.</div>
+          <?php endif; ?>
+        </div>
+      </div>
+
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="mb-0"><i class="bi bi-list-check"></i> Itens da pasta *</h6>
         <button type="button" id="btnAddItem" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle"></i> Adicionar item</button>
