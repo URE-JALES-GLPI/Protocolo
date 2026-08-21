@@ -42,11 +42,14 @@ include __DIR__.'/includes/header.php';
 <div class="row g-4">
   <div class="col-md-4">
     <div class="list-group shadow-sm">
+      <a href="perfis.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-shield-lock"></i> Perfis (criar e definir permissões)</span><i class="bi bi-chevron-right"></i>
+      </a>
       <a href="tipos_arquivo.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
         <span><i class="bi bi-tags"></i> Tipos de Arquivos (Recebimento)</span><i class="bi bi-chevron-right"></i>
       </a>
       <a href="usuarios.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-people"></i> Usuários</span><i class="bi bi-chevron-right"></i>
+        <span><i class="bi bi-people"></i> Usuários (vincular Perfil)</span><i class="bi bi-chevron-right"></i>
       </a>
       <a href="escolas.php" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
         <span><i class="bi bi-building"></i> Escolas</span><i class="bi bi-chevron-right"></i>

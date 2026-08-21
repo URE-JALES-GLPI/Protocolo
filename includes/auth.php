@@ -39,18 +39,28 @@ function getPermissoes(int $userId = null): array {
     try {
         require_once __DIR__ . '/../config/database.php';
         $pdo = getPDO();
+        // 1) tenta via perfil (novo sistema)
+        try {
+            $stmt = $pdo->prepare("SELECT p.* FROM usuarios u JOIN perfis p ON p.id=u.perfil_id WHERE u.id=?");
+            $stmt->execute([$userId]);
+            $row = $stmt->fetch();
+            if ($row) return $row;
+        } catch (Exception $e) {}
+        // 2) fallback para tabela usuario_permissoes (legado)
         $stmt = $pdo->prepare("SELECT * FROM usuario_permissoes WHERE usuario_id=?");
         $stmt->execute([$userId]);
         $row = $stmt->fetch();
         if ($row) return $row;
     } catch (Exception $e) {}
-    // fallback pelo perfil
+    // fallback pelo perfil antigo
     $isAdmin = (($_SESSION['perfil'] ?? '') === 'admin');
     return [
         'pode_gerenciar_tipos' => $isAdmin ? 1 : 0,
         'pode_gerenciar_escolas' => 1,
         'pode_gerenciar_usuarios' => $isAdmin ? 1 : 0,
         'pode_acessar_config' => $isAdmin ? 1 : 0,
+        'pode_gerenciar_pastas' => 1,
+        'pode_ver_dashboard' => 1,
     ];
 }
 

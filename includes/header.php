@@ -31,6 +31,7 @@ $user = currentUser();
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="bi bi-gear"></i> Configurações</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="configuracoes.php"><i class="bi bi-gear"></i> Painel</a></li>
+            <li><a class="dropdown-item" href="perfis.php"><i class="bi bi-shield-lock"></i> Perfis</a></li>
             <?php if (hasPerm('pode_gerenciar_tipos')): ?><li><a class="dropdown-item" href="tipos_arquivo.php"><i class="bi bi-tags"></i> Tipos de Arquivos</a></li><?php endif; ?>
             <?php if (hasPerm('pode_gerenciar_usuarios')): ?><li><a class="dropdown-item" href="usuarios.php"><i class="bi bi-people"></i> Usuários</a></li><?php endif; ?>
             <li><a class="dropdown-item" href="escolas.php"><i class="bi bi-building"></i> Escolas</a></li>
