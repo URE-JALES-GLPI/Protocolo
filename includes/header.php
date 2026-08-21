@@ -26,7 +26,6 @@ $user = currentUser();
         <li class="nav-item"><a class="nav-link" href="dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="pastas.php"><i class="bi bi-collection"></i> Pastas</a></li>
         <li class="nav-item"><a class="nav-link" href="pasta_nova.php"><i class="bi bi-folder-plus"></i> Nova Pasta</a></li>
-        <li class="nav-item"><a class="nav-link" href="escolas.php"><i class="bi bi-building"></i> Escolas</a></li>
         <?php if (hasPerm('pode_acessar_config')): ?>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="bi bi-gear"></i> Configurações</a>

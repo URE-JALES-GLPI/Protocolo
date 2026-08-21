@@ -22,9 +22,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     }
 }
 
-$usuarios = $pdo->query("SELECT u.id, u.nome, u.username, u.perfil, up.pode_gerenciar_tipos, up.pode_gerenciar_escolas, up.pode_gerenciar_usuarios, up.pode_acessar_config FROM usuarios u LEFT JOIN usuario_permissoes up ON up.usuario_id=u.id ORDER BY u.nome")->fetchAll();
+try {
+    $usuarios = $pdo->query("SELECT u.id, u.nome, u.username, u.perfil, up.pode_gerenciar_tipos, up.pode_gerenciar_escolas, up.pode_gerenciar_usuarios, up.pode_acessar_config FROM usuarios u LEFT JOIN usuario_permissoes up ON up.usuario_id=u.id ORDER BY u.nome")->fetchAll();
+} catch(PDOException $e) { $usuarios = []; }
 if(empty($usuarios)){
-    $usuarios = $pdo->query("SELECT id, nome, username, perfil, 0 as pode_gerenciar_tipos, 0 as pode_gerenciar_escolas, 0 as pode_gerenciar_usuarios, 0 as pode_acessar_config FROM usuarios ORDER BY nome")->fetchAll();
+    try {
+        $usuarios = $pdo->query("SELECT id, nome, username, perfil, 0 as pode_gerenciar_tipos, 0 as pode_gerenciar_escolas, 0 as pode_gerenciar_usuarios, 0 as pode_acessar_config FROM usuarios ORDER BY nome")->fetchAll();
+    } catch(PDOException $e) { $usuarios = []; }
+    if(empty($usuarios)) { $usuarios = []; }
+    // aviso se tabela ainda não migrada
+    if (!empty($usuarios)) flash('error','Tabela de permissões ainda não criada. Rode: mysql -u protocolo_user -pProtocolo@2026 protocolo < sql/migration_permissoes.sql');
 }
 
 $pageTitle='Configurações';
