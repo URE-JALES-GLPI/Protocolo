@@ -33,6 +33,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $id=(int)$_POST['id']; $pdo->prepare("UPDATE escolas SET ativo=1-ativo WHERE id=?")->execute([$id]);
         header('Location: escolas.php'); exit;
     }
+    if ($acao==='excluir') {
+        $id=(int)($_POST['id'] ?? 0);
+        $chk=$pdo->prepare("SELECT COUNT(*) FROM pastas WHERE escola_id=?");
+        $chk->execute([$id]);
+        if ((int)$chk->fetchColumn() > 0) {
+            flash('error','Não é possível excluir: escola possui pastas vinculadas. Use Inativar.');
+        } else {
+            $pdo->prepare("DELETE FROM escolas WHERE id=?")->execute([$id]);
+            flash('success','Escola excluída definitivamente.');
+        }
+        header('Location: escolas.php'); exit;
+    }
 }
 
 $edit = null;
@@ -91,12 +103,18 @@ include __DIR__.'/includes/header.php';
               <td><small><?= h($e['email'] ?? '') ?><br><?= h($e['telefone'] ?? '') ?></small></td>
               <td><?= $e['ativo']?'<span class="badge bg-success">Ativa</span>':'<span class="badge bg-secondary">Inativa</span>' ?></td>
               <td class="text-end">
-                <a href="?edit=<?= (int)$e['id'] ?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                <a href="?edit=<?= (int)$e['id'] ?>" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
                 <form method="post" class="d-inline" onsubmit="return confirm('Alternar status?')">
                   <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                   <input type="hidden" name="acao" value="toggle">
                   <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">
-                  <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-toggle-on"></i></button>
+                  <button class="btn btn-sm btn-outline-secondary" title="Ativar/Inativar"><i class="bi bi-toggle-on"></i></button>
+                </form>
+                <form method="post" class="d-inline" onsubmit="return confirm('Excluir definitivo? Só funciona se não houver pastas vinculadas.')">
+                  <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+                  <input type="hidden" name="acao" value="excluir">
+                  <input type="hidden" name="id" value="<?= (int)$e['id'] ?>">
+                  <button class="btn btn-sm btn-outline-danger" title="Excluir"><i class="bi bi-trash"></i></button>
                 </form>
               </td>
             </tr>
