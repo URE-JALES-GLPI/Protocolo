@@ -80,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 $pageTitle='Nova Pasta - Entrada';
 include __DIR__.'/includes/header.php';
 ?>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 <h4 class="mb-3"><i class="bi bi-folder-plus"></i> Registrar entrada de pasta</h4>
 <div class="card shadow-sm">
   <div class="card-body">
@@ -88,11 +89,11 @@ include __DIR__.'/includes/header.php';
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label">Escola destinatária *</label>
-          <select name="escola_id" class="form-select" required>
+          <select name="escola_id" id="escolaSelect" class="form-select" required placeholder="Digite para buscar...">
             <option value="">Selecione...</option>
             <?php foreach($escolas as $e): ?><option value="<?= (int)$e['id'] ?>"><?= h($e['nome']) ?> <?= $e['codigo']?'('.h($e['codigo']).')':'' ?></option><?php endforeach; ?>
           </select>
-          <div class="form-text">Se a escola não estiver na lista, cadastre em <a href="escolas.php">Escolas</a>.</div>
+          <div class="form-text">Digite para buscar. Se a escola não estiver na lista, cadastre em <a href="escolas.php">Escolas</a>.</div>
         </div>
         <div class="col-md-3">
           <label class="form-label">Data/hora recebimento</label>
@@ -159,4 +160,11 @@ include __DIR__.'/includes/header.php';
     </form>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var el = document.getElementById('escolaSelect');
+  if(el && window.TomSelect) new TomSelect(el, {create:false, sortField:{field:"text", direction:"asc"}, maxOptions: 100, placeholder: "Digite para buscar..."});
+});
+</script>
 <?php include __DIR__.'/includes/footer.php'; ?>
