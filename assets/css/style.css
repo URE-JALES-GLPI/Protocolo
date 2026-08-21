@@ -1,0 +1,9 @@
+:root{ --bs-primary:#1a3a5a; }
+.navbar.bg-primary{ background-color: var(--bs-primary)!important; }
+.card-stat{ border-left:4px solid var(--bs-primary); }
+.table thead th{ background:#f1f5f9; }
+@media print{ .no-print{ display:none!important; } body.bg-light{ background:white!important; } }
+.termo{ background:white; padding:40px; max-width:800px; margin:auto; }
+.termo h1{ font-size:22px; text-align:center; text-transform:uppercase; }
+.termo h2{ font-size:16px; text-align:center; color:#555; }
+.termo .linha-ass{ border-top:1px solid #000; margin-top:60px; padding-top:8px; text-align:center; }

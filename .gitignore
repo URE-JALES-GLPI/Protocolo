@@ -1,0 +1,10 @@
+/uploads/termos/*.pdf
+/uploads/termos/*.jpg
+/uploads/termos/*.jpeg
+/uploads/termos/*.png
+!uploads/termos/.gitkeep
+/vendor/
+.env
+*.log
+.DS_Store
+Thumbs.db
