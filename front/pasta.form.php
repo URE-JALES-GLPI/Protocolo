@@ -27,12 +27,12 @@ if (isset($_POST['add'])) {
         Html::back();
     }
 } elseif (isset($_POST['update'])) {
-    Session::checkCSRF($_POST);
+    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta update");
     $pasta->check($_POST['id'], UPDATE);
     $pasta->update($_POST);
     Html::back();
 } elseif (isset($_POST['action'])) {
-    Session::checkCSRF($_POST);
+    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta action " . ($_POST['action'] ?? ''));
     $id = (int)($_POST['id'] ?? 0);
     $pasta->getFromDB($id);
     $action = $_POST['action'] ?? '';
@@ -65,17 +65,17 @@ if (isset($_POST['add'])) {
         Html::back();
     }
 } elseif (isset($_POST['delete'])) {
-    Session::checkCSRF($_POST);
+    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta delete");
     $pasta->check($_POST['id'], DELETE);
     $pasta->delete($_POST);
     Html::redirect(Pasta::getSearchURL());
 } elseif (isset($_POST['purge'])) {
-    Session::checkCSRF($_POST);
+    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta purge");
     $pasta->check($_POST['id'], PURGE);
     $pasta->delete($_POST, 1);
     Html::redirect(Pasta::getSearchURL());
 } elseif (isset($_POST['restore'])) {
-    Session::checkCSRF($_POST);
+    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta restore");
     $pasta->check($_POST['id'], DELETE);
     $pasta->restore($_POST);
     Html::redirect(Pasta::getFormURLWithID($_POST['id']));
