@@ -12,30 +12,48 @@ if (!Pasta::canView()) {
 
 global $DB;
 
-// Stats
-$totalAguardando = countElementsInTable(Pasta::getTable(), ['status' => 'aguardando', 'is_deleted' => 0]);
-$totalRetiradas  = countElementsInTable(Pasta::getTable(), ['status' => 'retirada', 'is_deleted' => 0]);
+// Entidades ativas para filtro (segurança + performance - evita full scan de outras entidades)
+$activeEntities = $_SESSION['glpiactiveentities'] ?? ($_SESSION['glpiactive_entity'] ? [$_SESSION['glpiactive_entity']] : []);
+if (!is_array($activeEntities)) $activeEntities = [$activeEntities];
+$activeEntities = array_map('intval', $activeEntities);
+$hasAllEntities = false;
+try { $hasAllEntities = method_exists(Session::class, 'haveAccessToAllEntities') && Session::haveAccessToAllEntities(); } catch (Throwable $e) { $hasAllEntities = false; }
+$entityFilter = [];
+if (!$hasAllEntities && !empty($activeEntities) && !in_array(0, $activeEntities)) {
+    $entityFilter = ['entities_id' => $activeEntities];
+}
+$entityWhereSql = '';
+if (!empty($entityFilter)) {
+    $entityWhereSql = " AND p.entities_id IN (" . implode(',', $activeEntities) . ")";
+}
+
+// Stats - com filtro de entidade
+$totalAguardando = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'aguardando', 'is_deleted' => 0], $entityFilter));
+$totalRetiradas  = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'retirada', 'is_deleted' => 0], $entityFilter));
 $totalMes        = 0;
 try {
+    $whereMes = array_merge(['is_deleted' => 0, new \QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter);
     $iterator = $DB->request([
         'COUNT' => 'cpt',
         'FROM'  => Pasta::getTable(),
-        'WHERE' => [
-            'is_deleted' => 0,
-            new \QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")
-        ]
+        'WHERE' => $whereMes
     ]);
     foreach ($iterator as $row) $totalMes = $row['cpt'];
 } catch (Exception $e) { $totalMes = 0; }
 
 $totalEscolas = 0;
 try {
-    $totalEscolas = countElementsInTable('glpi_entities', ['id' => ['>', 0]]);
+    // Conta apenas escolas visíveis na entidade ativa (usa entities se possível)
+    if (!$hasAllEntities && !empty($activeEntities)) {
+        $totalEscolas = countElementsInTable('glpi_entities', ['id' => $activeEntities]);
+    } else {
+        $totalEscolas = countElementsInTable('glpi_entities', ['id' => ['>', 0]]);
+    }
 } catch (Throwable $e) {
-    $totalEscolas = countElementsInTable(Escola::getTable(), ['is_active' => 1]);
+    $totalEscolas = countElementsInTable(Escola::getTable(), array_merge(['is_active' => 1], $entityFilter));
 }
 
-// Pendências de upload: ESCOLA = ENTIDADE
+// Pendências de upload: ESCOLA = ENTIDADE - com filtro de entidade para performance
 try {
     $pendQuery = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome,
         (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
@@ -44,7 +62,7 @@ try {
         FROM glpi_plugin_protocolo_pastas p
         LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
         LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
-        WHERE p.is_deleted=0
+        WHERE p.is_deleted=0 $entityWhereSql
         HAVING rec_assinado IS NULL OR (ret_existe IS NOT NULL AND ret_assinado IS NULL) OR (p.status='retirada' AND ret_existe IS NULL)
         ORDER BY p.id DESC LIMIT 10";
     $pendentes = [];
@@ -57,14 +75,14 @@ try {
 try {
     $totalPendRec = 0;
     $totalPendRet = 0;
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 AND (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) IS NULL");
+    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 $entityWhereSql AND (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) IS NULL");
     if ($res && $row = $DB->fetchAssoc($res)) $totalPendRec = $row['cpt'];
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 AND p.status='retirada' AND ((SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) IS NULL)");
+    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 AND p.status='retirada' $entityWhereSql AND ((SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) IS NULL)");
     if ($res && $row = $DB->fetchAssoc($res)) $totalPendRet = $row['cpt'];
 } catch (Exception $e) { $totalPendRec = 0; $totalPendRet = 0; }
 
-// Últimas aguardando — ESCOLA = ENTIDADE
-$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 ORDER BY p.data_recebimento DESC LIMIT 8";
+// Últimas aguardando — ESCOLA = ENTIDADE - com JOIN agregado para evitar N+1
+$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql ORDER BY p.data_recebimento DESC LIMIT 8";
 $lastRows = [];
 $res = $DB->doQuery($lastSql);
 if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
@@ -89,9 +107,7 @@ echo "</div>";
 echo "<div class='card shadow-sm'><div class='card-header bg-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><a href='" . Pasta::getSearchURL() . "' class='btn btn-sm btn-outline-primary'>" . __('Ver todas') . "</a></div><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr><th>" . __('Código') . "</th><th>" . __('Escola') . "</th><th>" . __('Recebido de') . "</th><th>" . __('Data') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th></th></tr></thead><tbody>";
 if ($lastRows) {
     foreach ($lastRows as $r) {
-        $qtdRes = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_itens WHERE plugin_protocolo_pastas_id=" . (int)$r['id']);
-        $itens = 0;
-        if ($qtdRes && $row = $DB->fetchAssoc($qtdRes)) $itens = $row['cpt'];
+        $itens = (int)($r['itens_qtd'] ?? 0);
         echo "<tr><td class='fw-bold'>" . htmlspecialchars($r['codigo']) . "</td><td>" . htmlspecialchars($r['escola_nome']) . "</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='badge bg-light text-dark border'>$itens item(s)</span></td><td>" . Pasta::getStatusBadge($r['status']) . "</td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='btn btn-sm btn-outline-primary'><i class='ti ti-eye'></i> Ver</a></td></tr>";
     }
 } else {

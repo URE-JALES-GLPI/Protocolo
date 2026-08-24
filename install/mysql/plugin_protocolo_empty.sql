@@ -48,7 +48,12 @@ CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_pastas` (
   `is_recursive` TINYINT(1) NOT NULL DEFAULT 0,
   `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,
   `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+  `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  KEY `idx_status_deleted` (`status`, `is_deleted`),
+  KEY `idx_entities_deleted` (`entities_id`, `is_deleted`),
+  KEY `idx_data_recebimento` (`data_recebimento`),
+  KEY `idx_escola` (`plugin_protocolo_escolas_id`),
+  KEY `idx_entities_status` (`entities_id`, `status`, `is_deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_itens` (
@@ -56,7 +61,8 @@ CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_itens` (
   `plugin_protocolo_pastas_id` INT NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `quantidade` INT NOT NULL DEFAULT 1,
-  `comment` VARCHAR(255) DEFAULT NULL
+  `comment` VARCHAR(255) DEFAULT NULL,
+  KEY `idx_pasta` (`plugin_protocolo_pastas_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_pastatipos` (
@@ -74,7 +80,10 @@ CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_termos` (
   `arquivo_assinado` VARCHAR(255) DEFAULT NULL,
   `hash_verificacao` VARCHAR(64) DEFAULT NULL,
   `users_id` INT DEFAULT NULL,
-  `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP
+  `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  KEY `idx_pasta_tipo` (`plugin_protocolo_pastas_id`, `tipo`),
+  KEY `idx_codigo_hash` (`codigo`, `hash_verificacao`),
+  KEY `idx_tipo` (`tipo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_notificacoes` (

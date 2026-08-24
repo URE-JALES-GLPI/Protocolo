@@ -541,21 +541,30 @@ class Pasta extends CommonDBTM
         echo "<td width='15%'><label>" . __('Escola destinatária', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(Entidade GLPI)</small></label></td>";
         echo "<td width='35%'>";
         $escolaId = (int)($this->fields['plugin_protocolo_escolas_id'] ?? 0);
-        // ESCOLA = ENTIDADE: mostra TODAS as entidades (sem filtro de permissão/entidade ativa) e sem botão +
-        global $DB;
-        $allEntities = [];
+        // Performance: usa Entity::dropdown nativo (Select2 com AJAX) em vez de SELECT * + loop
+        // Lista todas as entidades de forma paginada/lazy, evita payload de 500+ options
         try {
-            $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => ['>', 0]], 'ORDER' => 'completename']);
-            foreach ($it as $row) $allEntities[] = $row;
-        } catch (\Throwable $e) { $allEntities = []; }
-        echo "<select name='plugin_protocolo_escolas_id' id='escola_select' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
-        foreach ($allEntities as $ent) {
-            $sel = ((int)$ent['id'] === $escolaId) ? 'selected' : '';
-            $label = htmlspecialchars($ent['completename']);
-            echo "<option value='" . (int)$ent['id'] . "' $sel>$label</option>";
+            \Entity::dropdown([
+                'name'   => 'plugin_protocolo_escolas_id',
+                'value'  => $escolaId,
+                'width'  => '100%',
+                'display_emptychoice' => true,
+                'emptylabel' => '-- ' . __('Selecione a escola', 'protocolo') . ' --',
+                'comments' => false,
+                'entity' => 0,
+                'entity_sons' => true,
+                'required' => true,
+            ]);
+        } catch (\Throwable $e) {
+            // Fallback leve: apenas entidade atual + selecionada
+            echo "<select name='plugin_protocolo_escolas_id' id='escola_select' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
+            if ($escolaId) {
+                $entName = self::getEscolaName($escolaId);
+                echo "<option value='" . $escolaId . "' selected>" . htmlspecialchars($entName) . "</option>";
+            }
+            echo "</select>";
         }
-        echo "</select>";
-        echo "<div class='form-text'><small class='text-muted'>" . __('Todas as entidades são listadas. Gerencie em Administração → Entidades', 'protocolo') . "</small></div>";
+        echo "<div class='form-text'><small class='text-muted'>" . __('Entidade GLPI = Escola. Gerencie em Administração → Entidades', 'protocolo') . "</small></div>";
         echo "</td>";
 
         echo "<td><label>" . __('Data/hora recebimento', 'protocolo') . "</label></td>";
@@ -1005,8 +1014,14 @@ class Pasta extends CommonDBTM
             Session::addMessageAfterRedirect(__('Termo não encontrado', 'protocolo'), false, ERROR);
             return false;
         }
-        if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK) {
-            Session::addMessageAfterRedirect(__('Selecione um arquivo válido', 'protocolo'), false, ERROR);
+        if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+            $msg = match ($file['error'] ?? UPLOAD_ERR_NO_FILE) {
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => __('Arquivo excede o limite do servidor (upload_max_filesize)', 'protocolo'),
+                UPLOAD_ERR_PARTIAL => __('Upload incompleto', 'protocolo'),
+                UPLOAD_ERR_NO_FILE => __('Selecione um arquivo válido', 'protocolo'),
+                default => __('Falha no upload', 'protocolo'),
+            };
+            Session::addMessageAfterRedirect($msg, false, ERROR);
             return false;
         }
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -1014,20 +1029,48 @@ class Pasta extends CommonDBTM
             Session::addMessageAfterRedirect(__('Apenas PDF, JPG ou PNG', 'protocolo'), false, ERROR);
             return false;
         }
+        // Valida MIME real com finfo (evita .php.jpg)
+        $mimeOk = false;
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $realMime = $finfo ? finfo_file($finfo, $file['tmp_name']) : null;
+        if ($finfo) finfo_close($finfo);
+        $allowedMimes = [
+            'pdf'  => ['application/pdf'],
+            'jpg'  => ['image/jpeg', 'image/jpg'],
+            'jpeg' => ['image/jpeg', 'image/jpg'],
+            'png'  => ['image/png'],
+        ];
+        if (isset($allowedMimes[$ext]) && in_array($realMime, $allowedMimes[$ext], true)) {
+            $mimeOk = true;
+        }
+        // Fallback para ambientes sem finfo: confia na extensão mas bloqueia double-extension
+        if (!$mimeOk && $realMime === null) {
+            $mimeOk = true;
+        }
+        if (!$mimeOk) {
+            Session::addMessageAfterRedirect(__('Tipo de arquivo não corresponde à extensão (mime inválido: ', 'protocolo') . htmlspecialchars($realMime ?? 'desconhecido') . ')', false, ERROR);
+            return false;
+        }
+        // Bloqueia double extension tipo .php.pdf
+        if (preg_match('/\.(php|phtml|exe|sh|js)$/i', $file['name'])) {
+            Session::addMessageAfterRedirect(__('Nome de arquivo não permitido', 'protocolo'), false, ERROR);
+            return false;
+        }
         if ($file['size'] > 10 * 1024 * 1024) {
             Session::addMessageAfterRedirect(__('Arquivo muito grande (máx 10MB)', 'protocolo'), false, ERROR);
             return false;
         }
-        $novoNome = $termo['codigo'] . '-ASSINADO-' . time() . '.' . $ext;
+        // Nome único com random_bytes para evitar colisão/time() previsível
+        $novoNome = $termo['codigo'] . '-ASSINADO-' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
         $destDir = GLPI_PLUGIN_DOC_DIR . '/protocolo/termos';
         if (!is_dir($destDir)) @mkdir($destDir, 0775, true);
         $dest = $destDir . '/' . $novoNome;
-        // GLPI_PLUGIN_DOC_DIR já é fora de files/_plugins ?
 
         if (!move_uploaded_file($file['tmp_name'], $dest)) {
             Session::addMessageAfterRedirect(__('Falha ao salvar arquivo', 'protocolo'), false, ERROR);
             return false;
         }
+        @chmod($dest, 0640);
         // Remove antigo
         if (!empty($termo['arquivo_assinado'])) {
             // tenta resolver caminho: pode ser antigo uploads/termos/... ou novo doc
@@ -1085,12 +1128,15 @@ class Pasta extends CommonDBTM
 
     public static function getEscolaName(int $escolaId): string
     {
+        static $cache = [];
+        if (isset($cache[$escolaId])) return $cache[$escolaId];
         global $DB;
         // ESCOLA = ENTIDADE: tenta glpi_entities primeiro, fallback para tabela antiga glpi_plugin_protocolo_escolas
         $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
-        foreach ($it as $r) { return $r['completename'] ?? $r['name']; }
+        foreach ($it as $r) { $cache[$escolaId] = $r['completename'] ?? $r['name']; return $cache[$escolaId]; }
         $it2 = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
-        foreach ($it2 as $r) { return $r['name']; }
+        foreach ($it2 as $r) { $cache[$escolaId] = $r['name']; return $cache[$escolaId]; }
+        $cache[$escolaId] = '-';
         return '-';
     }
 

@@ -29,30 +29,71 @@ if ($termoId) {
     $rel = $path;
 }
 
-// Sanitiza
-$rel = str_replace(['..', '\\'], '', $rel);
-$rel = ltrim($rel, '/');
+// Sanitiza - whitelist estrita: apenas basename, sem path traversal
+$rel = trim($rel);
+$rel = str_replace('\\', '/', $rel);
+// Permite apenas "termos/<arquivo>" ou "<arquivo>" - extrai basename
+$basename = basename($rel);
+// Valida basename contra whitelist: TR/TE/DOC + extensão permitida
+if (!preg_match('/^[A-Za-z0-9._-]+\.(pdf|jpg|jpeg|png)$/i', $basename)) {
+    // Se vier no formato termos/TR-...pdf, valida mesmo assim
+    if (!preg_match('/^(termos\/)?[A-Z0-9._-]+\.(pdf|jpg|jpeg|png)$/i', $rel)) {
+        Html::displayErrorAndDie(__('Nome de arquivo inválido', 'protocolo'));
+    }
+}
+$relBasename = $basename;
 
+$baseDir = rtrim(GLPI_PLUGIN_DOC_DIR, '/') . '/protocolo/termos';
 $candidates = [
-    GLPI_PLUGIN_DOC_DIR . '/protocolo/' . $rel,
-    GLPI_PLUGIN_DOC_DIR . '/protocolo/termos/' . basename($rel),
-    GLPI_ROOT . '/plugins/protocolo/files/termos/' . basename($rel),
-    GLPI_ROOT . '/plugins/protocolo/uploads/termos/' . basename($rel),
+    $baseDir . '/' . $relBasename,
+    GLPI_PLUGIN_DOC_DIR . '/protocolo/' . $relBasename,
+    GLPI_ROOT . '/plugins/protocolo/files/termos/' . $relBasename,
 ];
 
 $found = null;
+$realBase = realpath($baseDir);
 foreach ($candidates as $c) {
-    if (file_exists($c)) { $found = $c; break; }
+    if (file_exists($c)) {
+        $real = realpath($c);
+        // Se base existir, garante que o arquivo está dentro dela (previne symlink traversal)
+        if ($real && $realBase && strpos($real, $realBase) === 0) {
+            $found = $real;
+            break;
+        } elseif ($real) {
+            // Para candidatos fora do baseDir, valida que é dentro de plugins/protocolo
+            $realPlugins = realpath(GLPI_ROOT . '/plugins/protocolo');
+            if ($realPlugins && strpos($real, $realPlugins) === 0) {
+                $found = $real;
+                break;
+            }
+        } else {
+            $found = $c;
+            break;
+        }
+    }
 }
 
-if (!$found) {
-    Html::displayErrorAndDie(__('Arquivo físico não encontrado: ', 'protocolo') . htmlspecialchars($rel));
+if (!$found || !file_exists($found)) {
+    Html::displayErrorAndDie(__('Arquivo físico não encontrado: ', 'protocolo') . htmlspecialchars($relBasename));
+}
+// Verificação adicional de permissão: pasta da qual o termo pertence deve ser visível
+if ($termo) {
+    $pastaCheck = new Pasta();
+    if (!$pastaCheck->getFromDB($termo['plugin_protocolo_pastas_id']) || !$pastaCheck->canViewItem()) {
+        Html::displayRightError();
+    }
 }
 
 // Envia
 $filename = basename($found);
-$mime = mime_content_type($found) ?: 'application/octet-stream';
-if (str_ends_with(strtolower($filename), '.pdf')) $mime = 'application/pdf';
+$finfo = finfo_open(FILEINFO_MIME_TYPE);
+$mime = $finfo ? finfo_file($finfo, $found) : mime_content_type($found);
+if ($finfo) finfo_close($finfo);
+$mime = $mime ?: 'application/octet-stream';
+// Força mime correto por extensão
+$ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+$mimeMap = ['pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png'];
+if (isset($mimeMap[$ext])) $mime = $mimeMap[$ext];
 
 header('Content-Type: ' . $mime);
 header('Content-Disposition: inline; filename="' . $filename . '"');

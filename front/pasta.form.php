@@ -8,31 +8,23 @@ Session::checkLoginUser();
 $pasta = new Pasta();
 
 if (isset($_POST['add'])) {
-    // CSRF check com fallback (evita AccessDenied se token expirou ou js interferiu)
-    if (!Session::validateCSRF($_POST)) {
-        // tenta validar com token antigo ou ignora se for nova pasta (criação já checa permissão)
-        error_log("[protocolo] CSRF falhou em pasta add, mas seguindo com checagem de permissão");
-    }
+    Session::checkCSRF($_POST);
     if (!Pasta::canCreate()) {
         Html::displayRightError();
     }
-    // Mapeia campos do form para colunas esperadas por Pasta::prepareInputForAdd
-    // O form envia: plugin_protocolo_escolas_id, data_recebimento, recebido_de, etc
-    // Mas nossa classe espera exatamente esses nomes, então apenas repassa
     $newID = $pasta->add($_POST);
     if ($newID) {
-        // Se criou, redireciona para view
         Html::redirect(Pasta::getFormURLWithID($newID));
     } else {
         Html::back();
     }
 } elseif (isset($_POST['update'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta update");
+    Session::checkCSRF($_POST);
     $pasta->check($_POST['id'], UPDATE);
     $pasta->update($_POST);
     Html::back();
 } elseif (isset($_POST['action'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta action " . ($_POST['action'] ?? ''));
+    Session::checkCSRF($_POST);
     $id = (int)($_POST['id'] ?? 0);
     $pasta->getFromDB($id);
     $action = $_POST['action'] ?? '';
@@ -65,17 +57,17 @@ if (isset($_POST['add'])) {
         Html::back();
     }
 } elseif (isset($_POST['delete'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta delete");
+    Session::checkCSRF($_POST);
     $pasta->check($_POST['id'], DELETE);
     $pasta->delete($_POST);
     Html::redirect(Pasta::getSearchURL());
 } elseif (isset($_POST['purge'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta purge");
+    Session::checkCSRF($_POST);
     $pasta->check($_POST['id'], PURGE);
     $pasta->delete($_POST, 1);
     Html::redirect(Pasta::getSearchURL());
 } elseif (isset($_POST['restore'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF falhou em pasta restore");
+    Session::checkCSRF($_POST);
     $pasta->check($_POST['id'], DELETE);
     $pasta->restore($_POST);
     Html::redirect(Pasta::getFormURLWithID($_POST['id']));

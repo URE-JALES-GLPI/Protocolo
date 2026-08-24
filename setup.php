@@ -130,14 +130,15 @@ function plugin_init_protocolo(): void
         'css/style.css'
     ];
 
-    // Migração automática ENTIDADES para Escola (sem precisar reinstalar)
-    // Garante que escolas antigas (entities_id=0, is_recursive=0) fiquem visíveis nas sub-entidades
+    // Migração ENTIDADES - roda apenas uma vez por versão (cache em glpi_configs)
+    // Evita custo em toda requisição (antes era em plugin_init = toda página)
     try {
-        if (class_exists(\GlpiPlugin\Protocolo\Install::class)) {
-            // Só roda se plugin já está com tabela criada (evita erro em install limpo)
-            global $DB;
-            if (isset($DB) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
+        if (class_exists(\GlpiPlugin\Protocolo\Install::class) && isset($DB) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
+            $migratedVersion = null;
+            try { $migratedVersion = \Config::getConfigurationValue('plugin:protocolo', 'migrated_version'); } catch (\Throwable $e) {}
+            if ($migratedVersion !== PLUGIN_PROTOCOLO_VERSION) {
                 \GlpiPlugin\Protocolo\Install::migrateEntities($DB);
+                try { \Config::setConfigurationValues('plugin:protocolo', ['migrated_version' => PLUGIN_PROTOCOLO_VERSION]); } catch (\Throwable $e) {}
             }
         }
     } catch (\Throwable $e) {

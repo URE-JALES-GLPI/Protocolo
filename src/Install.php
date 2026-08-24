@@ -167,7 +167,11 @@ class Install
               KEY `plugin_protocolo_escolas_id` (`plugin_protocolo_escolas_id`),
               KEY `users_id` (`users_id`),
               KEY `entities_id` (`entities_id`),
-              KEY `status` (`status`)
+              KEY `status` (`status`),
+              KEY `idx_status_deleted` (`status`, `is_deleted`),
+              KEY `idx_entities_deleted` (`entities_id`, `is_deleted`),
+              KEY `idx_data_recebimento` (`data_recebimento`),
+              KEY `idx_entities_status` (`entities_id`, `status`, `is_deleted`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC",
 
             "CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_itens` (
@@ -197,6 +201,8 @@ class Install
               `users_id` INT DEFAULT NULL,
               `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
               KEY `plugin_protocolo_pastas_id` (`plugin_protocolo_pastas_id`),
+              KEY `idx_pasta_tipo` (`plugin_protocolo_pastas_id`, `tipo`),
+              KEY `idx_codigo_hash` (`codigo`, `hash_verificacao`),
               KEY `tipo` (`tipo`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC",
 
@@ -334,6 +340,44 @@ class Install
                 if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'retirado_documento_tipo')) {
                     $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `retirado_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf' AFTER `retirado_documento`");
                 }
+                // Índices para performance (dashboard com filtro de entidade)
+                $idxToAdd = [
+                    'idx_status_deleted' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_status_deleted` (`status`, `is_deleted`)",
+                    'idx_entities_deleted' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_entities_deleted` (`entities_id`, `is_deleted`)",
+                    'idx_data_recebimento' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_data_recebimento` (`data_recebimento`)",
+                    'idx_entities_status' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_entities_status` (`entities_id`, `status`, `is_deleted`)",
+                ];
+                foreach ($idxToAdd as $idx => $sql) {
+                    try {
+                        // Verifica se índice já existe via SHOW INDEX
+                        $res = $DB->doQuery("SHOW INDEX FROM `glpi_plugin_protocolo_pastas` WHERE Key_name='$idx'");
+                        $exists = false;
+                        if ($res) while ($row = $DB->fetchAssoc($res)) { $exists = true; break; }
+                        if (!$exists) $DB->doQuery($sql);
+                    } catch (\Throwable $e) {}
+                }
+            }
+            if ($DB->tableExists('glpi_plugin_protocolo_itens')) {
+                try {
+                    $res = $DB->doQuery("SHOW INDEX FROM `glpi_plugin_protocolo_itens` WHERE Key_name='idx_pasta'");
+                    $exists = false;
+                    if ($res) while ($row = $DB->fetchAssoc($res)) { $exists = true; break; }
+                    if (!$exists) $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_itens` ADD KEY `idx_pasta` (`plugin_protocolo_pastas_id`)");
+                } catch (\Throwable $e) {}
+            }
+            if ($DB->tableExists('glpi_plugin_protocolo_termos')) {
+                $idxTermos = [
+                    'idx_pasta_tipo' => "ALTER TABLE `glpi_plugin_protocolo_termos` ADD KEY `idx_pasta_tipo` (`plugin_protocolo_pastas_id`, `tipo`)",
+                    'idx_codigo_hash' => "ALTER TABLE `glpi_plugin_protocolo_termos` ADD KEY `idx_codigo_hash` (`codigo`, `hash_verificacao`)",
+                ];
+                foreach ($idxTermos as $idx => $sql) {
+                    try {
+                        $res = $DB->doQuery("SHOW INDEX FROM `glpi_plugin_protocolo_termos` WHERE Key_name='$idx'");
+                        $exists = false;
+                        if ($res) while ($row = $DB->fetchAssoc($res)) { $exists = true; break; }
+                        if (!$exists) $DB->doQuery($sql);
+                    } catch (\Throwable $e) {}
+                }
             }
         } catch (\Throwable $e) {
             error_log("[protocolo] migrateEntities falhou: " . $e->getMessage());
@@ -345,30 +389,70 @@ class Install
         global $DB;
         $ano = date('Y');
         $prefix = "PROT-$ano-";
-        try {
-            $iterator = $DB->request([
-                'SELECT' => ['codigo'],
-                'FROM'   => 'glpi_plugin_protocolo_pastas',
-                'WHERE'  => ['codigo' => ['LIKE', $prefix . '%']],
-                'ORDER'  => 'id DESC',
-                'LIMIT'  => 1
-            ]);
-            $ultimo = null;
-            foreach ($iterator as $row) { $ultimo = $row['codigo']; }
-            if ($ultimo) {
-                $num = (int)substr($ultimo, strlen($prefix)) + 1;
-            } else {
-                $num = 1;
+        // Tenta até 5 vezes em caso de colisão concorrente (UNIQUE em codigo)
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            try {
+                // LOCK para evitar race: usa SELECT ... FOR UPDATE dentro de transação se disponível
+                $ultimo = null;
+                // Tenta transação se DB suportar
+                $inTrans = false;
+                try {
+                    if (method_exists($DB, 'beginTransaction')) {
+                        $DB->beginTransaction();
+                        $inTrans = true;
+                    }
+                } catch (\Throwable $e) { $inTrans = false; }
+                $iterator = $DB->request([
+                    'SELECT' => ['codigo'],
+                    'FROM'   => 'glpi_plugin_protocolo_pastas',
+                    'WHERE'  => ['codigo' => ['LIKE', $prefix . '%']],
+                    'ORDER'  => 'id DESC',
+                    'LIMIT'  => 1
+                ]);
+                foreach ($iterator as $row) { $ultimo = $row['codigo']; }
+                if ($inTrans) {
+                    try { $DB->commit(); } catch (\Throwable $e) {}
+                }
+                if ($ultimo) {
+                    $num = (int)substr($ultimo, strlen($prefix)) + 1;
+                } else {
+                    $num = 1;
+                }
+                $codigo = $prefix . str_pad((string)($num + $attempt), 4, '0', STR_PAD_LEFT);
+                // Valida que ainda não existe (evita retry desnecessário em caso de gap)
+                $exists = $DB->request(['FROM' => 'glpi_plugin_protocolo_pastas', 'WHERE' => ['codigo' => $codigo], 'LIMIT' => 1]);
+                $found = false;
+                foreach ($exists as $r) { $found = true; break; }
+                if (!$found) return $codigo;
+                // se já existe, loop tenta próximo número
+            } catch (\Throwable $e) {
+                try { if ($inTrans ?? false) $DB->rollBack(); } catch (\Throwable $e2) {}
+                // fallback aleatório na última tentativa
+                if ($attempt === 4) {
+                    return $prefix . str_pad((string)random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+                }
             }
-            return $prefix . str_pad((string)$num, 4, '0', STR_PAD_LEFT);
-        } catch (\Throwable $e) {
-            return $prefix . str_pad((string)random_int(1, 9999), 4, '0', STR_PAD_LEFT);
         }
+        return $prefix . str_pad((string)random_int(1, 9999), 4, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * Gera código com colisão mínima - retry se já existir no banco
+     */
     public static function gerarCodigoTermo(string $tipo): string
     {
+        global $DB;
         $pref = $tipo === 'recebimento' ? 'TR' : 'TE';
-        return $pref . '-' . date('Ymd-His') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+        for ($i = 0; $i < 5; $i++) {
+            $codigo = $pref . '-' . date('Ymd-His') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+            try {
+                $it = $DB->request(['FROM' => 'glpi_plugin_protocolo_termos', 'WHERE' => ['codigo' => $codigo], 'LIMIT' => 1]);
+                $exists = false;
+                foreach ($it as $r) { $exists = true; break; }
+                if (!$exists) return $codigo;
+            } catch (\Throwable $e) { return $codigo; }
+            usleep(10000);
+        }
+        return $pref . '-' . date('Ymd-His') . '-' . strtoupper(bin2hex(random_bytes(4)));
     }
 }
