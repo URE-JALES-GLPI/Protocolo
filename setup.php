@@ -82,50 +82,45 @@ function plugin_init_protocolo(): void
     // CSRF compliance
     $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = true;
 
-    // Menu GLPI 10/11 - Ferramentas e Plugins (garante visibilidade)
-    if (Session::getLoginUserID()) {
-        $PLUGIN_HOOKS['menu_toadd']['protocolo'] = [
-            'tools'   => \GlpiPlugin\Protocolo\Pasta::class,
-            'plugins' => \GlpiPlugin\Protocolo\Pasta::class,
-        ];
-
-        // Submenu antigo (compatibilidade GLPI 10)
-        $PLUGIN_HOOKS['menu_entry']['protocolo'] = 'front/dashboard.php';
-        $PLUGIN_HOOKS['submenu_entry']['protocolo']['dashboard'] = [
-            'title' => 'Dashboard',
-            'page'  => '/plugins/protocolo/front/dashboard.php',
-            'links' => [
-                'search' => '/plugins/protocolo/front/pasta.php',
-                'add'    => '/plugins/protocolo/front/pasta.form.php',
-            ]
-        ];
-        $PLUGIN_HOOKS['submenu_entry']['protocolo']['pastas'] = [
-            'title' => 'Pastas',
-            'page'  => '/plugins/protocolo/front/pasta.php',
-            'links' => [
-                'search' => '/plugins/protocolo/front/pasta.php',
-                'add'    => '/plugins/protocolo/front/pasta.form.php',
-            ]
-        ];
-        $PLUGIN_HOOKS['submenu_entry']['protocolo']['escolas'] = [
-            'title' => 'Escolas',
-            'page'  => '/plugins/protocolo/front/escola.php',
-            'links' => [
-                'search' => '/plugins/protocolo/front/escola.php',
-                'add'    => '/plugins/protocolo/front/escola.form.php',
-            ]
-        ];
-        $PLUGIN_HOOKS['submenu_entry']['protocolo']['tipos'] = [
-            'title' => 'Tipos de Arquivo',
-            'page'  => '/plugins/protocolo/front/tipo.php',
-            'links' => [
-                'search' => '/plugins/protocolo/front/tipo.php',
-                'add'    => '/plugins/protocolo/front/tipo.form.php',
-            ]
-        ];
-        // Config page
-        $PLUGIN_HOOKS['config_page']['protocolo'] = 'front/config.php';
-    }
+    // Menu GLPI 10/11 - sempre registra (GLPI filtra por canView)
+    $PLUGIN_HOOKS['menu_toadd']['protocolo'] = [
+        'tools'   => \GlpiPlugin\Protocolo\Pasta::class,
+        'plugins' => \GlpiPlugin\Protocolo\Pasta::class,
+    ];
+    $PLUGIN_HOOKS['menu_entry']['protocolo'] = 'front/dashboard.php';
+    $PLUGIN_HOOKS['submenu_entry']['protocolo']['dashboard'] = [
+        'title' => 'Dashboard',
+        'page'  => '/plugins/protocolo/front/dashboard.php',
+        'links' => [
+            'search' => '/plugins/protocolo/front/pasta.php',
+            'add'    => '/plugins/protocolo/front/pasta.form.php',
+        ]
+    ];
+    $PLUGIN_HOOKS['submenu_entry']['protocolo']['pastas'] = [
+        'title' => 'Pastas',
+        'page'  => '/plugins/protocolo/front/pasta.php',
+        'links' => [
+            'search' => '/plugins/protocolo/front/pasta.php',
+            'add'    => '/plugins/protocolo/front/pasta.form.php',
+        ]
+    ];
+    $PLUGIN_HOOKS['submenu_entry']['protocolo']['escolas'] = [
+        'title' => 'Escolas',
+        'page'  => '/plugins/protocolo/front/escola.php',
+        'links' => [
+            'search' => '/plugins/protocolo/front/escola.php',
+            'add'    => '/plugins/protocolo/front/escola.form.php',
+        ]
+    ];
+    $PLUGIN_HOOKS['submenu_entry']['protocolo']['tipos'] = [
+        'title' => 'Tipos de Arquivo',
+        'page'  => '/plugins/protocolo/front/tipo.php',
+        'links' => [
+            'search' => '/plugins/protocolo/front/tipo.php',
+            'add'    => '/plugins/protocolo/front/tipo.form.php',
+        ]
+    ];
+    $PLUGIN_HOOKS['config_page']['protocolo'] = 'front/config.php';
 
     // JS/CSS
     $PLUGIN_HOOKS['add_javascript']['protocolo'] = [
