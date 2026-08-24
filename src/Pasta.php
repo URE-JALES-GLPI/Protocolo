@@ -402,18 +402,53 @@ class Pasta extends CommonDBTM
             echo "<div class='d-flex justify-content-between'><div>$badge <code class='ms-2'>" . htmlspecialchars($t['codigo']) . "</code><br><small class='text-muted'>" . Html::convDateTime($t['date_creation']) . " · Hash " . htmlspecialchars(substr($t['hash_verificacao'] ?? '', 0, 12)) . "...</small><br>$assinado</div>";
             echo "<div><a href='$imprimirUrl' target='_blank' class='btn btn-sm btn-outline-primary'><i class='ti ti-printer'></i> Ver/Imprimir</a></div></div>";
 
-            // Form upload (GLPI style)
-            echo "<form method='post' enctype='multipart/form-data' action='" . self::getFormURL() . "' class='mt-3 d-flex gap-2 align-items-end'>";
+            // Form upload (GLPI style) - Enviar abre picker se sem arquivo
+            echo "<form method='post' enctype='multipart/form-data' action='" . self::getFormURL() . "' class='mt-3 d-flex gap-2 align-items-end termo-upload-form'>";
             echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
             echo "<input type='hidden' name='id' value='$id'>";
             echo "<input type='hidden' name='action' value='upload'>";
             echo "<input type='hidden' name='termo_id' value='" . (int)$t['id'] . "'>";
             echo "<div class='flex-grow-1'><label class='form-label small mb-1'>" . __('Substituir por arquivo assinado (PDF/JPG/PNG, máx 10MB)', 'protocolo') . "</label>";
-            echo "<input type='file' name='arquivo' accept='.pdf,.jpg,.jpeg,.png' class='form-control form-control-sm' required></div>";
-            echo "<button class='btn btn-sm btn-dark'><i class='ti ti-upload'></i> Enviar</button>";
+            echo "<input type='file' name='arquivo' accept='.pdf,.jpg,.jpeg,.png' class='form-control form-control-sm termo-arquivo-input' required></div>";
+            echo "<button type='submit' class='btn btn-sm btn-dark termo-enviar-btn'><i class='ti ti-upload'></i> Enviar</button>";
             echo "</form></div>";
         }
         echo "</div>";
+        // JS inline fallback: garante que Enviar abre picker se sem arquivo (funciona mesmo se app.js em cache ou tab via AJAX)
+        echo "<script>(function(){
+            if(window.__protocoloTermoPickerBound) return;
+            window.__protocoloTermoPickerBound = true;
+            function bind(){
+                document.addEventListener('click', function(e){
+                    var btn = e.target.closest && e.target.closest('.termo-enviar-btn');
+                    if(!btn) return;
+                    var form = btn.closest('.termo-upload-form');
+                    if(!form) return;
+                    var input = form.querySelector('.termo-arquivo-input');
+                    if(!input) return;
+                    if(!input.files || input.files.length===0){
+                        e.preventDefault(); e.stopPropagation();
+                        input.click();
+                    }
+                });
+                document.addEventListener('change', function(e){
+                    if(!e.target.classList.contains('termo-arquivo-input')) return;
+                    var input=e.target, form=input.closest('.termo-upload-form');
+                    if(!form) return;
+                    var btn=form.querySelector('.termo-enviar-btn');
+                    if(!btn) return;
+                    if(input.files && input.files.length>0){
+                        btn.classList.remove('btn-dark'); btn.classList.add('btn-success');
+                        btn.title=input.files[0].name;
+                        var hint=form.querySelector('.termo-arquivo-hint');
+                        if(!hint){ hint=document.createElement('small'); hint.className='termo-arquivo-hint text-success d-block mt-1'; input.parentElement.appendChild(hint); }
+                        hint.textContent='Selecionado: '+input.files[0].name+' — clique em Enviar novamente para enviar.';
+                        hint.style.display='';
+                    }
+                });
+            }
+            if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+        })();</script>";
 
         // Timeline - histórico da pasta
         echo "<div class='spaced'><h3><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</h3>";

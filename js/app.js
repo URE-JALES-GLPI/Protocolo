@@ -79,4 +79,54 @@ document.addEventListener('DOMContentLoaded', () => {
   if (escolaSelect && window.TomSelect) {
     new TomSelect(escolaSelect, {create:false, sortField:{field:"text", direction:"asc"}, maxOptions:100});
   }
+
+  // Termo: botão Enviar abre picker se ainda sem arquivo (compartilha flag com inline de Pasta.php)
+  if (!window.__protocoloTermoPickerBound) {
+    window.__protocoloTermoPickerBound = true;
+    // Delegação global para funcionar também em tabs carregadas via AJAX
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.termo-enviar-btn');
+      if (!btn) return;
+      const form = btn.closest('.termo-upload-form');
+      if (!form) return;
+      const input = form.querySelector('.termo-arquivo-input');
+      if (!input) return;
+      if (!input.files || input.files.length === 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        input.click();
+      }
+      // se já tem arquivo, deixa o submit ocorrer normalmente
+    });
+
+    // Feedback visual quando arquivo é selecionado
+    document.addEventListener('change', (e) => {
+      if (!e.target.classList.contains('termo-arquivo-input')) return;
+      const input = e.target;
+      const form = input.closest('.termo-upload-form');
+      if (!form) return;
+      const btn = form.querySelector('.termo-enviar-btn');
+      if (!btn) return;
+      if (input.files && input.files.length > 0) {
+        const nome = input.files[0].name;
+        btn.classList.remove('btn-dark');
+        btn.classList.add('btn-success');
+        btn.title = nome;
+        // mostra nome abaixo do input se ainda não houver
+        let hint = form.querySelector('.termo-arquivo-hint');
+        if (!hint) {
+          hint = document.createElement('small');
+          hint.className = 'termo-arquivo-hint text-success d-block mt-1';
+          input.parentElement.appendChild(hint);
+        }
+        hint.textContent = 'Selecionado: ' + nome + ' — clique em Enviar novamente para enviar.';
+        hint.style.display = '';
+      } else {
+        btn.classList.add('btn-dark');
+        btn.classList.remove('btn-success');
+        const hint = form.querySelector('.termo-arquivo-hint');
+        if (hint) hint.style.display = 'none';
+      }
+    });
+  }
 });
