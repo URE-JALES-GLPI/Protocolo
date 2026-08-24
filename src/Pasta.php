@@ -476,9 +476,10 @@ class Pasta extends CommonDBTM
 
         echo "<td><label>" . __('Data/hora recebimento', 'protocolo') . "</label></td>";
         $valDt = $this->fields['data_recebimento'] ?? date('Y-m-d\TH:i');
-        // converte para datetime-local
+        // converte para datetime-local (fallback servidor, JS sobrescreve com hora local do computador se for novo)
         $valDtLocal = date('Y-m-d\TH:i', strtotime($valDt));
-        echo "<td><input type='datetime-local' name='data_recebimento' class='form-control' value='$valDtLocal' " . ($isNew ? '' : '') . "></td>";
+        $dtId = $isNew ? "id='data_recebimento_field'" : "";
+        echo "<td><input type='datetime-local' name='data_recebimento' $dtId class='form-control' value='$valDtLocal'></td>";
         echo "</tr>";
 
         echo "<tr class='tab_bg_1'>";
@@ -576,7 +577,7 @@ class Pasta extends CommonDBTM
                 echo "<input type='hidden' name='action' value='retirar'>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Retirado por', 'protocolo') . " *</label><input name='retirado_por' class='form-control' required placeholder='" . __('Nome de quem retirou', 'protocolo') . "'></div>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Documento', 'protocolo') . "</label><input name='retirado_documento' class='form-control' placeholder='CPF/RG'></div>";
-                echo "<div class='mb-2'><label class='form-label'>" . __('Data/hora retirada', 'protocolo') . "</label><input type='datetime-local' name='data_retirada' class='form-control' value='" . date('Y-m-d\TH:i') . "'></div>";
+                echo "<div class='mb-2'><label class='form-label'>" . __('Data/hora retirada', 'protocolo') . "</label><input type='datetime-local' name='data_retirada' id='data_retirada_field' class='form-control' value='" . date('Y-m-d\TH:i') . "'></div>";
                 echo "<div class='mb-3'><label class='form-label'>" . __('Observação', 'protocolo') . "</label><textarea name='observacao_retirada' class='form-control' rows='2'></textarea></div>";
                 echo "<button class='btn btn-success w-100'><i class='ti ti-check'></i> " . __('Confirmar retirada', 'protocolo') . "</button>";
                 echo "</form>";
@@ -599,6 +600,24 @@ class Pasta extends CommonDBTM
             echo "</div>"; // col
             echo "</div>"; // row
         }
+
+        // JS: Data/hora local do computador para recebimento/retirada
+        echo "<script>
+        document.addEventListener('DOMContentLoaded', function(){
+            function toLocalDatetimeValue(d){
+                var pad = function(n){ return n<10?'0'+n:n; };
+                return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+            }
+            var now = new Date();
+            var localVal = toLocalDatetimeValue(now);
+            var rec = document.getElementById('data_recebimento_field');
+            if(rec) rec.value = localVal;
+            var ret = document.getElementById('data_retirada_field');
+            if(ret && !ret.value) ret.value = localVal;
+            // Se retirada já tem valor do servidor mas usuário quer hora local, atualiza também para novas retiradas
+            if(ret) ret.value = localVal;
+        });
+        </script>";
 
         // JS para tipos/itens (reusa assets/js/app.js do plugin)
         echo Html::script(Plugin::getWebDir('protocolo') . '/js/app.js');
