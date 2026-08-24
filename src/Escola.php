@@ -246,7 +246,8 @@ class Escola extends CommonDBTM
         echo "</td>";
         echo "<td><label for='is_recursive'>" . __('Child entities') . "</label></td>";
         echo "<td>";
-        Dropdown::showYesNo('is_recursive', $this->fields['is_recursive'] ?? 0);
+        // Default recursivo = 1 para nova escola ficar visível nas sub-entidades
+        Dropdown::showYesNo('is_recursive', $this->fields['is_recursive'] ?? 1);
         echo "</td>";
         echo "</tr>";
 
@@ -275,7 +276,7 @@ class Escola extends CommonDBTM
             $input['entities_id'] = (int)$input['entities_id'];
         }
         if (!isset($input['is_recursive'])) {
-            $input['is_recursive'] = 0;
+            $input['is_recursive'] = 1;
         } else {
             $input['is_recursive'] = (int)$input['is_recursive'];
         }
@@ -302,8 +303,13 @@ class Escola extends CommonDBTM
     public static function dropdown($options = [])
     {
         $options['name']        = $options['name'] ?? 'plugin_protocolo_escolas_id';
-        $options['entity']      = $options['entity'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
-        // Se não explicitado, permite sub-entidades quando a escola é recursiva
+        // ENTIDADES: usa entidades ativas (respeita recursividade e multi-entidade)
+        if (!isset($options['entity'])) {
+            // Se há multi-entidades ativas (ver todos), usa todas; senão usa entidade ativa
+            $options['entity'] = $_SESSION['glpiactiveentities'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
+        }
+        // entity_sons controla se mostra sub-entidades da entidade selecionada
+        // Para Escola destinatária devemos mostrar escolas da entidade da pasta + sub-entidades recursivas
         $options['entity_sons'] = $options['entity_sons'] ?? true;
         return Dropdown::show(self::class, $options);
     }

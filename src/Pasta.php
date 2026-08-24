@@ -456,8 +456,9 @@ class Pasta extends CommonDBTM
         echo "<td width='15%'><label>" . __('Escola destinatária', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td width='35%'>";
         $escolaId = $this->fields['plugin_protocolo_escolas_id'] ?? 0;
-        // Se estiver editando e já retirada/cancelada, bloqueia escola?
-        Escola::dropdown(['value' => $escolaId, 'display' => true, 'required' => true]);
+        // ENTIDADES: dropdown filtra pela entidade da pasta (ou ativa se nova)
+        $entityParaEscola = $this->fields['entities_id'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
+        Escola::dropdown(['value' => $escolaId, 'entity' => $entityParaEscola, 'entity_sons' => true, 'display' => true, 'required' => true]);
         echo "<div class='form-text'><small>" . __('Se não estiver na lista, cadastre em', 'protocolo') . " <a href='" . Escola::getSearchURL() . "'>" . Escola::getTypeName(2) . "</a></small></div>";
         echo "</td>";
 

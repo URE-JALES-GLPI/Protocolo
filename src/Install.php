@@ -309,6 +309,11 @@ class Install
                 if (!$DB->fieldExists('glpi_plugin_protocolo_escolas', 'date_mod')) {
                     $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_escolas` ADD COLUMN `date_mod` DATETIME DEFAULT NULL AFTER `date_creation`");
                 }
+                // Corrige escolas antigas: torna recursivas por padrão para aparecerem nas sub-entidades
+                // Se já existir coluna, garante que escolas da entidade raiz fiquem visíveis em todas
+                try {
+                    $DB->doQuery("UPDATE `glpi_plugin_protocolo_escolas` SET `is_recursive`=1 WHERE `entities_id`=0 AND `is_recursive`=0");
+                } catch (\Throwable $e) {}
             }
             // Pastas também já devem ser entidade-aware (fallback)
             if ($DB->tableExists('glpi_plugin_protocolo_pastas')) {
