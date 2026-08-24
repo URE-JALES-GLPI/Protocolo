@@ -130,6 +130,17 @@ function plugin_init_protocolo(): void
         'css/style.css'
     ];
 
-    // Hook para mudança de entidade (se necessário)
-    // $PLUGIN_HOOKS['post_init']['protocolo'] = ...
+    // Migração automática ENTIDADES para Escola (sem precisar reinstalar)
+    // Garante que escolas antigas (entities_id=0, is_recursive=0) fiquem visíveis nas sub-entidades
+    try {
+        if (class_exists(\GlpiPlugin\Protocolo\Install::class)) {
+            // Só roda se plugin já está com tabela criada (evita erro em install limpo)
+            global $DB;
+            if (isset($DB) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
+                \GlpiPlugin\Protocolo\Install::migrateEntities($DB);
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log("[protocolo] migrateEntities auto falhou: " . $e->getMessage());
+    }
 }

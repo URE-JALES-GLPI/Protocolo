@@ -292,7 +292,7 @@ class Install
         }
     }
 
-    private static function migrateEntities($DB): void
+    public static function migrateEntities($DB): void
     {
         // Garante que Escola usa ENTIDADES — adiciona colunas se vier de versão antiga
         try {

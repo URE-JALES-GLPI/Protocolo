@@ -303,13 +303,11 @@ class Escola extends CommonDBTM
     public static function dropdown($options = [])
     {
         $options['name']        = $options['name'] ?? 'plugin_protocolo_escolas_id';
-        // ENTIDADES: usa entidades ativas (respeita recursividade e multi-entidade)
+        // ENTIDADES: GLPI espera entity como int único; recursividade é tratada via is_recursive + entity_sons
         if (!isset($options['entity'])) {
-            // Se há multi-entidades ativas (ver todos), usa todas; senão usa entidade ativa
-            $options['entity'] = $_SESSION['glpiactiveentities'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
+            $options['entity'] = $_SESSION['glpiactive_entity'] ?? 0;
         }
-        // entity_sons controla se mostra sub-entidades da entidade selecionada
-        // Para Escola destinatária devemos mostrar escolas da entidade da pasta + sub-entidades recursivas
+        // entity_sons=true inclui sub-entidades; com is_recursive=1, escolas da entidade pai aparecem nas filhas
         $options['entity_sons'] = $options['entity_sons'] ?? true;
         return Dropdown::show(self::class, $options);
     }
