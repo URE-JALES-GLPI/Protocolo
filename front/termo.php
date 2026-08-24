@@ -21,7 +21,7 @@ $id = (int)($_GET['id'] ?? 0);
 $tipo = $_GET['tipo'] ?? 'recebimento';
 if (!in_array($tipo, ['recebimento', 'retirada'])) $tipo = 'recebimento';
 
-global $DB;
+global $DB, $CFG_GLPI;
 
 $pasta = new Pasta();
 if (!$pasta->getFromDB($id)) {
