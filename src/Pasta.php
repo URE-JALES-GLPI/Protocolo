@@ -464,7 +464,7 @@ class Pasta extends CommonDBTM
             $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => ['>', 0]], 'ORDER' => 'completename']);
             foreach ($it as $row) $allEntities[] = $row;
         } catch (\Throwable $e) { $allEntities = []; }
-        echo "<select name='plugin_protocolo_escolas_id' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola (entidade)', 'protocolo') . " --</option>";
+        echo "<select name='plugin_protocolo_escolas_id' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
         foreach ($allEntities as $ent) {
             $sel = ((int)$ent['id'] === $escolaId) ? 'selected' : '';
             $label = htmlspecialchars($ent['completename']);
