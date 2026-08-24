@@ -9,6 +9,11 @@ if (!Pasta::canView()) {
     Html::displayRightError();
 }
 
-Search::show(Pasta::class);
+try {
+    Search::show(Pasta::class);
+} catch (Throwable $e) {
+    echo "<div class='alert alert-danger m-3'><strong>Erro ao listar Pastas:</strong> " . htmlspecialchars($e->getMessage()) . "<br><small>" . htmlspecialchars($e->getFile()) . ":" . $e->getLine() . "</small><pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre></div>";
+    error_log("[protocolo] Search::show(Pasta) falhou: " . $e->getMessage());
+}
 
 Html::footer();

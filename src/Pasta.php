@@ -112,6 +112,7 @@ class Pasta extends CommonDBTM
             'field' => 'name',
             'name' => __('Escola', 'protocolo'),
             'datatype' => 'dropdown',
+            'linkfield' => 'plugin_protocolo_escolas_id',
             'massiveaction' => false
         ];
 

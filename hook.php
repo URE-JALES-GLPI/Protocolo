@@ -25,7 +25,7 @@ function plugin_protocolo_uninstall(): bool
     return Install::uninstall();
 }
 
-// Dropdown relations (ex: pasta -> escola)
+// Dropdown relations (ex: pasta -> escola) - só tabelas com itemtype conhecido para evitar warning DbUtils
 function plugin_protocolo_getDatabaseRelations(): array
 {
     return [
@@ -37,9 +37,7 @@ function plugin_protocolo_getDatabaseRelations(): array
             'glpi_plugin_protocolo_termos' => 'plugin_protocolo_pastas_id',
             'glpi_plugin_protocolo_pastatipos' => 'plugin_protocolo_pastas_id',
         ],
-        'glpi_plugin_protocolo_tipos' => [
-            'glpi_plugin_protocolo_pastatipos' => 'plugin_protocolo_tipos_id'
-        ],
+        // 'glpi_plugin_protocolo_tipos' removido para evitar "Invalid relations" - limpeza feita via FK sem checagem DbUtils
     ];
 }
 

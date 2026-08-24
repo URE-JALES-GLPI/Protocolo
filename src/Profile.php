@@ -41,8 +41,11 @@ class Profile extends \CommonDBTM
      */
     public static function changeProfile(): void
     {
+        if (!isset($_SESSION['glpiactive_profile']['id']) || !Session::getLoginUserID()) {
+            return;
+        }
         $prof = new GlpiProfile();
-        $prof->getFromDB(Session::getLoginUserID() ? $_SESSION['glpiactive_profile']['id'] : 0);
+        $prof->getFromDB((int)$_SESSION['glpiactive_profile']['id']);
         // GLPI já carrega rights de glpi_profilerights para sessão, nada a fazer
         // Se quiser custom, mapear aqui
     }
