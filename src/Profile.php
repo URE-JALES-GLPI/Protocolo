@@ -115,11 +115,7 @@ class Profile extends \CommonDBTM
                 echo "</div>";
             }
             echo "</div>";
-            // atalho Selecionar todos / nenhum
-            echo "<div class='mt-2 small text-muted'>";
-            echo "<a href='#' onclick=\"var c=document.querySelectorAll('input[name^=\\\"_{$rightName}[\\\"]'); c.forEach(function(e){e.checked=true}); return false;\"><i class='ti ti-checks'></i> " . __('Select all') . "</a> &middot; ";
-            echo "<a href='#' onclick=\"var c=document.querySelectorAll('input[name^=\\\"_{$rightName}[\\\"]'); c.forEach(function(e){e.checked=false}); return false;\"><i class='ti ti-x'></i> " . __('Deselect all') . "</a> ";
-            echo "<span class='badge bg-light text-dark border ms-2' title='Valor atual'>$current</span>";
+            echo "<div class='mt-1'><span class='badge bg-light text-dark border' title='Valor atual'>$current</span>";
             if ($current === 255) echo " <span class='badge bg-success'>Todos</span>";
             elseif ($current === 0) echo " <span class='badge bg-secondary'>Sem acesso</span>";
             echo "</div>";
@@ -128,8 +124,9 @@ class Profile extends \CommonDBTM
             echo "</tr>";
         }
 
-        echo "<tr><td colspan='3' class='center'>";
-        echo "<small class='text-muted'>Salve o perfil para aplicar. Super-Admin já tem 255 por padrão.</small>";
+        echo "<tr><td colspan='3' class='center p-3'>";
+        echo "<button type='submit' class='btn btn-primary'><i class='ti ti-device-floppy me-1'></i> " . __('Save') . "</button> ";
+        echo "<small class='text-muted ms-2'>Super-Admin já tem 255 por padrão.</small>";
         echo "</td></tr>";
 
         echo "</table></div>";
