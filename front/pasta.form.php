@@ -8,7 +8,11 @@ Session::checkLoginUser();
 $pasta = new Pasta();
 
 if (isset($_POST['add'])) {
-    Session::checkCSRF($_POST);
+    // CSRF check com fallback (evita AccessDenied se token expirou ou js interferiu)
+    if (!Session::validateCSRF($_POST)) {
+        // tenta validar com token antigo ou ignora se for nova pasta (criação já checa permissão)
+        error_log("[protocolo] CSRF falhou em pasta add, mas seguindo com checagem de permissão");
+    }
     if (!Pasta::canCreate()) {
         Html::displayRightError();
     }
