@@ -563,7 +563,7 @@ class Pasta extends CommonDBTM
         if ($isNew) {
             // Tipos
             $tipos = TipoArquivo::getAllActive();
-            echo "<div class='spaced'><div class='card border-warning mb-3'><div class='card-header bg-warning bg-opacity-10'><strong><i class='ti ti-tags'></i> " . __('Quais tipos de arquivos', 'protocolo') . " *</strong> <small class='text-muted'>" . __('marque as caixinhas', 'protocolo') . "</small> <a href='" . TipoArquivo::getSearchURL() . "' target='_blank' class='float-end small'>" . __('Gerenciar tipos', 'protocolo') . "</a></div>";
+            echo "<div class='spaced'><div class='card border-warning mb-3'><div class='card-header bg-warning bg-opacity-10 d-flex align-items-center justify-content-between flex-wrap gap-2'><div class='d-flex align-items-center gap-2'><span class='fw-bold'><i class='ti ti-tags'></i> " . __('Quais tipos de arquivos', 'protocolo') . " <span class='text-danger'>*</span></span><span class='badge bg-light text-muted border fw-normal'> " . __('marque as caixinhas', 'protocolo') . "</span></div><a href='" . TipoArquivo::getSearchURL() . "' target='_blank' class='btn btn-sm btn-outline-secondary'><i class='ti ti-settings'></i> " . __('Gerenciar tipos', 'protocolo') . "</a></div>";
             echo "<div class='card-body'>";
             if (!$tipos) {
                 echo "<div class='alert alert-warning small'>" . __('Nenhum tipo cadastrado', 'protocolo') . " <a href='" . TipoArquivo::getSearchURL() . "'>" . __('Cadastre', 'protocolo') . "</a></div>";
