@@ -30,8 +30,33 @@ class Pasta extends CommonDBTM
         return 'ti ti-folder';
     }
 
+    public static function getMenuContent()
+    {
+        $menu = [];
+        $menu['title'] = __('Protocolo', 'protocolo');
+        $menu['page']  = self::getSearchURL(false);
+        $menu['icon']  = self::getIcon();
+        $menu['options']['dashboard']['title'] = __('Dashboard', 'protocolo');
+        $menu['options']['dashboard']['page']  = '/plugins/protocolo/front/dashboard.php';
+        $menu['options']['dashboard']['icon']  = 'ti ti-dashboard';
+        $menu['options']['pasta']['title'] = self::getTypeName(2);
+        $menu['options']['pasta']['page']  = self::getSearchURL(false);
+        $menu['options']['pasta']['icon']  = self::getIcon();
+        $menu['options']['escola']['title'] = \GlpiPlugin\Protocolo\Escola::getTypeName(2);
+        $menu['options']['escola']['page']  = \GlpiPlugin\Protocolo\Escola::getSearchURL(false);
+        $menu['options']['escola']['icon']  = \GlpiPlugin\Protocolo\Escola::getIcon();
+        $menu['options']['tipo']['title'] = \GlpiPlugin\Protocolo\TipoArquivo::getTypeName(2);
+        $menu['options']['tipo']['page']  = \GlpiPlugin\Protocolo\TipoArquivo::getSearchURL(false);
+        $menu['options']['tipo']['icon']  = \GlpiPlugin\Protocolo\TipoArquivo::getIcon();
+        return $menu;
+    }
+
     public static function canView(): bool
     {
+        // Permite super-admin/config sempre ver para debug, senão checa direito
+        if (Session::haveRight('config', UPDATE) || Session::haveRight('profile', UPDATE)) {
+            return true;
+        }
         return Session::haveRight(self::$rightname, READ);
     }
 
