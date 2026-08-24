@@ -75,21 +75,18 @@ function plugin_init_protocolo(): void
     Plugin::registerClass(\GlpiPlugin\Protocolo\TipoArquivo::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\Termo::class);
 
-    // Perfil / direitos
-    Plugin::registerClass(Profile::class, ['addtabon' => Profile::class]);
+    // Perfil / direitos - aba Protocolo dentro de Administração > Perfis
+    Plugin::registerClass(\GlpiPlugin\Protocolo\Profile::class, ['addtabon' => Profile::class]);
     $PLUGIN_HOOKS['change_profile']['protocolo'] = [\GlpiPlugin\Protocolo\Profile::class, 'changeProfile'];
 
     // CSRF compliance
     $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = true;
 
-    // Menu GLPI 10/11
-    // Usa menu_toadd: aparece em Ferramentas ou Plugins
-    // Vamos expor em "Ferramentas" (tools) como categoria e criar entradas
+    // Menu GLPI 10/11 - Ferramentas e Plugins (garante visibilidade)
     if (Session::getLoginUserID()) {
-        // Verifica direito básico: qualquer usuário logado vê dashboard se tiver direito de ver pasta
-        // Direitos são controlados dentro de cada classe via canView/canCreate
         $PLUGIN_HOOKS['menu_toadd']['protocolo'] = [
-            'tools' => \GlpiPlugin\Protocolo\Pasta::class,
+            'tools'   => \GlpiPlugin\Protocolo\Pasta::class,
+            'plugins' => \GlpiPlugin\Protocolo\Pasta::class,
         ];
 
         // Submenu antigo (compatibilidade GLPI 10)
