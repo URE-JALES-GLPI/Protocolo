@@ -99,9 +99,15 @@ body{ background:#eee; }
 </style>
 </head>
 <body>
+<style>
+  .btn-print-termo{ background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%); border:none; font-weight:800; font-size:1.2rem; letter-spacing:.4px; padding:14px 38px; border-radius:50px; box-shadow:0 6px 20px rgba(13,110,253,.4), 0 2px 8px rgba(0,0,0,.08); transition: all .25s ease; }
+  .btn-print-termo:hover{ transform: translateY(-2px); box-shadow:0 10px 28px rgba(13,110,253,.5), 0 4px 12px rgba(0,0,0,.12); filter:brightness(1.05); }
+  .btn-print-termo:active{ transform: translateY(0); box-shadow:0 3px 10px rgba(13,110,253,.3); }
+  .btn-print-termo i{ background:rgba(255,255,255,.2); border-radius:50%; padding:6px; font-size:1.35rem; vertical-align:-4px; margin-right:10px; }
+</style>
 <div class="text-center no-print py-4 bg-white shadow-sm border-bottom">
-  <button onclick="window.print()" class="btn btn-primary btn-lg px-5 py-3 shadow" style="background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%); border:none; font-weight:700; font-size:1.15rem; letter-spacing:0.3px; box-shadow:0 4px 15px rgba(13,110,253,.35) !important;"><i class="ti ti-printer me-2" style="font-size:1.3rem; vertical-align:-2px;"></i> <?= __('Imprimir / Salvar PDF', 'protocolo') ?></button>
-  <a href="<?= Pasta::getFormURLWithID($id) ?>" class="btn btn-outline-secondary ms-2 px-4"><?= __('Voltar') ?></a>
+  <button onclick="window.print()" class="btn btn-primary btn-print-termo shadow"><i class="ti ti-printer"></i> <?= __('Imprimir / Salvar PDF', 'protocolo') ?></button>
+  <a href="<?= Pasta::getFormURLWithID($id) ?>" class="btn btn-outline-secondary ms-3 px-4 py-2" style="border-radius:50px; font-weight:600;"><?= __('Voltar') ?></a>
 </div>
 
 <div class="termo" id="termo">
