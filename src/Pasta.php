@@ -510,7 +510,7 @@ class Pasta extends CommonDBTM
             $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => ['>', 0]], 'ORDER' => 'completename']);
             foreach ($it as $row) $allEntities[] = $row;
         } catch (\Throwable $e) { $allEntities = []; }
-        echo "<select name='plugin_protocolo_escolas_id' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
+        echo "<select name='plugin_protocolo_escolas_id' id='escola_select' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
         foreach ($allEntities as $ent) {
             $sel = ((int)$ent['id'] === $escolaId) ? 'selected' : '';
             $label = htmlspecialchars($ent['completename']);
@@ -703,6 +703,16 @@ class Pasta extends CommonDBTM
             }
             setupDoc(document.getElementById('recebido_documento_tipo'), document.getElementById('recebido_documento'), document.getElementById('recebido_doc_hint'));
             setupDoc(document.getElementById('retirado_documento_tipo'), document.getElementById('retirado_documento'), document.getElementById('retirado_doc_hint'));
+
+            // Escola searchable (digitar para achar)
+            var escolaSel = document.getElementById('escola_select');
+            if(escolaSel){
+                if(window.$ && $.fn.select2){
+                    $(escolaSel).select2({width:'100%', placeholder:'-- Selecione a escola --', allowClear:true});
+                } else if(window.TomSelect){
+                    new TomSelect(escolaSel, {create:false, sortField:{field:'text', direction:'asc'}, maxOptions:100, placeholder:'Digite para buscar...'});
+                }
+            }
 
             // Tipos -> Itens auto preenchimento (fallback inline caso js/app.js não carregue)
             var tipoChecks = document.querySelectorAll('.tipo-check');
