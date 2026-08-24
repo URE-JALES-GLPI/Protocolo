@@ -707,7 +707,7 @@ class Pasta extends CommonDBTM
         return $dir . '/plugins/protocolo/front/pasta.form.php';
     }
 
-    public static function getFormURLWithID($id, $full = true)
+    public static function getFormURLWithID($id = 0, $full = true)
     {
         return self::getFormURL($full) . '?id=' . (int)$id;
     }
