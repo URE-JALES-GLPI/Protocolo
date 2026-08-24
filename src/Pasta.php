@@ -48,6 +48,9 @@ class Pasta extends CommonDBTM
 
     public static function getMenuContent()
     {
+        if (!self::canView()) {
+            return [];
+        }
         $menu = [];
         $menu['title'] = __('Protocolo', 'protocolo');
         $menu['page']  = '/plugins/protocolo/front/dashboard.php';
