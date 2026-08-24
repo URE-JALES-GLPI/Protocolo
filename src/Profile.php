@@ -125,8 +125,8 @@ class Profile extends \CommonDBTM
         }
 
         echo "<tr><td colspan='3' class='center p-3'>";
-        echo "<button type='submit' class='btn btn-primary'><i class='ti ti-device-floppy me-1'></i> " . __('Save') . "</button> ";
-        echo "<small class='text-muted ms-2'>Super-Admin já tem 255 por padrão.</small>";
+        echo "<button type='submit' name='update' value='1' class='btn btn-primary'><i class='ti ti-device-floppy me-1'></i> " . __('Save') . "</button> ";
+        echo "<small class='text-muted ms-2'>Super-Admin já tem 255 por padrão. Use o Salvar do perfil.</small>";
         echo "</td></tr>";
 
         echo "</table></div>";
