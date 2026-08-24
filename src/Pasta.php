@@ -69,10 +69,6 @@ class Pasta extends CommonDBTM
 
     public static function canView(): bool
     {
-        // Permite super-admin/config sempre ver para debug, senão checa direito
-        if (Session::haveRight('config', UPDATE) || Session::haveRight('profile', UPDATE)) {
-            return true;
-        }
         return Session::haveRight(self::$rightname, READ);
     }
 
@@ -303,6 +299,10 @@ class Pasta extends CommonDBTM
 
     public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0)
     {
+        // Se não tem leitura, nem mostra aba (evita aba vazia com erro)
+        if (!self::canView()) {
+            return '';
+        }
         if ($item instanceof self) {
             $nb = 0;
             if ($_SESSION['glpishow_count_on_tabs'] ?? false) {
