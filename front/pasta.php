@@ -32,8 +32,18 @@ if (!in_array($order, ['ASC','DESC'])) $order = 'DESC';
 $allowedSort = ['id'=>'p.id','codigo'=>'p.codigo','escola'=>'e.name','recebido'=>'p.recebido_de','data'=>'p.data_recebimento','status'=>'p.status'];
 $sortSql = $allowedSort[$sort] ?? 'p.id';
 
-// Where
+// Where — ENTIDADES: filtra pastas pela entidade ativa (se Pasta for entity-aware)
 $where = " WHERE p.is_deleted=0 ";
+if (function_exists('getEntitiesRestrictRequest')) {
+    $where .= getEntitiesRestrictRequest(' AND ', 'p', '', $_SESSION['glpiactive_entity'] ?? 0, true);
+} elseif (function_exists('getEntitiesRestrictCriteria')) {
+    // fallback via criteria manual não aplicável em SQL bruto — usa activeentities
+    $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
+    if (!empty($active)) {
+        $ids = implode(',', array_map('intval', (array)$active));
+        $where .= " AND p.entities_id IN ($ids)";
+    }
+}
 if (in_array($status, ['aguardando','retirada','cancelada'])) {
     $where .= " AND p.status=" . $DB->quoteValue($status);
 }
@@ -45,10 +55,18 @@ if ($escola_filtro > 0) {
     $where .= " AND p.plugin_protocolo_escolas_id=" . (int)$escola_filtro;
 }
 
-// Escolas para filtro
+// Escolas para filtro — respeita ENTIDADES
 $escolas = [];
 try {
-    $it = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => ['is_active' => 1], 'ORDER' => 'name']);
+    $whereEscola = ['is_active' => 1];
+    if (function_exists('getEntitiesRestrictCriteria')) {
+        $entityCrit = getEntitiesRestrictCriteria(Escola::getTable(), '', '', true);
+        if (!empty($entityCrit)) $whereEscola += $entityCrit;
+    } else {
+        $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
+        $whereEscola['entities_id'] = $active;
+    }
+    $it = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => $whereEscola, 'ORDER' => 'name']);
     foreach ($it as $row) $escolas[] = $row;
 } catch (Throwable $e) { $escolas = []; }
 

@@ -28,6 +28,9 @@ class Install
                 self::createTablesInline($DB);
             }
 
+            // 1b. Migração ENTIDADES para Escola (garante colunas se plugin já instalado)
+            self::migrateEntities($DB);
+
             // 2. Direitos
             self::initRights();
 
@@ -286,6 +289,41 @@ class Install
             }
         } catch (\Throwable $e) {
             error_log("[protocolo] initRights geral: " . $e->getMessage());
+        }
+    }
+
+    private static function migrateEntities($DB): void
+    {
+        // Garante que Escola usa ENTIDADES — adiciona colunas se vier de versão antiga
+        try {
+            if ($DB->tableExists('glpi_plugin_protocolo_escolas')) {
+                if (!$DB->fieldExists('glpi_plugin_protocolo_escolas', 'entities_id')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_escolas` ADD COLUMN `entities_id` INT NOT NULL DEFAULT 0 AFTER `is_active`");
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_escolas` ADD KEY `entities_id` (`entities_id`)");
+                    error_log("[protocolo] migrateEntities: entities_id adicionado em escolas");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_escolas', 'is_recursive')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_escolas` ADD COLUMN `is_recursive` TINYINT(1) NOT NULL DEFAULT 0 AFTER `entities_id`");
+                    error_log("[protocolo] migrateEntities: is_recursive adicionado em escolas");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_escolas', 'date_mod')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_escolas` ADD COLUMN `date_mod` DATETIME DEFAULT NULL AFTER `date_creation`");
+                }
+            }
+            // Pastas também já devem ser entidade-aware (fallback)
+            if ($DB->tableExists('glpi_plugin_protocolo_pastas')) {
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'entities_id')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `entities_id` INT NOT NULL DEFAULT 0");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'is_recursive')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `is_recursive` TINYINT(1) NOT NULL DEFAULT 0");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'is_deleted')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `is_deleted` TINYINT(1) NOT NULL DEFAULT 0");
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("[protocolo] migrateEntities falhou: " . $e->getMessage());
         }
     }
 

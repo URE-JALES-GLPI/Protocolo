@@ -14,6 +14,21 @@ class Pasta extends CommonDBTM
 {
     public static $rightname = 'plugin_protocolo_pasta';
 
+    public function isEntityAssign()
+    {
+        return true;
+    }
+
+    public function maybeRecursive()
+    {
+        return true;
+    }
+
+    public function maybeDeleted()
+    {
+        return true;
+    }
+
     // Para GLPI menu icon
     public static function getTypeName($nb = 0)
     {
@@ -68,7 +83,13 @@ class Pasta extends CommonDBTM
     public function canViewItem(): bool
     {
         if (!Session::haveRight(self::$rightname, READ)) return false;
-        // TODO: checar entidade se necessário
+        if ($this->isEntityAssign() && isset($this->fields['entities_id'])) {
+            $ent = (int)$this->fields['entities_id'];
+            $rec = (int)($this->fields['is_recursive'] ?? 0);
+            if (method_exists(Session::class, 'haveAccessToEntity')) {
+                if (!Session::haveAccessToEntity($ent, $rec)) return false;
+            }
+        }
         return true;
     }
 
@@ -171,6 +192,22 @@ class Pasta extends CommonDBTM
             'field' => 'date_mod',
             'name' => __('Atualização', 'protocolo'),
             'datatype' => 'datetime'
+        ];
+
+        $tab[] = [
+            'id' => 80,
+            'table' => 'glpi_entities',
+            'field' => 'completename',
+            'name' => __('Entity'),
+            'datatype' => 'dropdown'
+        ];
+
+        $tab[] = [
+            'id' => 86,
+            'table' => self::getTable(),
+            'field' => 'is_recursive',
+            'name' => __('Child entities'),
+            'datatype' => 'bool'
         ];
 
         return $tab;

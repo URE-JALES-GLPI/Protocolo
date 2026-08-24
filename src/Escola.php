@@ -3,6 +3,7 @@ namespace GlpiPlugin\Protocolo;
 
 use CommonDBTM;
 use CommonGLPI;
+use Entity;
 use Html;
 use Session;
 use Dropdown;
@@ -12,6 +13,16 @@ use Plugin;
 class Escola extends CommonDBTM
 {
     public static $rightname = 'plugin_protocolo_escola';
+
+    public function isEntityAssign()
+    {
+        return true;
+    }
+
+    public function maybeRecursive()
+    {
+        return true;
+    }
 
     public static function getTypeName($nb = 0)
     {
@@ -40,7 +51,23 @@ class Escola extends CommonDBTM
 
     public function canViewItem(): bool
     {
-        return self::canView();
+        if (!self::canView()) return false;
+        // ENTIDADES: checa acesso à entidade do item
+        if ($this->isEntityAssign() && isset($this->fields['entities_id'])) {
+            $ent = (int)$this->fields['entities_id'];
+            $rec = (int)($this->fields['is_recursive'] ?? 0);
+            // GLPI 11: Session::haveAccessToEntity verifica visibilidade
+            if (method_exists(Session::class, 'haveAccessToEntity')) {
+                if (!Session::haveAccessToEntity($ent, $rec)) return false;
+            } elseif (isset($_SESSION['glpiactiveentities'])) {
+                // fallback: se não recursivo, deve estar na lista ativa; se recursivo, basta ancestral estar ativo?
+                $active = $_SESSION['glpiactiveentities'] ?? [];
+                if (!in_array($ent, $active) && !$rec) return false;
+                // se recursivo, permite se entidade do item é ancestral da ativa
+                // simplifica: permite se item recursivo e ativa está em sous-entidades (GLPI Search já cobre)
+            }
+        }
+        return true;
     }
 
     public function canCreateItem(): bool
@@ -50,17 +77,20 @@ class Escola extends CommonDBTM
 
     public function canUpdateItem(): bool
     {
-        return Session::haveRight(self::$rightname, UPDATE);
+        if (!Session::haveRight(self::$rightname, UPDATE)) return false;
+        return $this->canViewItem();
     }
 
     public function canDeleteItem(): bool
     {
-        return Session::haveRight(self::$rightname, DELETE);
+        if (!Session::haveRight(self::$rightname, DELETE)) return false;
+        return $this->canViewItem();
     }
 
     public function canPurgeItem(): bool
     {
-        return Session::haveRight(self::$rightname, PURGE);
+        if (!Session::haveRight(self::$rightname, PURGE)) return false;
+        return $this->canViewItem();
     }
 
     public static function getNameField()
@@ -142,6 +172,22 @@ class Escola extends CommonDBTM
             'datatype' => 'datetime'
         ];
 
+        $tab[] = [
+            'id' => 80,
+            'table' => 'glpi_entities',
+            'field' => 'completename',
+            'name' => __('Entity'),
+            'datatype' => 'dropdown'
+        ];
+
+        $tab[] = [
+            'id' => 86,
+            'table' => self::getTable(),
+            'field' => 'is_recursive',
+            'name' => __('Child entities'),
+            'datatype' => 'bool'
+        ];
+
         return $tab;
     }
 
@@ -191,6 +237,19 @@ class Escola extends CommonDBTM
         echo "<td colspan='3'><textarea name='address' id='address' class='form-control' rows='2'>" . Html::cleanInputText($this->fields['address'] ?? '') . "</textarea></td>";
         echo "</tr>";
 
+        // --- ENTIDADE ---
+        echo "<tr class='tab_bg_1'>";
+        echo "<td><label for='entities_id'>" . __('Entity') . "</label></td>";
+        echo "<td>";
+        $entityValue = $this->fields['entities_id'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
+        Entity::dropdown(['value' => $entityValue]);
+        echo "</td>";
+        echo "<td><label for='is_recursive'>" . __('Child entities') . "</label></td>";
+        echo "<td>";
+        Dropdown::showYesNo('is_recursive', $this->fields['is_recursive'] ?? 0);
+        echo "</td>";
+        echo "</tr>";
+
         // Se estiver visualizando, mostra link para pastas filtradas
         if ($ID > 0) {
             echo "<tr class='tab_bg_1'><td colspan='4' class='center'>";
@@ -209,7 +268,17 @@ class Escola extends CommonDBTM
             Session::addMessageAfterRedirect(__('Nome da escola é obrigatório', 'protocolo'), false, ERROR);
             return false;
         }
-        $input['entities_id'] = $_SESSION['glpiactive_entity'] ?? 0;
+        // ENTIDADES: respeita valor enviado (Entity::dropdown) ou usa entidade ativa
+        if (!isset($input['entities_id']) || $input['entities_id'] === '' || $input['entities_id'] === null) {
+            $input['entities_id'] = $_SESSION['glpiactive_entity'] ?? 0;
+        } else {
+            $input['entities_id'] = (int)$input['entities_id'];
+        }
+        if (!isset($input['is_recursive'])) {
+            $input['is_recursive'] = 0;
+        } else {
+            $input['is_recursive'] = (int)$input['is_recursive'];
+        }
         return $input;
     }
 
@@ -219,14 +288,23 @@ class Escola extends CommonDBTM
             Session::addMessageAfterRedirect(__('Nome da escola é obrigatório', 'protocolo'), false, ERROR);
             return false;
         }
+        if (isset($input['entities_id'])) {
+            $input['entities_id'] = (int)$input['entities_id'];
+        }
+        if (isset($input['is_recursive'])) {
+            $input['is_recursive'] = (int)$input['is_recursive'];
+        }
         return $input;
     }
 
     // Helper para dropdown em formulários de pasta (compatível com CommonDBTM::dropdown($options=[]))
+    // Agora respeita ENTIDADES automaticamente (isEntityAssign = true)
     public static function dropdown($options = [])
     {
-        $options['name'] = $options['name'] ?? 'plugin_protocolo_escolas_id';
-        $options['entity'] = $options['entity'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
+        $options['name']        = $options['name'] ?? 'plugin_protocolo_escolas_id';
+        $options['entity']      = $options['entity'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
+        // Se não explicitado, permite sub-entidades quando a escola é recursiva
+        $options['entity_sons'] = $options['entity_sons'] ?? true;
         return Dropdown::show(self::class, $options);
     }
 
