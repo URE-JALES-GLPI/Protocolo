@@ -1,0 +1,24 @@
+{
+    "name": "ure-jales/protocolo",
+    "description": "Plugin GLPI - Protocolo de Pastas URE (controle de pastas entre setor e escolas, termos e comprovantes)",
+    "type": "glpi-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Leonardo Poiatti Fação",
+            "homepage": "https://github.com/anomalyco/protocolo"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "GlpiPlugin\\Protocolo\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

@@ -1,6 +1,8 @@
-# Sistema de Protocolo de Pastas - URE
+# Sistema de Protocolo de Pastas - URE (Plugin GLPI 11.x)
 
-Sistema web em **PHP + MySQL** para controle de pastas que ficam no setor até retirada pelas escolas.
+> **NOVO:** Este projeto foi **convertido para plugin GLPI 11.x** em `setup.php:20` / `hook.php:11`. Veja [`README_GLPI.md`](README_GLPI.md) para instalação no GLPI (`glpi/plugins/protocolo`). O sistema standalone original continua disponível abaixo para referência.
+
+Sistema web em **PHP + MySQL** para controle de pastas que ficam no setor até retirada pelas escolas. Agora também como **plugin GLPI** (`glpi_plugin_protocolo_*` em `src/Install.php:18`).
 
 ## 📋 Sobre
 
@@ -64,11 +66,26 @@ Sistema para **protocolar, rastrear e comprovar** a movimentação de pastas ent
 ## 📁 Estrutura
 
 ```
-config/database.php   -> credenciais PDO
-includes/auth.php     -> sessão/login/CSRF
-sql/schema.sql        -> DDL + admin padrão
-uploads/termos/       -> PDFs/JPGs assinados (775 www-data)
+# Standalone (legado)
+config/database.php   -> credenciais PDO (src/Install.php:183 no plugin usa $DB)
+includes/auth.php     -> sessão/login/CSRF (plugin usa Session::haveRight)
+sql/schema.sql        -> DDL + admin padrão (plugin usa install/mysql/plugin_protocolo_empty.sql:1)
+uploads/termos/       -> PDFs/JPGs assinados (plugin usa GLPI_PLUGIN_DOC_DIR/protocolo/termos em src/Pasta.php:651)
 apache/protocolo.conf -> VirtualHost
+
+# Plugin GLPI 11.x (NOVO) - ver README_GLPI.md
+setup.php             -> plugin_version/init (menu, direitos, CSS/JS)
+hook.php              -> install/uninstall
+src/Install.php       -> cria glpi_plugin_protocolo_* + direitos
+src/Pasta.php         -> CommonDBTM pastas (PROT-YYYY-...), retirada, upload
+src/Escola.php        -> CommonDBTM escolas
+src/TipoArquivo.php   -> CommonDBTM tipos
+src/Termo.php         -> helper termos
+src/Profile.php       -> aba Perfil + direitos plugin_protocolo_*
+front/dashboard.php   -> dashboard GLPI
+front/pasta.php|pasta.form.php -> Search + form
+front/termo.php       -> termo A4 imprimível
+tools/migrate_standalone.php -> migra BD antigo para plugin
 ```
 
 ---

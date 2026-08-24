@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <name>Protocolo de Pastas - URE</name>
+    <version>1.0.0</version>
+    <author>Leonardo Poiatti Fação</author>
+    <license>GPLv2+</license>
+    <homepage>https://github.com/anomalyco/protocolo</homepage>
+    <description>Controle de pastas entre URE e escolas, com geração de termos e comprovantes assinados. Port do sistema standalone para GLPI 11.x.</description>
+    <tag>protocolo</tag>
+    <tag>ure</tag>
+    <tag>escola</tag>
+    <requirements>
+        <glpi min="11.0.0" max="12.0.0" />
+        <php min="8.1" />
+    </requirements>
+</root>
