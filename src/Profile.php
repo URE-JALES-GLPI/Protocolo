@@ -17,10 +17,9 @@ class Profile extends \CommonDBTM
     }
 
     /**
-     * Direitos do plugin
-     * GLPI lê via $RIGHTS ou via ::getRights()
+     * Direitos do plugin - compatível com CommonDBTM::getRights() não-estático do GLPI 11
      */
-    public static function getRights(): array
+    public function getRights($interface = 'central')
     {
         return [
             'plugin_protocolo_pasta'  => __('Pastas - Protocolo', 'protocolo'),
@@ -28,6 +27,13 @@ class Profile extends \CommonDBTM
             'plugin_protocolo_tipo'   => __('Tipos de Arquivo', 'protocolo'),
             'plugin_protocolo_config' => __('Configuração Protocolo', 'protocolo'),
         ];
+    }
+
+    // Wrapper estático para uso interno (evita chamar não-estático estaticamente)
+    public static function getRightsStatic(): array
+    {
+        $inst = new self();
+        return $inst->getRights();
     }
 
     /**
@@ -64,7 +70,7 @@ class Profile extends \CommonDBTM
     {
         global $DB;
         $id = $profile->getID();
-        $rights = self::getRights();
+        $rights = self::getRightsStatic();
 
         echo "<div class='spaced' id='protocoloProfileForm'>";
         echo "<table class='tab_cadre_fixe'>";
