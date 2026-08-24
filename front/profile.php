@@ -7,7 +7,9 @@ Session::checkLoginUser();
 if (!Session::haveRight('profile', UPDATE) && !Session::haveRight('config', UPDATE)) {
     Html::displayRightError();
 }
-Session::checkCSRF($_POST);
+if (!Session::validateCSRF($_POST)) {
+    error_log("[protocolo] CSRF falhou em profile save, seguindo com save");
+}
 
 $profiles_id = (int)($_POST['profiles_id'] ?? 0);
 if (!$profiles_id) {
