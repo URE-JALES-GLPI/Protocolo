@@ -457,13 +457,15 @@ class Pasta extends CommonDBTM
         echo "<td width='15%'><label>" . __('Escola destinatária', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(Entidade GLPI)</small></label></td>";
         echo "<td width='35%'>";
         $escolaId = $this->fields['plugin_protocolo_escolas_id'] ?? 0;
-        // ESCOLA = ENTIDADE: dropdown direto de Entidades GLPI
-        // Usa a entidade da pasta (ou ativa) como base, mas mostra todas as entidades visíveis
-        $entityParaEscola = $this->fields['entities_id'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
-        Entity::dropdown(['name' => 'plugin_protocolo_escolas_id', 'value' => $escolaId, 'entity' => $entityParaEscola]);
-        // Fallback compat: se ainda houver escolas antigas na tabela glpi_plugin_protocolo_escolas, mostra aviso
-        // Escola::dropdown(['value' => $escolaId, 'entity' => $entityParaEscola, 'entity_sons' => true, 'display' => true, 'required' => true]);
-        echo "<div class='form-text'><small>" . __('Se não estiver na lista, cadastre em', 'protocolo') . " <a href='" . Escola::getSearchURL() . "'>" . Escola::getTypeName(2) . "</a></small></div>";
+        // ESCOLA = ENTIDADE: mostra TODAS as entidades (cada entidade = escola), sem botão +
+        Entity::dropdown([
+            'name'    => 'plugin_protocolo_escolas_id',
+            'value'   => $escolaId,
+            'entity'  => 0,
+            'addicon' => false,
+            'display' => true
+        ]);
+        echo "<div class='form-text'><small class='text-muted'>" . __('Entidade = Escola. Gerencie em Administração → Entidades', 'protocolo') . "</small></div>";
         echo "</td>";
 
         echo "<td><label>" . __('Data/hora recebimento', 'protocolo') . "</label></td>";

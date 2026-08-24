@@ -55,20 +55,11 @@ if ($escola_filtro > 0) {
     $where .= " AND p.plugin_protocolo_escolas_id=" . (int)$escola_filtro;
 }
 
-// Escolas para filtro — ESCOLA = ENTIDADE GLPI
+// Escolas para filtro — ESCOLA = ENTIDADE GLPI (mostra TODAS)
 $escolas = [];
 try {
-    $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
-    $active = array_map('intval', (array)$active);
-    $active = array_filter($active, function($v){ return $v > 0; });
-    if (!empty($active)) {
-        $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => $active], 'ORDER' => 'completename']);
-        foreach ($it as $row) $escolas[] = ['id' => $row['id'], 'name' => $row['completename']];
-    } else {
-        // Root ou sem filtro: mostra todas entidades (cada entidade = escola)
-        $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => ['>', 0]], 'ORDER' => 'completename']);
-        foreach ($it as $row) $escolas[] = ['id' => $row['id'], 'name' => $row['completename']];
-    }
+    $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => ['>', 0]], 'ORDER' => 'completename']);
+    foreach ($it as $row) $escolas[] = ['id' => $row['id'], 'name' => $row['completename']];
     // Fallback compat: se ainda vazio e há escolas antigas, mostra antigas
     if (empty($escolas) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
         $it = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => ['is_active' => 1], 'ORDER' => 'name']);

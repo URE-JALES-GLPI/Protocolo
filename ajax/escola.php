@@ -7,20 +7,13 @@ Session::checkLoginUser();
 
 use GlpiPlugin\Protocolo\Escola;
 
-// Para dropdown ajax GLPI (Select2) — ESCOLA = ENTIDADE
+// Para dropdown ajax GLPI (Select2) — ESCOLA = ENTIDADE (TODAS)
 if (isset($_POST['searchText'])) {
     $search = $_POST['searchText'];
     global $DB;
-    $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
-    $active = array_filter(array_map('intval', (array)$active), function($v){ return $v>0; });
-    $where = [];
+    $where = ['id' => ['>', 0]];
     if (!empty($search)) {
         $where['completename'] = ['LIKE', "%$search%"];
-    }
-    if (!empty($active)) {
-        $where['id'] = $active;
-    } else {
-        $where['id'] = ['>', 0];
     }
     $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => $where, 'ORDER' => 'completename', 'LIMIT' => 30]);
     $results = [];
