@@ -29,7 +29,7 @@ if (!in_array($perPage, [10,20,50,100])) $perPage = 20;
 $sort = $_GET['sort'] ?? 'id';
 $order = strtoupper($_GET['order'] ?? 'DESC');
 if (!in_array($order, ['ASC','DESC'])) $order = 'DESC';
-$allowedSort = ['id'=>'p.id','codigo'=>'p.codigo','escola'=>'e.name','recebido'=>'p.recebido_de','data'=>'p.data_recebimento','status'=>'p.status'];
+$allowedSort = ['id'=>'p.id','codigo'=>'p.codigo','escola'=>'e.completename','recebido'=>'p.recebido_de','data'=>'p.data_recebimento','status'=>'p.status'];
 $sortSql = $allowedSort[$sort] ?? 'p.id';
 
 // Where — ENTIDADES: filtra pastas pela entidade ativa (se Pasta for entity-aware)
@@ -49,31 +49,39 @@ if (in_array($status, ['aguardando','retirada','cancelada'])) {
 }
 if ($q !== '') {
     $like = $DB->escape("%$q%");
-    $where .= " AND (p.codigo LIKE '$like' OR p.recebido_de LIKE '$like' OR e.name LIKE '$like')";
+    $where .= " AND (p.codigo LIKE '$like' OR p.recebido_de LIKE '$like' OR e.completename LIKE '$like')";
 }
 if ($escola_filtro > 0) {
     $where .= " AND p.plugin_protocolo_escolas_id=" . (int)$escola_filtro;
 }
 
-// Escolas para filtro — respeita ENTIDADES
+// Escolas para filtro — ESCOLA = ENTIDADE GLPI
 $escolas = [];
 try {
-    $whereEscola = ['is_active' => 1];
-    if (function_exists('getEntitiesRestrictCriteria')) {
-        $entityCrit = getEntitiesRestrictCriteria(Escola::getTable(), '', '', true);
-        if (!empty($entityCrit)) $whereEscola += $entityCrit;
+    $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
+    $active = array_map('intval', (array)$active);
+    $active = array_filter($active, function($v){ return $v > 0; });
+    if (!empty($active)) {
+        $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => $active], 'ORDER' => 'completename']);
+        foreach ($it as $row) $escolas[] = ['id' => $row['id'], 'name' => $row['completename']];
     } else {
-        $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
-        $whereEscola['entities_id'] = $active;
+        // Root ou sem filtro: mostra todas entidades (cada entidade = escola)
+        $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => ['>', 0]], 'ORDER' => 'completename']);
+        foreach ($it as $row) $escolas[] = ['id' => $row['id'], 'name' => $row['completename']];
     }
-    $it = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => $whereEscola, 'ORDER' => 'name']);
-    foreach ($it as $row) $escolas[] = $row;
+    // Fallback compat: se ainda vazio e há escolas antigas, mostra antigas
+    if (empty($escolas) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
+        $it = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => ['is_active' => 1], 'ORDER' => 'name']);
+        foreach ($it as $row) $escolas[] = $row;
+    }
 } catch (Throwable $e) { $escolas = []; }
 
-// Export CSV
+// Export CSV — ESCOLA = ENTIDADE
 if (($_GET['export'] ?? '') === 'csv') {
-    $sqlCsv = "SELECT p.codigo, e.name AS escola, e.codigo AS escola_cod, p.recebido_de, p.data_recebimento, p.data_retirada, p.retirado_por, p.status
-               FROM glpi_plugin_protocolo_pastas p JOIN glpi_plugin_protocolo_escolas e ON e.id=p.plugin_protocolo_escolas_id
+    $sqlCsv = "SELECT p.codigo, COALESCE(e.completename, oe.name) AS escola, COALESCE(e.id, oe.codigo) AS escola_cod, p.recebido_de, p.data_recebimento, p.data_retirada, p.retirado_por, p.status
+               FROM glpi_plugin_protocolo_pastas p
+               LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
+               LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
                $where ORDER BY $sortSql $order";
     try {
         $res = $DB->doQuery($sqlCsv);
@@ -92,10 +100,13 @@ if (($_GET['export'] ?? '') === 'csv') {
     }
 }
 
-// Total para paginação
+// Total para paginação — ESCOLA = ENTIDADE
 $total = 0;
 try {
-    $countSql = "SELECT COUNT(*) AS cpt FROM glpi_plugin_protocolo_pastas p JOIN glpi_plugin_protocolo_escolas e ON e.id=p.plugin_protocolo_escolas_id $where";
+    $countSql = "SELECT COUNT(*) AS cpt FROM glpi_plugin_protocolo_pastas p
+                 LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
+                 LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
+                 $where";
     $res = $DB->doQuery($countSql);
     if ($res && $row = $DB->fetchAssoc($res)) $total = (int)$row['cpt'];
 } catch (Throwable $e) { $total = 0; }
@@ -103,14 +114,15 @@ $totalPages = max(1, (int)ceil($total / $perPage));
 if ($page > $totalPages) $page = $totalPages;
 $offset = ($page - 1) * $perPage;
 
-// Lista
-$sql = "SELECT p.*, e.name AS escola_nome, e.codigo AS escola_codigo,
+// Lista — ESCOLA = ENTIDADE
+$sql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(e.id, oe.codigo) AS escola_codigo,
                u.name AS criador,
                (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
                (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) AS ret_assinado,
                (SELECT id FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' LIMIT 1) AS ret_existe
         FROM glpi_plugin_protocolo_pastas p
-        JOIN glpi_plugin_protocolo_escolas e ON e.id=p.plugin_protocolo_escolas_id
+        LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
+        LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
         LEFT JOIN glpi_users u ON u.id=p.users_id
         $where ORDER BY $sortSql $order LIMIT $perPage OFFSET $offset";
 

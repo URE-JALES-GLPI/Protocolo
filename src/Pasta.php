@@ -3,6 +3,7 @@ namespace GlpiPlugin\Protocolo;
 
 use CommonDBTM;
 use CommonGLPI;
+use Entity;
 use Html;
 use Session;
 use Dropdown;
@@ -129,9 +130,9 @@ class Pasta extends CommonDBTM
 
         $tab[] = [
             'id' => 3,
-            'table' => Escola::getTable(),
-            'field' => 'name',
-            'name' => __('Escola', 'protocolo'),
+            'table' => 'glpi_entities',
+            'field' => 'completename',
+            'name' => __('Escola (Entidade)', 'protocolo'),
             'datatype' => 'dropdown',
             'linkfield' => 'plugin_protocolo_escolas_id',
             'massiveaction' => false
@@ -453,12 +454,15 @@ class Pasta extends CommonDBTM
         }
 
         echo "<tr class='tab_bg_1'>";
-        echo "<td width='15%'><label>" . __('Escola destinatária', 'protocolo') . " <span class='required'>*</span></label></td>";
+        echo "<td width='15%'><label>" . __('Escola destinatária', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(Entidade GLPI)</small></label></td>";
         echo "<td width='35%'>";
         $escolaId = $this->fields['plugin_protocolo_escolas_id'] ?? 0;
-        // ENTIDADES: dropdown filtra pela entidade da pasta (ou ativa se nova)
+        // ESCOLA = ENTIDADE: dropdown direto de Entidades GLPI
+        // Usa a entidade da pasta (ou ativa) como base, mas mostra todas as entidades visíveis
         $entityParaEscola = $this->fields['entities_id'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
-        Escola::dropdown(['value' => $escolaId, 'entity' => $entityParaEscola, 'entity_sons' => true, 'display' => true, 'required' => true]);
+        Entity::dropdown(['name' => 'plugin_protocolo_escolas_id', 'value' => $escolaId, 'entity' => $entityParaEscola]);
+        // Fallback compat: se ainda houver escolas antigas na tabela glpi_plugin_protocolo_escolas, mostra aviso
+        // Escola::dropdown(['value' => $escolaId, 'entity' => $entityParaEscola, 'entity_sons' => true, 'display' => true, 'required' => true]);
         echo "<div class='form-text'><small>" . __('Se não estiver na lista, cadastre em', 'protocolo') . " <a href='" . Escola::getSearchURL() . "'>" . Escola::getTypeName(2) . "</a></small></div>";
         echo "</td>";
 
@@ -813,8 +817,11 @@ class Pasta extends CommonDBTM
     public static function getEscolaName(int $escolaId): string
     {
         global $DB;
-        $it = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
-        foreach ($it as $r) { return $r['name']; }
+        // ESCOLA = ENTIDADE: tenta glpi_entities primeiro, fallback para tabela antiga glpi_plugin_protocolo_escolas
+        $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
+        foreach ($it as $r) { return $r['completename'] ?? $r['name']; }
+        $it2 = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
+        foreach ($it2 as $r) { return $r['name']; }
         return '-';
     }
 

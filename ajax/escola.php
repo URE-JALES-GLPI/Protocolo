@@ -7,30 +7,33 @@ Session::checkLoginUser();
 
 use GlpiPlugin\Protocolo\Escola;
 
-// Para dropdown ajax GLPI (Select2) — respeita ENTIDADES
+// Para dropdown ajax GLPI (Select2) — ESCOLA = ENTIDADE
 if (isset($_POST['searchText'])) {
     $search = $_POST['searchText'];
+    global $DB;
+    $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
+    $active = array_filter(array_map('intval', (array)$active), function($v){ return $v>0; });
     $where = [];
     if (!empty($search)) {
-        $where['name'] = ['LIKE', "%$search%"];
+        $where['completename'] = ['LIKE', "%$search%"];
     }
-    $where['is_active'] = 1;
-    // ENTIDADES: filtra por entidade ativa (inclui recursivas)
-    if (function_exists('getEntitiesRestrictCriteria')) {
-        $entityCrit = getEntitiesRestrictCriteria(Escola::getTable(), '', '', true);
-        if (!empty($entityCrit)) {
-            $where += $entityCrit;
-        }
+    if (!empty($active)) {
+        $where['id'] = $active;
     } else {
-        // fallback simples
-        $active = $_SESSION['glpiactiveentities'] ?? [$_SESSION['glpiactive_entity'] ?? 0];
-        $where['entities_id'] = $active;
+        $where['id'] = ['>', 0];
     }
-    global $DB;
-    $it = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => $where, 'ORDER' => 'name', 'LIMIT' => 30]);
+    $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => $where, 'ORDER' => 'completename', 'LIMIT' => 30]);
     $results = [];
     foreach ($it as $row) {
-        $results[] = ['id' => $row['id'], 'text' => $row['name'] . ($row['codigo'] ? ' (' . $row['codigo'] . ')' : '')];
+        $results[] = ['id' => $row['id'], 'text' => $row['completename']];
+    }
+    // Fallback compat: se busca vazia e há escolas antigas, complementa
+    if (empty($results) && empty($search)) {
+        $whereOld = ['is_active' => 1];
+        $it2 = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => $whereOld, 'ORDER' => 'name', 'LIMIT' => 10]);
+        foreach ($it2 as $row) {
+            $results[] = ['id' => $row['id'], 'text' => $row['name'] . ' (legado)'];
+        }
     }
     echo json_encode(['results' => $results]);
     exit;

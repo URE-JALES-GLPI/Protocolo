@@ -28,16 +28,22 @@ try {
     foreach ($iterator as $row) $totalMes = $row['cpt'];
 } catch (Exception $e) { $totalMes = 0; }
 
-$totalEscolas = countElementsInTable(Escola::getTable(), ['is_active' => 1]);
-
-// Pendências de upload: semelhante ao standalone mas adaptado para novo schema
+$totalEscolas = 0;
 try {
-    $pendQuery = "SELECT p.*, e.name AS escola_nome,
+    $totalEscolas = countElementsInTable('glpi_entities', ['id' => ['>', 0]]);
+} catch (Throwable $e) {
+    $totalEscolas = countElementsInTable(Escola::getTable(), ['is_active' => 1]);
+}
+
+// Pendências de upload: ESCOLA = ENTIDADE
+try {
+    $pendQuery = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome,
         (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
         (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) AS ret_assinado,
         (SELECT id FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' LIMIT 1) AS ret_existe
         FROM glpi_plugin_protocolo_pastas p
-        JOIN glpi_plugin_protocolo_escolas e ON e.id=p.plugin_protocolo_escolas_id
+        LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
+        LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
         WHERE p.is_deleted=0
         HAVING rec_assinado IS NULL OR (ret_existe IS NOT NULL AND ret_assinado IS NULL) OR (p.status='retirada' AND ret_existe IS NULL)
         ORDER BY p.id DESC LIMIT 10";
@@ -57,8 +63,8 @@ try {
     if ($res && $row = $DB->fetchAssoc($res)) $totalPendRet = $row['cpt'];
 } catch (Exception $e) { $totalPendRec = 0; $totalPendRet = 0; }
 
-// Últimas aguardando
-$lastSql = "SELECT p.*, e.name AS escola_nome FROM glpi_plugin_protocolo_pastas p JOIN glpi_plugin_protocolo_escolas e ON e.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 ORDER BY p.data_recebimento DESC LIMIT 8";
+// Últimas aguardando — ESCOLA = ENTIDADE
+$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 ORDER BY p.data_recebimento DESC LIMIT 8";
 $lastRows = [];
 $res = $DB->doQuery($lastSql);
 if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
