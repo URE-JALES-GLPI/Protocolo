@@ -90,17 +90,21 @@ class Profile extends \CommonDBTM
             echo "<tr class='tab_bg_1'>";
             echo "<td>$label<br><small><code>$rightName</code></small></td>";
             echo "<td>";
-            // GLPI padrão: RIGHTS: READ=1, UPDATE=2, CREATE=4, DELETE=8, PURGE=16, READNOTE=32, UPDATENOTE=64
-            // Para plugin vamos usar bits simples: 1=LER, 2=CRIAR, 4=EDITAR, 8=EXCLUIR, 16=PURGE, 255=ALL
-            // Render como dropdown GlpiProfile::dropdownRights
-            GlpiProfile::dropdownRights(
-                [$rightName => $current],
-                $rightName,
-                null,
-                false
-            );
+            // Valores possíveis para plugin (GLPI READ=1, UPDATE=2, CREATE=4, DELETE=8, PURGE=16)
+            $possible = [
+                READ => __('Read'),
+                UPDATE => __('Update'),
+                CREATE => __('Create'),
+                DELETE => __('Delete'),
+                PURGE => __('Purge'),
+                READNOTE => __('Read note'),
+                UPDATENOTE => __('Update note'),
+            ];
+            // GLPI espera input com underscore: _plugin_protocolo_pasta
+            // dropdownRights espera: (array $values, string $name, int $current)
+            GlpiProfile::dropdownRights($possible, "_$rightName", $current);
             echo "</td>";
-            echo "<td class='small text-muted'>1=Ler, 2+4=Editar/Criar, 8=Excluir, 16=Purge, 255=Todos</td>";
+            echo "<td class='small text-muted'>1=Ler, 2=Update, 4=Create, 8=Delete, 16=Purge (255=Todos)</td>";
             echo "</tr>";
         }
 
