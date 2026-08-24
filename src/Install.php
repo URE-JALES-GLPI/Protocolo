@@ -150,10 +150,12 @@ class Install
               `data_recebimento` DATETIME NOT NULL,
               `recebido_de` VARCHAR(150) NOT NULL,
               `recebido_documento` VARCHAR(30) DEFAULT NULL,
+              `recebido_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf',
               `observacao` TEXT DEFAULT NULL,
               `data_retirada` DATETIME DEFAULT NULL,
               `retirado_por` VARCHAR(150) DEFAULT NULL,
               `retirado_documento` VARCHAR(30) DEFAULT NULL,
+              `retirado_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf',
               `observacao_retirada` TEXT DEFAULT NULL,
               `users_id` INT DEFAULT NULL,
               `users_id_retirada` INT DEFAULT NULL,
@@ -325,6 +327,12 @@ class Install
                 }
                 if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'is_deleted')) {
                     $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `is_deleted` TINYINT(1) NOT NULL DEFAULT 0");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'recebido_documento_tipo')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `recebido_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf' AFTER `recebido_documento`");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'retirado_documento_tipo')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `retirado_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf' AFTER `retirado_documento`");
                 }
             }
         } catch (\Throwable $e) {

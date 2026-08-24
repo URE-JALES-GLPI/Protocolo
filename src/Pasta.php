@@ -180,6 +180,38 @@ class Pasta extends CommonDBTM
         ];
 
         $tab[] = [
+            'id' => 9,
+            'table' => self::getTable(),
+            'field' => 'recebido_documento',
+            'name' => __('Documento (Recebimento)', 'protocolo'),
+            'datatype' => 'string'
+        ];
+
+        $tab[] = [
+            'id' => 10,
+            'table' => self::getTable(),
+            'field' => 'recebido_documento_tipo',
+            'name' => __('Tipo Doc. Recebimento', 'protocolo'),
+            'datatype' => 'specific'
+        ];
+
+        $tab[] = [
+            'id' => 11,
+            'table' => self::getTable(),
+            'field' => 'retirado_documento',
+            'name' => __('Documento (Retirada)', 'protocolo'),
+            'datatype' => 'string'
+        ];
+
+        $tab[] = [
+            'id' => 12,
+            'table' => self::getTable(),
+            'field' => 'retirado_documento_tipo',
+            'name' => __('Tipo Doc. Retirada', 'protocolo'),
+            'datatype' => 'specific'
+        ];
+
+        $tab[] = [
             'id' => 16,
             'table' => self::getTable(),
             'field' => 'date_creation',
@@ -219,6 +251,10 @@ class Pasta extends CommonDBTM
         if ($field === 'status') {
             return self::getStatusBadge($values[$field] ?? '');
         }
+        if (in_array($field, ['recebido_documento_tipo', 'retirado_documento_tipo'])) {
+            $v = strtolower($values[$field] ?? 'cpf');
+            return $v === 'rg' ? 'RG' : 'CPF';
+        }
         return parent::getSpecificValueToDisplay($field, $values, $options);
     }
 
@@ -232,6 +268,15 @@ class Pasta extends CommonDBTM
                 'aguardando' => __('Aguardando retirada', 'protocolo'),
                 'retirada'   => __('Retirada', 'protocolo'),
                 'cancelada'  => __('Cancelada', 'protocolo'),
+            ], $options);
+        }
+        if (in_array($field, ['recebido_documento_tipo', 'retirado_documento_tipo'])) {
+            $options['value'] = $values;
+            $options['name'] = $name;
+            $options['display'] = false;
+            return Dropdown::showFromArray($name, [
+                'cpf' => 'CPF',
+                'rg'  => 'RG',
             ], $options);
         }
         return parent::getSpecificValueToSelect($field, $name, $values, $options);
@@ -485,8 +530,8 @@ class Pasta extends CommonDBTM
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td><input type='text' name='recebido_de' class='form-control' required value='" . Html::cleanInputText($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria'></td>";
-        echo "<td><label>" . __('Documento (CPF/RG)', 'protocolo') . "</label></td>";
-        echo "<td><input type='text' name='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "'></td>";
+        echo "<td><label>" . __('Documento', 'protocolo') . "</label></td>";
+        echo "<td><div class='input-group'><select name='recebido_documento_tipo' id='recebido_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='cpf')?' selected':'') . ">CPF</option><option value='rg'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='rg')?' selected':'') . ">RG</option></select><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos (000.000.000-00) | RG: 7-9 dígitos</small></td>";
         echo "</tr>";
 
         echo "<tr class='tab_bg_1'>";
@@ -504,7 +549,9 @@ class Pasta extends CommonDBTM
         echo "</tr>";
 
         if (!$isNew && $this->fields['status'] === 'retirada') {
-            echo "<tr class='tab_bg_1'><td colspan='4' class='center bg-success bg-opacity-10'><strong>" . __('Retirada registrada', 'protocolo') . "</strong> " . Html::convDateTime($this->fields['data_retirada']) . " por " . htmlspecialchars($this->fields['retirado_por'] ?? '') . " (" . htmlspecialchars($this->fields['retirado_documento'] ?? '') . ")</td></tr>";
+            $tipoRet = strtoupper($this->fields['retirado_documento_tipo'] ?? 'CPF');
+            $docRet = htmlspecialchars($this->fields['retirado_documento'] ?? '');
+            echo "<tr class='tab_bg_1'><td colspan='4' class='center bg-success bg-opacity-10'><strong>" . __('Retirada registrada', 'protocolo') . "</strong> " . Html::convDateTime($this->fields['data_retirada']) . " por " . htmlspecialchars($this->fields['retirado_por'] ?? '') . ($docRet ? " ($tipoRet: $docRet)" : "") . "</td></tr>";
             if (!empty($this->fields['observacao_retirada'])) {
                 echo "<tr class='tab_bg_1'><td>" . __('Obs. retirada', 'protocolo') . "</td><td colspan='3'>" . nl2br(Html::cleanInputText($this->fields['observacao_retirada'])) . "</td></tr>";
             }
@@ -576,7 +623,7 @@ class Pasta extends CommonDBTM
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='retirar'>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Retirado por', 'protocolo') . " *</label><input name='retirado_por' class='form-control' required placeholder='" . __('Nome de quem retirou', 'protocolo') . "'></div>";
-                echo "<div class='mb-2'><label class='form-label'>" . __('Documento', 'protocolo') . "</label><input name='retirado_documento' class='form-control' placeholder='CPF/RG'></div>";
+                echo "<div class='mb-2'><label class='form-label'>" . __('Documento', 'protocolo') . "</label><div class='input-group'><select name='retirado_documento_tipo' id='retirado_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'>CPF</option><option value='rg'>RG</option></select><input name='retirado_documento' id='retirado_documento' class='form-control' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='retirado_doc_hint'>CPF: 11 dígitos | RG: 7-9 dígitos</small></div>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Data/hora retirada', 'protocolo') . "</label><input type='datetime-local' name='data_retirada' id='data_retirada_field' class='form-control' value='" . date('Y-m-d\TH:i') . "'></div>";
                 echo "<div class='mb-3'><label class='form-label'>" . __('Observação', 'protocolo') . "</label><textarea name='observacao_retirada' class='form-control' rows='2'></textarea></div>";
                 echo "<button class='btn btn-success w-100'><i class='ti ti-check'></i> " . __('Confirmar retirada', 'protocolo') . "</button>";
@@ -601,7 +648,7 @@ class Pasta extends CommonDBTM
             echo "</div>"; // row
         }
 
-        // JS: Data/hora local do computador para recebimento/retirada
+        // JS: Data/hora local do computador + máscara CPF/RG
         echo "<script>
         document.addEventListener('DOMContentLoaded', function(){
             function toLocalDatetimeValue(d){
@@ -610,12 +657,51 @@ class Pasta extends CommonDBTM
             }
             var now = new Date();
             var localVal = toLocalDatetimeValue(now);
-            var rec = document.getElementById('data_recebimento_field');
-            if(rec) rec.value = localVal;
-            var ret = document.getElementById('data_retirada_field');
-            if(ret && !ret.value) ret.value = localVal;
-            // Se retirada já tem valor do servidor mas usuário quer hora local, atualiza também para novas retiradas
-            if(ret) ret.value = localVal;
+            var recDt = document.getElementById('data_recebimento_field');
+            if(recDt) recDt.value = localVal;
+            var retDt = document.getElementById('data_retirada_field');
+            if(retDt) retDt.value = localVal;
+
+            function formatCPF(v){
+                v=v.replace(/\\D/g,'').slice(0,11);
+                v=v.replace(/(\\d{3})(\\d)/,'\$1.\$2');
+                v=v.replace(/(\\d{3})(\\d)/,'\$1.\$2');
+                v=v.replace(/(\\d{3})(\\d{1,2})\$/,'\$1-\$2');
+                return v;
+            }
+            function formatRG(v){
+                v=v.replace(/[^0-9xX]/g,'').slice(0,9).toUpperCase();
+                if(v.length>2) v=v.replace(/^(\\d{2})(\\d)/,'\$1.\$2');
+                if(v.length>6) v=v.replace(/^(\\d{2})\\.(\\d{3})(\\d)/,'\$1.\$2.\$3');
+                if(v.length>9) v=v.replace(/^(\\d{2})\\.(\\d{3})\\.(\\d{3})([\\dX])/,'\$1.\$2.\$3-\$4');
+                else if(v.length>8) v=v.replace(/\\.(\\d{3})([\\dX])\$/,'.\$1-\$2');
+                return v;
+            }
+            function setupDoc(tipoSel, docInput, hint){
+                if(!tipoSel || !docInput) return;
+                function update(){
+                    var tipo=tipoSel.value;
+                    if(tipo==='cpf'){
+                        docInput.placeholder='000.000.000-00';
+                        docInput.maxLength=14;
+                        if(hint) hint.textContent='CPF: 11 dígitos (000.000.000-00)';
+                        docInput.value=formatCPF(docInput.value);
+                    } else {
+                        docInput.placeholder='00.000.000-0';
+                        docInput.maxLength=12;
+                        if(hint) hint.textContent='RG: 7 a 9 dígitos (00.000.000-0)';
+                        docInput.value=formatRG(docInput.value);
+                    }
+                }
+                tipoSel.addEventListener('change', update);
+                docInput.addEventListener('input', function(){
+                    if(tipoSel.value==='cpf') this.value=formatCPF(this.value);
+                    else this.value=formatRG(this.value);
+                });
+                update();
+            }
+            setupDoc(document.getElementById('recebido_documento_tipo'), document.getElementById('recebido_documento'), document.getElementById('recebido_doc_hint'));
+            setupDoc(document.getElementById('retirado_documento_tipo'), document.getElementById('retirado_documento'), document.getElementById('retirado_doc_hint'));
         });
         </script>";
 
@@ -649,6 +735,20 @@ class Pasta extends CommonDBTM
         if (!empty($ativos) && count($tipos) === 0) {
             Session::addMessageAfterRedirect(__('Selecione pelo menos 1 tipo de arquivo', 'protocolo'), false, ERROR);
             return false;
+        }
+
+        // Valida documento (CPF/RG)
+        $tipoRec = strtolower(trim($input['recebido_documento_tipo'] ?? 'cpf'));
+        if (!in_array($tipoRec, ['cpf','rg'])) $tipoRec = 'cpf';
+        $input['recebido_documento_tipo'] = $tipoRec;
+        $docRec = trim($input['recebido_documento'] ?? '');
+        if ($docRec !== '') {
+            $ok = ($tipoRec === 'cpf') ? self::validarCPF($docRec) : self::validarRG($docRec);
+            if (!$ok) {
+                $msg = $tipoRec === 'cpf' ? __('CPF inválido. Deve ter 11 dígitos válidos (000.000.000-00)', 'protocolo') : __('RG inválido. Deve ter 7 a 9 dígitos (00.000.000-0)', 'protocolo');
+                Session::addMessageAfterRedirect($msg, false, ERROR);
+                return false;
+            }
         }
 
         // Gera código e datas
@@ -720,6 +820,20 @@ class Pasta extends CommonDBTM
             $input['data_recebimento'] = str_replace('T', ' ', $input['data_recebimento']);
             if (strlen($input['data_recebimento']) === 16) $input['data_recebimento'] .= ':00';
         }
+        if (isset($input['recebido_documento']) || isset($input['recebido_documento_tipo'])) {
+            $tipo = strtolower(trim($input['recebido_documento_tipo'] ?? $this->fields['recebido_documento_tipo'] ?? 'cpf'));
+            if (!in_array($tipo, ['cpf','rg'])) $tipo = 'cpf';
+            $input['recebido_documento_tipo'] = $tipo;
+            $doc = trim($input['recebido_documento'] ?? $this->fields['recebido_documento'] ?? '');
+            if ($doc !== '') {
+                $ok = ($tipo === 'cpf') ? self::validarCPF($doc) : self::validarRG($doc);
+                if (!$ok) {
+                    $msg = $tipo === 'cpf' ? __('CPF inválido', 'protocolo') : __('RG inválido', 'protocolo');
+                    Session::addMessageAfterRedirect($msg, false, ERROR);
+                    return false;
+                }
+            }
+        }
         return $input;
     }
 
@@ -742,11 +856,23 @@ class Pasta extends CommonDBTM
             $dataRet = str_replace('T', ' ', $dataRet);
             if (strlen($dataRet) === 16) $dataRet .= ':00';
         }
+        $tipoRet = strtolower(trim($params['retirado_documento_tipo'] ?? 'cpf'));
+        if (!in_array($tipoRet, ['cpf','rg'])) $tipoRet = 'cpf';
+        $docRet = trim($params['retirado_documento'] ?? '');
+        if ($docRet !== '') {
+            $ok = ($tipoRet === 'cpf') ? self::validarCPF($docRet) : self::validarRG($docRet);
+            if (!$ok) {
+                $msg = $tipoRet === 'cpf' ? __('CPF inválido na retirada. Deve ter 11 dígitos válidos', 'protocolo') : __('RG inválido na retirada. Deve ter 7 a 9 dígitos', 'protocolo');
+                Session::addMessageAfterRedirect($msg, false, ERROR);
+                return false;
+            }
+        }
         $DB->update(self::getTable(), [
             'status' => 'retirada',
             'data_retirada' => $dataRet,
             'retirado_por' => $retiradoPor,
-            'retirado_documento' => trim($params['retirado_documento'] ?? '') ?: null,
+            'retirado_documento' => $docRet ?: null,
+            'retirado_documento_tipo' => $tipoRet,
             'observacao_retirada' => trim($params['observacao_retirada'] ?? '') ?: null,
             'users_id_retirada' => Session::getLoginUserID(),
             'date_mod' => date('Y-m-d H:i:s')
@@ -838,6 +964,35 @@ class Pasta extends CommonDBTM
         $DB->update('glpi_plugin_protocolo_termos', ['arquivo_assinado' => 'termos/' . $novoNome], ['id' => $termoId]);
 
         Session::addMessageAfterRedirect(__('Arquivo assinado enviado com sucesso!', 'protocolo'), false, INFO);
+        return true;
+    }
+
+    public static function limparDocumento(string $doc): string
+    {
+        return preg_replace('/[^0-9Xx]/', '', $doc);
+    }
+
+    public static function validarCPF(string $cpf): bool
+    {
+        $cpf = preg_replace('/\D/', '', $cpf);
+        if (strlen($cpf) !== 11) return false;
+        if (preg_match('/^(\d)\1{10}$/', $cpf)) return false;
+        for ($t = 9; $t < 11; $t++) {
+            $d = 0;
+            for ($c = 0; $c < $t; $c++) $d += $cpf[$c] * (($t + 1) - $c);
+            $d = ((10 * $d) % 11) % 10;
+            if ($cpf[$c] != $d) return false;
+        }
+        return true;
+    }
+
+    public static function validarRG(string $rg): bool
+    {
+        $rg = preg_replace('/[^0-9Xx]/', '', $rg);
+        $len = strlen($rg);
+        // RG: 7 a 9 dígitos (SP 9, outros 7-8), permite X no final
+        if ($len < 7 || $len > 9) return false;
+        if (!preg_match('/^[0-9]{7,8}[0-9Xx]?$/', $rg)) return false;
         return true;
     }
 
