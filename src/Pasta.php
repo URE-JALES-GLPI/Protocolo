@@ -456,16 +456,22 @@ class Pasta extends CommonDBTM
         echo "<tr class='tab_bg_1'>";
         echo "<td width='15%'><label>" . __('Escola destinatária', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(Entidade GLPI)</small></label></td>";
         echo "<td width='35%'>";
-        $escolaId = $this->fields['plugin_protocolo_escolas_id'] ?? 0;
-        // ESCOLA = ENTIDADE: mostra TODAS as entidades (cada entidade = escola), sem botão +
-        Entity::dropdown([
-            'name'    => 'plugin_protocolo_escolas_id',
-            'value'   => $escolaId,
-            'entity'  => 0,
-            'addicon' => false,
-            'display' => true
-        ]);
-        echo "<div class='form-text'><small class='text-muted'>" . __('Entidade = Escola. Gerencie em Administração → Entidades', 'protocolo') . "</small></div>";
+        $escolaId = (int)($this->fields['plugin_protocolo_escolas_id'] ?? 0);
+        // ESCOLA = ENTIDADE: mostra TODAS as entidades (sem filtro de permissão/entidade ativa) e sem botão +
+        global $DB;
+        $allEntities = [];
+        try {
+            $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => ['>', 0]], 'ORDER' => 'completename']);
+            foreach ($it as $row) $allEntities[] = $row;
+        } catch (\Throwable $e) { $allEntities = []; }
+        echo "<select name='plugin_protocolo_escolas_id' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola (entidade)', 'protocolo') . " --</option>";
+        foreach ($allEntities as $ent) {
+            $sel = ((int)$ent['id'] === $escolaId) ? 'selected' : '';
+            $label = htmlspecialchars($ent['completename']);
+            echo "<option value='" . (int)$ent['id'] . "' $sel>$label</option>";
+        }
+        echo "</select>";
+        echo "<div class='form-text'><small class='text-muted'>" . __('Todas as entidades são listadas. Gerencie em Administração → Entidades', 'protocolo') . "</small></div>";
         echo "</td>";
 
         echo "<td><label>" . __('Data/hora recebimento', 'protocolo') . "</label></td>";
