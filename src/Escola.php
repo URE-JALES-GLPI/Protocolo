@@ -222,8 +222,8 @@ class Escola extends CommonDBTM
         return $input;
     }
 
-    // Helper para dropdown em formulários de pasta
-    public static function dropdown(array $options = []): int
+    // Helper para dropdown em formulários de pasta (compatível com CommonDBTM::dropdown($options=[]))
+    public static function dropdown($options = [])
     {
         $options['name'] = $options['name'] ?? 'plugin_protocolo_escolas_id';
         $options['entity'] = $options['entity'] ?? ($_SESSION['glpiactive_entity'] ?? 0);
