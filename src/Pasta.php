@@ -34,7 +34,7 @@ class Pasta extends CommonDBTM
     {
         $menu = [];
         $menu['title'] = __('Protocolo', 'protocolo');
-        $menu['page']  = self::getSearchURL(false);
+        $menu['page']  = '/plugins/protocolo/front/dashboard.php';
         $menu['icon']  = self::getIcon();
         $menu['options']['dashboard']['title'] = __('Dashboard', 'protocolo');
         $menu['options']['dashboard']['page']  = '/plugins/protocolo/front/dashboard.php';
