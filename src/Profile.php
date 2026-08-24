@@ -88,23 +88,40 @@ class Profile extends \CommonDBTM
                 $current = (int)$row['rights'];
             }
             echo "<tr class='tab_bg_1'>";
-            echo "<td>$label<br><small><code>$rightName</code></small></td>";
+            echo "<td><strong>$label</strong><br><small class='text-muted'><code>$rightName</code></small></td>";
             echo "<td>";
-            // Valores possíveis para plugin (GLPI READ=1, UPDATE=2, CREATE=4, DELETE=8, PURGE=16)
+            // UI mais bonita que dropdownRights (evita lista feia) - checkboxes inline estilo GLPI
             $possible = [
-                READ => __('Read'),
-                UPDATE => __('Update'),
-                CREATE => __('Create'),
-                DELETE => __('Delete'),
-                PURGE => __('Purge'),
-                READNOTE => __('Read note'),
-                UPDATENOTE => __('Update note'),
+                READ       => ['label' => __('Read'), 'title' => 'Leitura'],
+                UPDATE     => ['label' => __('Update'), 'title' => 'Atualizar'],
+                CREATE     => ['label' => __('Create'), 'title' => 'Criar'],
+                DELETE     => ['label' => __('Delete'), 'title' => 'Excluir'],
+                PURGE      => ['label' => __('Purge'), 'title' => 'Apagar definitivo'],
+                READNOTE   => ['label' => __('Read note'), 'title' => 'Ler notas'],
+                UPDATENOTE => ['label' => __('Update note'), 'title' => 'Atualizar notas'],
             ];
-            // GLPI espera input com underscore: _plugin_protocolo_pasta
-            // dropdownRights espera: (array $values, string $name, int $current)
-            GlpiProfile::dropdownRights($possible, "_$rightName", $current);
+            echo "<input type='hidden' name='_{$rightName}[0]' value='0'>"; // garante que desmarcar tudo zera (0)
+            echo "<div class='d-flex flex-wrap gap-3'>";
+            foreach ($possible as $bit => $info) {
+                $checked = ($current & $bit) ? 'checked' : '';
+                $uid = $rightName . '_' . $bit;
+                // GLPI espera name=\"_{$rightName}[{$bit}]\" value=\"1\"
+                echo "<div class='form-check mb-0' title='{$info['title']} ({$bit})'>";
+                echo "<input class='form-check-input' type='checkbox' name='_{$rightName}[{$bit}]' value='1' id='{$uid}' $checked>";
+                echo "<label class='form-check-label small' for='{$uid}'>{$info['label']}</label>";
+                echo "</div>";
+            }
+            echo "</div>";
+            // atalho Selecionar todos / nenhum
+            echo "<div class='mt-2 small text-muted'>";
+            echo "<a href='#' onclick=\"var c=document.querySelectorAll('input[name^=\\\"_{$rightName}[\\\"]'); c.forEach(function(e){e.checked=true}); return false;\"><i class='ti ti-checks'></i> " . __('Select all') . "</a> &middot; ";
+            echo "<a href='#' onclick=\"var c=document.querySelectorAll('input[name^=\\\"_{$rightName}[\\\"]'); c.forEach(function(e){e.checked=false}); return false;\"><i class='ti ti-x'></i> " . __('Deselect all') . "</a> ";
+            echo "<span class='badge bg-light text-dark border ms-2' title='Valor atual'>$current</span>";
+            if ($current === 255) echo " <span class='badge bg-success'>Todos</span>";
+            elseif ($current === 0) echo " <span class='badge bg-secondary'>Sem acesso</span>";
+            echo "</div>";
             echo "</td>";
-            echo "<td class='small text-muted'>1=Ler, 2=Update, 4=Create, 8=Delete, 16=Purge (255=Todos)</td>";
+            echo "<td class='small text-muted' style='max-width:220px'>Marque o que o perfil pode fazer.<br><b>Pastas:</b> precisa de <code>Read</code> para ver menu Ferramentas → Pastas.<br><code>255</code>=todos.</td>";
             echo "</tr>";
         }
 
