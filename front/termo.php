@@ -102,7 +102,6 @@ body{ background:#eee; }
 <div class="text-center no-print py-4 bg-white shadow-sm border-bottom">
   <button onclick="window.print()" class="btn btn-primary btn-lg px-5 py-3 shadow" style="background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%); border:none; font-weight:700; font-size:1.15rem; letter-spacing:0.3px; box-shadow:0 4px 15px rgba(13,110,253,.35) !important;"><i class="ti ti-printer me-2" style="font-size:1.3rem; vertical-align:-2px;"></i> <?= __('Imprimir / Salvar PDF', 'protocolo') ?></button>
   <a href="<?= Pasta::getFormURLWithID($id) ?>" class="btn btn-outline-secondary ms-2 px-4"><?= __('Voltar') ?></a>
-  <div class="small text-muted mt-3"><i class="ti ti-info-circle me-1"></i><?= __('Dica: na janela de impressão, escolha "Salvar como PDF" para gerar o termo sem assinatura. Depois imprima, colete assinaturas e digitalize para upload no sistema.', 'protocolo') ?></div>
 </div>
 
 <div class="termo" id="termo">
