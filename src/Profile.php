@@ -71,10 +71,15 @@ class Profile extends \CommonDBTM
 
     public static function showFormForProfile(GlpiProfile $profile): void
     {
-        global $DB;
+        global $DB, $CFG_GLPI;
         $id = $profile->getID();
         $rights = self::getRightsStatic();
 
+        // Form dedicado para salvar só Protocolo (bypassa validacao do form externo se falhar)
+        $action = $CFG_GLPI['root_doc'] . "/plugins/protocolo/front/profile.php";
+        echo "<form method='post' action='$action' id='protocoloProfileSaveForm'>";
+        echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+        echo "<input type='hidden' name='profiles_id' value='$id'>";
         echo "<div class='spaced' id='protocoloProfileForm'>";
         echo "<table class='tab_cadre_fixe'>";
 
@@ -125,11 +130,15 @@ class Profile extends \CommonDBTM
         }
 
         echo "<tr><td colspan='3' class='center p-3'>";
-        echo "<button type='submit' name='update' value='1' class='btn btn-primary'><i class='ti ti-device-floppy me-1'></i> " . __('Save') . "</button> ";
-        echo "<small class='text-muted ms-2'>Super-Admin já tem 255 por padrão. Use o Salvar do perfil.</small>";
+        echo "<button type='submit' name='update_protocolo' value='1' class='btn btn-primary'><i class='ti ti-device-floppy me-1'></i> " . __('Save') . "</button> ";
+        echo "<a href='" . $CFG_GLPI['root_doc'] . "/front/profile.form.php?id=$id' class='btn btn-outline-secondary ms-2'>Cancelar</a>";
+        echo "<small class='text-muted ms-2 d-block mt-2'>Salva só Protocolo. Super-Admin já tem 255.</small>";
         echo "</td></tr>";
 
         echo "</table></div>";
+        echo "</form>";
+        // Fallback: se o form externo do Perfil for usado, o botão acima com name=update também funciona
+        echo "<script>document.querySelectorAll('#protocoloProfileForm input[type=checkbox]').forEach(function(cb){ cb.addEventListener('change', function(){ /* marca como dirty */ }); });</script>";
     }
 
     /**
