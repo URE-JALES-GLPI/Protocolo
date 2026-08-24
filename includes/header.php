@@ -10,6 +10,12 @@ $user = currentUser();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($pageTitle ?? 'Protocolo') ?> - Sistema de Protocolo</title>
+<link rel="shortcut icon" href="favicon.ico?v=4">
+<link rel="icon" type="image/x-icon" href="favicon.ico?v=4">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=4">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=4">
+<meta name="theme-color" content="#0d6efd">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <link href="assets/css/style.css" rel="stylesheet">
