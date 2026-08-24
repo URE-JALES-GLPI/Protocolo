@@ -401,7 +401,7 @@ class Pasta extends CommonDBTM
 
             // Form upload (GLPI style)
             echo "<form method='post' enctype='multipart/form-data' action='" . self::getFormURL() . "' class='mt-3 d-flex gap-2 align-items-end'>";
-            echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+            echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
             echo "<input type='hidden' name='id' value='$id'>";
             echo "<input type='hidden' name='action' value='upload'>";
             echo "<input type='hidden' name='termo_id' value='" . (int)$t['id'] . "'>";
@@ -484,8 +484,9 @@ class Pasta extends CommonDBTM
         // Se é edição, mostra header padrão e depois dados + ações laterais
         $isNew = ($ID == 0);
 
+        $csrf = Session::getNewCSRFToken();
         echo "<form method='post' action='" . self::getFormURL() . "' enctype='multipart/form-data' id='plugin_protocolo_pasta_form'>";
-        echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+        echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
         if (!$isNew) {
             echo Html::hidden('id', ['value' => $ID]);
         }
@@ -619,7 +620,7 @@ class Pasta extends CommonDBTM
                 echo "<div class='card shadow-sm border-success mb-3'><div class='card-header bg-success text-white'><strong><i class='ti ti-logout'></i> " . __('Registrar retirada', 'protocolo') . "</strong></div><div class='card-body'>";
                 echo "<p class='small text-muted'>" . __('Quando a escola vier buscar, preencha e gere o Termo de Retirada.', 'protocolo') . "</p>";
                 echo "<form method='post' action='" . self::getFormURL() . "'>";
-                echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+                echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='retirar'>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Retirado por', 'protocolo') . " *</label><input name='retirado_por' class='form-control' required placeholder='" . __('Nome de quem retirou', 'protocolo') . "'></div>";
@@ -630,7 +631,7 @@ class Pasta extends CommonDBTM
                 echo "</form>";
 
                 echo "<form method='post' action='" . self::getFormURL() . "' class='mt-2' onsubmit=\"return confirm('" . __('Cancelar esta pasta?', 'protocolo') . "')\">";
-                echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+                echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='cancelar'>";
                 echo "<button class='btn btn-outline-danger btn-sm w-100'>" . __('Cancelar pasta', 'protocolo') . "</button>";
@@ -638,7 +639,7 @@ class Pasta extends CommonDBTM
             } else {
                 echo "<div class='card shadow-sm mb-3'><div class='card-body text-center'><p class='mb-2'>" . __('Status', 'protocolo') . ": " . self::getStatusBadge($this->fields['status']) . "</p>";
                 echo "<form method='post' action='" . self::getFormURL() . "' onsubmit=\"return confirm('" . __('Reabrir pasta?', 'protocolo') . "')\">";
-                echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+                echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='reabrir'>";
                 echo "<button class='btn btn-sm btn-outline-secondary'>" . __('Reabrir para aguardando', 'protocolo') . "</button>";
