@@ -186,8 +186,7 @@ body{ background:#eee; }
   <div class="hash d-flex justify-content-between align-items-center gap-3">
     <div style="flex:1">
       <strong><?= __('Código de verificação:', 'protocolo') ?></strong> <?= htmlspecialchars($termo['codigo']) ?> &middot; Hash: <?= htmlspecialchars($termo['hash_verificacao'] ?? '') ?> &middot; Pasta: <?= htmlspecialchars($pasta->fields['codigo']) ?><br>
-      <?= __('Termo gerado em', 'protocolo') ?> <?= date('d/m/Y H:i:s') ?> <?= __('por', 'protocolo') ?> <?= htmlspecialchars($_SESSION['glpiname'] ?? '') ?> &middot; <?= __('Sistema de Protocolo - Autenticidade mediante consulta no setor.', 'protocolo') ?><br>
-      <small class="text-muted">Verifique em: <span id="verifyUrlText" class="text-break"></span></small>
+      <?= __('Termo gerado em', 'protocolo') ?> <?= date('d/m/Y H:i:s') ?> <?= __('por', 'protocolo') ?> <?= htmlspecialchars($_SESSION['glpiname'] ?? '') ?> &middot; <?= __('Sistema de Protocolo - Autenticidade mediante consulta no setor.', 'protocolo') ?>
     </div>
     <div class="text-center" style="flex-shrink:0">
       <div id="qrcode" style="background:white; padding:4px; border:1px solid #ccc; display:inline-block"></div>
