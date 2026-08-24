@@ -29,17 +29,17 @@ sudo mysql
 ```
 ```sql
 CREATE DATABASE protocolo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'protocolo_user'@'localhost' IDENTIFIED BY 'Protocolo@2026';
+CREATE USER 'protocolo_user'@'localhost' IDENTIFIED BY 'SUA_SENHA_FORTE_AQUI';
 GRANT ALL PRIVILEGES ON protocolo.* TO 'protocolo_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
-> Altere a senha em `config/database.php` se mudar aqui.
+> Altere a senha em `config/database.php` se mudar aqui (use a mesma `SUA_SENHA_FORTE_AQUI`).
 
 Importar schema:
 ```bash
 mysql -u protocolo_user -p protocolo < /var/www/protocolo/sql/schema.sql
-# senha: Protocolo@2026
+# senha: SUA_SENHA_FORTE_AQUI
 ```
 
 ### C. Copiar projeto para Apache
@@ -71,13 +71,13 @@ sudo systemctl enable apache2
 ### E. Ajustar hosts (acesso via nome)
 No Windows da rede interna, `C:\Windows\System32\drivers\etc\hosts`:
 ```
-192.168.1.50  protocolo.local
+SEU_IP  protocolo.local
 ```
 Acesse: `http://protocolo.local` ou `http://IP_DA_VM`
 
 ### F. Primeiro acesso
 - Usuário: `admin`
-- Senha: `admin123`
+- Senha: `definida na instalação` (padrão em `sql/schema.sql` - troque imediatamente após primeiro acesso)
 - Vá em **Usuários** → crie operador do setor e troque senha do admin.
 
 ### G. Personalizar termo
@@ -123,3 +123,9 @@ Tabela `notificacoes` já criada. Ideias:
 ## 7) Dúvidas
 Logs: `sudo tail -f /var/log/apache2/protocolo_error.log`
 Teste DB: `php -r "require 'config/database.php'; var_dump(getPDO()->query('SELECT 1')->fetch());"`
+
+---
+
+## Autor
+
+Desenvolvido por **Leonardo Poiatti Fação**.
