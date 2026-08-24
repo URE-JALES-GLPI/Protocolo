@@ -48,7 +48,7 @@ class TipoArquivo extends CommonDBTM
     {
         $tab = [];
         $tab[] = ['id' => 'common', 'name' => __('Tipo', 'protocolo')];
-        $tab[] = ['id' => 1, 'table' => self::getTable(), 'field' => 'name', 'name' => __('Nome'), 'datatype' => 'itemlink'];
+        $tab[] = ['id' => 1, 'table' => self::getTable(), 'field' => 'name', 'name' => __('Nome'), 'datatype' => 'string', 'massiveaction' => false];
         $tab[] = ['id' => 2, 'table' => self::getTable(), 'field' => 'comment', 'name' => __('Descrição'), 'datatype' => 'text'];
         $tab[] = ['id' => 3, 'table' => self::getTable(), 'field' => 'is_active', 'name' => __('Ativo'), 'datatype' => 'bool'];
         $tab[] = ['id' => 16, 'table' => self::getTable(), 'field' => 'date_creation', 'name' => __('Criação'), 'datatype' => 'datetime'];

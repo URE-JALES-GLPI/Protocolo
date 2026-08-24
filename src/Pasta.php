@@ -702,6 +702,44 @@ class Pasta extends CommonDBTM
             }
             setupDoc(document.getElementById('recebido_documento_tipo'), document.getElementById('recebido_documento'), document.getElementById('recebido_doc_hint'));
             setupDoc(document.getElementById('retirado_documento_tipo'), document.getElementById('retirado_documento'), document.getElementById('retirado_doc_hint'));
+
+            // Tipos -> Itens auto preenchimento (fallback inline caso js/app.js não carregue)
+            var tipoChecks = document.querySelectorAll('.tipo-check');
+            var wrap = document.getElementById('itensWrap');
+            var btnAdd = document.getElementById('btnAddItem');
+            if(tipoChecks.length && wrap){
+                tipoChecks.forEach(function(chk){
+                    chk.addEventListener('change', function(){
+                        var tid = chk.value;
+                        var nome = chk.dataset.nome || chk.nextElementSibling?.textContent.trim() || 'Item';
+                        if(chk.checked){
+                            if(wrap.querySelector('.item-row[data-tipo-id=\"'+tid+'\"]')) return;
+                            var rows = wrap.querySelectorAll('.item-row');
+                            var targetRow = null;
+                            if(rows.length===1){
+                                var inp = rows[0].querySelector('input[name*=\"[descricao]\"]');
+                                if(inp && inp.value.trim()==='' && !rows[0].dataset.tipoId) targetRow=rows[0];
+                            }
+                            if(targetRow){
+                                targetRow.dataset.tipoId=tid;
+                                var inp2 = targetRow.querySelector('input[name*=\"[descricao]\"]');
+                                if(inp2) inp2.value=nome;
+                                targetRow.classList.add('border','border-warning','rounded','p-1');
+                            } else {
+                                var idx = wrap.querySelectorAll('.item-row').length;
+                                var row = document.createElement('div');
+                                row.className='row g-2 mb-2 item-row border border-warning rounded p-1';
+                                row.dataset.tipoId=tid;
+                                row.innerHTML='<div class=\"col-md-7\"><input name=\"itens['+idx+'][descricao]\" class=\"form-control\" value=\"'+nome.replace(/\"/g,'&quot;')+'\" required></div><div class=\"col-md-2\"><input name=\"itens['+idx+'][quantidade]\" type=\"number\" min=\"1\" value=\"1\" class=\"form-control\" placeholder=\"Qtd\"></div><div class=\"col-md-2\"><input name=\"itens['+idx+'][observacao]\" class=\"form-control\" placeholder=\"Obs.\"></div><div class=\"col-md-1\"><button type=\"button\" class=\"btn btn-outline-danger w-100 btnRemove\"><i class=\"ti ti-trash\"></i></button></div>';
+                                wrap.appendChild(row);
+                            }
+                        } else {
+                            var row2 = wrap.querySelector('.item-row[data-tipo-id=\"'+tid+'\"]');
+                            if(row2){ row2.remove(); if(wrap.querySelectorAll('.item-row').length===0 && btnAdd) btnAdd.click(); }
+                        }
+                    });
+                });
+            }
         });
         </script>";
 
