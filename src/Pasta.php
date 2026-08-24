@@ -52,7 +52,7 @@ class Pasta extends CommonDBTM
     public function canDeleteItem(): bool { return Session::haveRight(self::$rightname, DELETE); }
     public function canPurgeItem(): bool { return Session::haveRight(self::$rightname, PURGE); }
 
-    public function getNameField()
+    public static function getNameField()
     {
         return 'codigo';
     }

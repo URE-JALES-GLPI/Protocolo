@@ -63,7 +63,7 @@ class Escola extends CommonDBTM
         return Session::haveRight(self::$rightname, PURGE);
     }
 
-    public function getNameField()
+    public static function getNameField()
     {
         return 'name';
     }

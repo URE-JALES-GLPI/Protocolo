@@ -42,7 +42,7 @@ class TipoArquivo extends CommonDBTM
     public function canDeleteItem(): bool { return Session::haveRight(self::$rightname, DELETE); }
     public function canPurgeItem(): bool { return Session::haveRight(self::$rightname, PURGE); }
 
-    public function getNameField() { return 'name'; }
+    public static function getNameField() { return 'name'; }
 
     public function rawSearchOptions()
     {
