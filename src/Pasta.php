@@ -712,45 +712,9 @@ class Pasta extends CommonDBTM
         return self::getFormURL($full) . '?id=' . (int)$id;
     }
 
-    // Para Search::show mass actions
-    public function getMassiveActionsForItem()
-    {
-        $actions = parent::getMassiveActionsForItem();
-        if (Session::haveRight(self::$rightname, UPDATE)) {
-            $actions['GlpiPlugin\Protocolo\Pasta' . MassiveAction::CLASS_ACTION_SEPARATOR . 'changeStatus'] = __('Alterar status', 'protocolo');
-        }
-        return $actions;
-    }
-
-    public static function showMassiveActionsSubForm(MassiveAction $ma)
-    {
-        switch ($ma->getAction()) {
-            case 'changeStatus':
-                Dropdown::showFromArray('status', [
-                    'aguardando' => __('Aguardando retirada', 'protocolo'),
-                    'retirada' => __('Retirada', 'protocolo'),
-                    'cancelada' => __('Cancelada', 'protocolo')
-                ]);
-                echo Html::submit(__('Post'), ['name' => 'massiveaction']);
-                return true;
-        }
-        return parent::showMassiveActionsSubForm($ma);
-    }
-
-    public static function processMassiveActionsForOneItemtype(MassiveAction $ma, CommonDBTM $item, array $ids)
-    {
-        global $DB;
-        switch ($ma->getAction()) {
-            case 'changeStatus':
-                $input = $ma->getInput();
-                $status = $input['status'] ?? 'aguardando';
-                if (!in_array($status, ['aguardando', 'retirada', 'cancelada'])) break;
-                foreach ($ids as $id) {
-                    $DB->update(self::getTable(), ['status' => $status, 'date_mod' => date('Y-m-d H:i:s')], ['id' => $id]);
-                    $ma->itemDone($item->getType(), $id, MassiveAction::ACTION_OK);
-                }
-                return;
-        }
-        parent::processMassiveActionsForOneItemtype($ma, $item, $ids);
-    }
+    // Massive actions desabilitadas temporariamente para compatibilidade GLPI 11 (assinatura mudou em CommonDBTM::getMassiveActionsForItem(): MassiveAction)
+    // Para reativar, implementar conforme nova API GLPI 11:
+    // public function getMassiveActionsForItem(): array { ... }
+    // public static function showMassiveActionsSubForm(MassiveAction $ma) { ... }
+    // public static function processMassiveActionsForOneItemtype(MassiveAction $ma, CommonDBTM $item, array $ids) { ... }
 }
