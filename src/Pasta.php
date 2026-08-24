@@ -328,6 +328,67 @@ class Pasta extends CommonDBTM
             echo "</form></div>";
         }
         echo "</div>";
+
+        // Timeline - histórico da pasta
+        echo "<div class='spaced'><h3><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</h3>";
+        echo "<div style='border-left:3px solid #dee2e6; padding-left:22px; margin-left:8px;'>";
+        $events = [];
+        $events[] = [
+            'date' => $pasta->fields['date_creation'] ?? $pasta->fields['data_recebimento'],
+            'icon' => 'ti ti-plus',
+            'color' => 'bg-primary',
+            'title' => __('Pasta criada', 'protocolo') . " — " . htmlspecialchars($pasta->fields['codigo']),
+            'desc' => __('Por', 'protocolo') . " " . htmlspecialchars(getUserName($pasta->fields['users_id'] ?? 0)) . " em " . Html::convDateTime($pasta->fields['date_creation'] ?? $pasta->fields['data_recebimento']) . "<br>" . __('Recebido de', 'protocolo') . ": " . htmlspecialchars($pasta->fields['recebido_de'])
+        ];
+        $events[] = [
+            'date' => $pasta->fields['data_recebimento'],
+            'icon' => 'ti ti-inbox',
+            'color' => 'bg-warning text-dark',
+            'title' => __('Recebimento registrado', 'protocolo'),
+            'desc' => Html::convDateTime($pasta->fields['data_recebimento']) . " — " . htmlspecialchars($pasta->fields['recebido_de']) . ($pasta->fields['recebido_documento'] ? " (" . htmlspecialchars($pasta->fields['recebido_documento']) . ")" : "")
+        ];
+        foreach ($termos as $t) {
+            $isRec = $t['tipo'] === 'recebimento';
+            $events[] = [
+                'date' => $t['date_creation'],
+                'icon' => $isRec ? 'ti ti-file-text' : 'ti ti-file-export',
+                'color' => $isRec ? 'bg-primary' : 'bg-success',
+                'title' => ($isRec ? __('Termo de Recebimento gerado', 'protocolo') : __('Termo de Retirada gerado', 'protocolo')) . " <code>" . htmlspecialchars($t['codigo']) . "</code>",
+                'desc' => Html::convDateTime($t['date_creation']) . " por " . htmlspecialchars(getUserName($t['users_id'] ?? 0)) . ($t['arquivo_assinado'] ? "<br><span class='badge bg-success'><i class='ti ti-check'></i> Assinado: " . htmlspecialchars($t['arquivo_assinado']) . "</span>" : "<br><span class='badge bg-warning text-dark'>Sem arquivo assinado</span>")
+            ];
+            if (!empty($t['arquivo_assinado'])) {
+                // tenta achar data do upload? Não temos, usa mesma date_creation
+            }
+        }
+        if (!empty($pasta->fields['data_retirada'])) {
+            $events[] = [
+                'date' => $pasta->fields['data_retirada'],
+                'icon' => 'ti ti-logout',
+                'color' => 'bg-success',
+                'title' => __('Retirada registrada', 'protocolo'),
+                'desc' => Html::convDateTime($pasta->fields['data_retirada']) . " — " . htmlspecialchars($pasta->fields['retirado_por'] ?? '') . ($pasta->fields['retirado_documento'] ? " (" . htmlspecialchars($pasta->fields['retirado_documento']) . ")" : "") . ( $pasta->fields['observacao_retirada'] ? "<br><em>" . htmlspecialchars($pasta->fields['observacao_retirada']) . "</em>" : "")
+            ];
+        }
+        if ($pasta->fields['status'] === 'cancelada') {
+            $events[] = [
+                'date' => $pasta->fields['date_mod'] ?? date('Y-m-d H:i:s'),
+                'icon' => 'ti ti-ban',
+                'color' => 'bg-secondary',
+                'title' => __('Pasta cancelada', 'protocolo'),
+                'desc' => Html::convDateTime($pasta->fields['date_mod'] ?? '')
+            ];
+        }
+        // Ordena por data
+        usort($events, function($a,$b){ return strtotime($a['date'] ?? '0') <=> strtotime($b['date'] ?? '0'); });
+        foreach ($events as $ev) {
+            echo "<div class='mb-3 position-relative'>";
+            echo "<span class='position-absolute d-flex align-items-center justify-content-center " . $ev['color'] . " text-white' style='left:-32px; top:0; width:20px; height:20px; border-radius:50%; font-size:11px;'><i class='" . $ev['icon'] . "'></i></span>";
+            echo "<div class='small text-muted'>" . Html::convDateTime($ev['date']) . "</div>";
+            echo "<div class='fw-semibold'>" . $ev['title'] . "</div>";
+            echo "<div class='small text-muted'>" . $ev['desc'] . "</div>";
+            echo "</div>";
+        }
+        echo "</div></div>";
     }
 
     public function showForm($ID, array $options = [])
