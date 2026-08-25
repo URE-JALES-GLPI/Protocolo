@@ -12,7 +12,7 @@ if (!Config::canEdit()) {
 
 $config = Config::getAll();
 
-// Save
+// Save - precisa vir antes de qualquer saída
 if (isset($_POST['update'])) {
     Session::checkCSRF($_POST);
     if (!Config::canEdit()) {
@@ -33,15 +33,15 @@ if (isset($_POST['update'])) {
         Config::set($toSet);
         Session::addMessageAfterRedirect(__('Configuração salva com sucesso', 'protocolo'), false, INFO);
     }
-    Html::redirect($_SERVER['PHP_SELF']);
+    Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php');
 }
 
-Html::header(__('Configuração - Protocolo', 'protocolo'), $_SERVER['PHP_SELF'], 'config', 'plugins');
+Html::header(__('Configuração - Protocolo', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 
 echo "<div class='container-fluid'>";
 echo "<h3><i class='ti ti-settings'></i> " . __('Configuração do Plugin Protocolo', 'protocolo') . "</h3>";
 
-echo "<form method='post' action='" . $_SERVER['PHP_SELF'] . "'>";
+echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php'>";
 echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
 echo "<div class='card shadow-sm'><div class='card-header bg-white'><strong><i class='ti ti-adjustments'></i> " . __('Parâmetros gerais', 'protocolo') . "</strong></div><div class='card-body'>";
 
