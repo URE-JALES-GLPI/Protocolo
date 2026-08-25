@@ -24,7 +24,7 @@ try {
     $codigo = \GlpiPlugin\Protocolo\Install::gerarCodigoPasta();
     $dataRec = $input['data_recebimento'] ?? date('Y-m-d H:i:s');
     if(strpos($dataRec,'T')!==false){ $dataRec=str_replace('T',' ',$dataRec); if(strlen($dataRec)===16) $dataRec.=':00'; }
-    $DB->insert('glpi_plugin_protocolo_pastas', [
+    $ok = $DB->insert('glpi_plugin_protocolo_pastas', [
         'codigo'=>$codigo,
         'plugin_protocolo_escolas_id'=>(int)$input['plugin_protocolo_escolas_id'],
         'status'=>'aguardando',
@@ -39,11 +39,27 @@ try {
         'is_deleted'=>0,
         'date_creation'=>date('Y-m-d H:i:s')
     ]);
+    if (!$ok) {
+        $dbErr = method_exists($DB,'error') ? $DB->error() : 'insert falhou sem erro';
+        throw new \RuntimeException("INSERT pastas falhou: $dbErr POST=".json_encode($input, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
+    }
     $newID=(int)$DB->insertId();
+    if (!$newID) {
+        $dbErr = method_exists($DB,'error') ? $DB->error() : 'insertId 0';
+        throw new \RuntimeException("insertId 0 após pastas: $dbErr");
+    }
     foreach($filtered as $iv) $DB->insert('glpi_plugin_protocolo_itens',['plugin_protocolo_pastas_id'=>$newID,'name'=>$iv['descricao'],'quantidade'=>$iv['quantidade'],'comment'=>$iv['observacao']?:null]);
     foreach($tipos as $tid) $DB->insert('glpi_plugin_protocolo_pastatipos',['plugin_protocolo_pastas_id'=>$newID,'plugin_protocolo_tipos_id'=>$tid]);
     $codigoTermo=\GlpiPlugin\Protocolo\Install::gerarCodigoTermo('recebimento');
     $DB->insert('glpi_plugin_protocolo_termos',['plugin_protocolo_pastas_id'=>$newID,'tipo'=>'recebimento','codigo'=>$codigoTermo,'hash_verificacao'=>bin2hex(random_bytes(16)),'users_id'=>Session::getLoginUserID(),'date_creation'=>date('Y-m-d H:i:s')]);
     try{ if(class_exists(\GlpiPlugin\Protocolo\Notificacao::class)){ $tmp=new \GlpiPlugin\Protocolo\Pasta(); $tmp->getFromDB($newID); \GlpiPlugin\Protocolo\Notificacao::createForPasta($tmp,'entrada'); } }catch(\Throwable $e){}
     Html::redirect(\GlpiPlugin\Protocolo\Pasta::getFormURLWithID($newID));
-} catch(\Throwable $e){ error_log("[protocolo] BYPASS AJAX falhou: ".$e->getMessage()); Session::addMessageAfterRedirect('BYPASS erro: '.$e->getMessage(), false, ERROR); Html::back(); }
+} catch(\Throwable $e){
+    $msg = $e->getMessage() ?: 'sem mensagem';
+    $trace = substr($e->getTraceAsString(), 0, 2000);
+    $dbErr = '';
+    try { if (isset($DB) && method_exists($DB, 'error')) $dbErr = $DB->error(); } catch(\Throwable $e2) {}
+    error_log("[protocolo] BYPASS AJAX falhou: $msg | DBerr=$dbErr | POST=" . json_encode($_POST, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR) . " | TRACE=" . $trace);
+    Session::addMessageAfterRedirect('BYPASS erro: '.$msg.' DB:'.$dbErr, false, ERROR);
+    Html::back();
+}
