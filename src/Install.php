@@ -151,6 +151,13 @@ class Install
             "CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_pastas` (
               `id` INT AUTO_INCREMENT PRIMARY KEY,
               `codigo` VARCHAR(30) NOT NULL UNIQUE,
+              `categoria` ENUM('pasta','malote') NOT NULL DEFAULT 'pasta',
+              `origem_tipo` ENUM('outro','ure','escola') NOT NULL DEFAULT 'escola',
+              `origem_outro` VARCHAR(150) DEFAULT NULL,
+              `origem_entities_id` INT DEFAULT NULL,
+              `destino_tipo` ENUM('outro','ure','escola') NOT NULL DEFAULT 'escola',
+              `destino_outro` VARCHAR(150) DEFAULT NULL,
+              `destino_entities_id` INT DEFAULT NULL,
               `plugin_protocolo_escolas_id` INT NOT NULL,
               `status` ENUM('aguardando','retirada','cancelada') NOT NULL DEFAULT 'aguardando',
               `data_recebimento` DATETIME NOT NULL,
@@ -170,6 +177,9 @@ class Install
               `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,
               `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
               `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+              KEY `idx_categoria` (`categoria`),
+              KEY `idx_origem` (`origem_tipo`, `origem_entities_id`),
+              KEY `idx_destino` (`destino_tipo`, `destino_entities_id`),
               KEY `plugin_protocolo_escolas_id` (`plugin_protocolo_escolas_id`),
               KEY `users_id` (`users_id`),
               KEY `entities_id` (`entities_id`),
@@ -365,8 +375,42 @@ class Install
                 if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'retirado_documento_tipo')) {
                     $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `retirado_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf' AFTER `retirado_documento`");
                 }
+                // --- Nova feature: categoria pasta/malote + origem/destino ---
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'categoria')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `categoria` ENUM('pasta','malote') NOT NULL DEFAULT 'pasta' AFTER `codigo`");
+                    error_log("[protocolo] migrateEntities: categoria adicionada");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'origem_tipo')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `origem_tipo` ENUM('outro','ure','escola') NOT NULL DEFAULT 'escola' AFTER `categoria`");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'origem_outro')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `origem_outro` VARCHAR(150) DEFAULT NULL AFTER `origem_tipo`");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'origem_entities_id')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `origem_entities_id` INT DEFAULT NULL AFTER `origem_outro`");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'destino_tipo')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `destino_tipo` ENUM('outro','ure','escola') NOT NULL DEFAULT 'escola' AFTER `origem_entities_id`");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'destino_outro')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `destino_outro` VARCHAR(150) DEFAULT NULL AFTER `destino_tipo`");
+                }
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'destino_entities_id')) {
+                    $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `destino_entities_id` INT DEFAULT NULL AFTER `destino_outro`");
+                }
+                // Backfill existentes: assuma que foram URE (0) -> Escola (plugin_protocolo_escolas_id)
+                try {
+                    $DB->doQuery("UPDATE `glpi_plugin_protocolo_pastas` SET `categoria`='pasta' WHERE `categoria` IS NULL OR `categoria`=''");
+                    $DB->doQuery("UPDATE `glpi_plugin_protocolo_pastas` SET `origem_tipo`='ure', `origem_entities_id`=0 WHERE `origem_tipo` IS NULL OR `origem_tipo`=''");
+                    $DB->doQuery("UPDATE `glpi_plugin_protocolo_pastas` SET `destino_tipo`='escola', `destino_entities_id`=`plugin_protocolo_escolas_id` WHERE (`destino_tipo` IS NULL OR `destino_tipo`='') AND `plugin_protocolo_escolas_id` IS NOT NULL AND `plugin_protocolo_escolas_id`!=0");
+                    // se destino 0, marca como outro
+                    $DB->doQuery("UPDATE `glpi_plugin_protocolo_pastas` SET `destino_tipo`='outro' WHERE `destino_entities_id` IS NULL OR `destino_entities_id`=0");
+                } catch (\Throwable $e) { error_log("[protocolo] backfill categoria/origem/destino falhou: " . $e->getMessage()); }
                 // Índices para performance (dashboard com filtro de entidade)
                 $idxToAdd = [
+                    'idx_categoria' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_categoria` (`categoria`)",
+                    'idx_origem' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_origem` (`origem_tipo`, `origem_entities_id`)",
+                    'idx_destino' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_destino` (`destino_tipo`, `destino_entities_id`)",
                     'idx_status_deleted' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_status_deleted` (`status`, `is_deleted`)",
                     'idx_entities_deleted' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_entities_deleted` (`entities_id`, `is_deleted`)",
                     'idx_data_recebimento' => "ALTER TABLE `glpi_plugin_protocolo_pastas` ADD KEY `idx_data_recebimento` (`data_recebimento`)",
@@ -436,11 +480,12 @@ class Install
         }
     }
 
-    public static function gerarCodigoPasta(): string
+    public static function gerarCodigoPasta(string $categoria = 'pasta'): string
     {
         global $DB;
         $ano = date('Y');
-        $prefix = "PROT-$ano-";
+        $categoria = strtolower($categoria) === 'malote' ? 'malote' : 'pasta';
+        $prefix = $categoria === 'malote' ? "MAL-$ano-" : "PROT-$ano-";
         // Tenta até 5 vezes em caso de colisão concorrente (UNIQUE em codigo)
         for ($attempt = 0; $attempt < 5; $attempt++) {
             try {

@@ -216,6 +216,53 @@ class Pasta extends CommonDBTM
         ];
 
         $tab[] = [
+            'id' => 13,
+            'table' => self::getTable(),
+            'field' => 'categoria',
+            'name' => __('Categoria', 'protocolo'),
+            'datatype' => 'specific',
+            'searchtype' => ['equals', 'notequals']
+        ];
+
+        $tab[] = [
+            'id' => 14,
+            'table' => self::getTable(),
+            'field' => 'origem_tipo',
+            'name' => __('Origem Tipo', 'protocolo'),
+            'datatype' => 'specific',
+            'searchtype' => ['equals', 'notequals']
+        ];
+
+        $tab[] = [
+            'id' => 15,
+            'table' => 'glpi_entities',
+            'field' => 'completename',
+            'name' => __('Origem (Escola)', 'protocolo'),
+            'datatype' => 'dropdown',
+            'linkfield' => 'origem_entities_id',
+            'massiveaction' => false
+        ];
+
+        $tab[] = [
+            'id' => 17,
+            'table' => self::getTable(),
+            'field' => 'destino_tipo',
+            'name' => __('Destino Tipo', 'protocolo'),
+            'datatype' => 'specific',
+            'searchtype' => ['equals', 'notequals']
+        ];
+
+        $tab[] = [
+            'id' => 18,
+            'table' => 'glpi_entities',
+            'field' => 'completename',
+            'name' => __('Destino (Escola)', 'protocolo'),
+            'datatype' => 'dropdown',
+            'linkfield' => 'destino_entities_id',
+            'massiveaction' => false
+        ];
+
+        $tab[] = [
             'id' => 16,
             'table' => self::getTable(),
             'field' => 'date_creation',
@@ -255,11 +302,40 @@ class Pasta extends CommonDBTM
         if ($field === 'status') {
             return self::getStatusBadge($values[$field] ?? '');
         }
+        if ($field === 'categoria') {
+            $v = strtolower($values[$field] ?? 'pasta');
+            return $v === 'malote' ? '<span class="badge bg-primary">Malote</span>' : '<span class="badge bg-info text-dark">Pasta</span>';
+        }
+        if (in_array($field, ['origem_tipo', 'destino_tipo'])) {
+            $map = ['outro' => 'Outro', 'ure' => 'URE', 'escola' => 'Escola'];
+            return $map[$values[$field] ?? ''] ?? htmlspecialchars($values[$field] ?? '');
+        }
         if (in_array($field, ['recebido_documento_tipo', 'retirado_documento_tipo'])) {
             $v = strtolower($values[$field] ?? 'cpf');
             return $v === 'rg' ? 'RG' : 'CPF';
         }
         return parent::getSpecificValueToDisplay($field, $values, $options);
+    }
+
+    public static function getCategoriaBadge(string $cat): string
+    {
+        return strtolower($cat) === 'malote' ? '<span class="badge bg-primary">Malote</span>' : '<span class="badge bg-info text-dark">Pasta</span>';
+    }
+
+    public static function getOrigemDestinoDisplay(array $fields, string $prefix): string
+    {
+        $tipo = $fields[$prefix . '_tipo'] ?? 'escola';
+        $outro = $fields[$prefix . '_outro'] ?? '';
+        $entId = (int)($fields[$prefix . '_entities_id'] ?? 0);
+        if ($tipo === 'outro') {
+            return htmlspecialchars($outro ?: 'Outro') . " <span class='badge bg-secondary'>Outro</span>";
+        }
+        if ($tipo === 'ure') {
+            return "URE (ID 0) <span class='badge bg-warning text-dark'>URE</span>";
+        }
+        // escola
+        $name = $entId ? self::getEscolaName($entId) : '—';
+        return htmlspecialchars($name) . " <span class='badge bg-success'>Escola</span>";
     }
 
     public static function getSpecificValueToSelect($field, $name = '', $values = '', array $options = [])
@@ -272,6 +348,25 @@ class Pasta extends CommonDBTM
                 'aguardando' => __('Aguardando retirada', 'protocolo'),
                 'retirada'   => __('Retirada', 'protocolo'),
                 'cancelada'  => __('Cancelada', 'protocolo'),
+            ], $options);
+        }
+        if ($field === 'categoria') {
+            $options['value'] = $values;
+            $options['name'] = $name;
+            $options['display'] = false;
+            return Dropdown::showFromArray($name, [
+                'pasta' => __('Pasta', 'protocolo'),
+                'malote' => __('Malote', 'protocolo'),
+            ], $options);
+        }
+        if (in_array($field, ['origem_tipo', 'destino_tipo'])) {
+            $options['value'] = $values;
+            $options['name'] = $name;
+            $options['display'] = false;
+            return Dropdown::showFromArray($name, [
+                'outro' => __('Outro', 'protocolo'),
+                'ure' => __('URE (ID 0)', 'protocolo'),
+                'escola' => __('Escola', 'protocolo'),
             ], $options);
         }
         if (in_array($field, ['recebido_documento_tipo', 'retirado_documento_tipo'])) {
@@ -543,47 +638,105 @@ class Pasta extends CommonDBTM
         echo "<div class='spaced'><table class='tab_cadre_fixe'>";
 
         if (!$isNew) {
-            echo "<tr><th colspan='4' class='center'><h3>" . htmlspecialchars($this->fields['codigo']) . " " . self::getStatusBadge($this->fields['status']) . "</h3>";
-            echo "<small class='text-muted'>" . Escola::getTypeName(1) . ": " . htmlspecialchars(self::getEscolaName($this->fields['plugin_protocolo_escolas_id'])) . " · " . __('Criada por', 'protocolo') . " " . htmlspecialchars(getUserName($this->fields['users_id'] ?? 0)) . " em " . Html::convDateTime($this->fields['date_creation']) . "</small></th></tr>";
+            $catBadge = self::getCategoriaBadge($this->fields['categoria'] ?? 'pasta');
+            $origemDisp = self::getOrigemDestinoDisplay($this->fields, 'origem');
+            $destinoDisp = self::getOrigemDestinoDisplay($this->fields, 'destino');
+            echo "<tr><th colspan='4' class='center'><h3>" . htmlspecialchars($this->fields['codigo']) . " $catBadge " . self::getStatusBadge($this->fields['status']) . "</h3>";
+            echo "<small class='text-muted'>Origem: $origemDisp &rarr; Destino: $destinoDisp · " . __('Criada por', 'protocolo') . " " . htmlspecialchars(getUserName($this->fields['users_id'] ?? 0)) . " em " . Html::convDateTime($this->fields['date_creation']) . "</small></th></tr>";
         }
 
+        // Categoria + Data
+        $catVal = strtolower($this->fields['categoria'] ?? 'pasta');
+        if (!in_array($catVal, ['pasta','malote'])) $catVal = 'pasta';
         echo "<tr class='tab_bg_1'>";
-        echo "<td width='15%'><label>" . __('Escola destinatária', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(Entidade GLPI)</small></label></td>";
+        echo "<td width='15%'><label>" . __('Categoria', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td width='35%'>";
-        $escolaId = (int)($this->fields['plugin_protocolo_escolas_id'] ?? 0);
-        // Performance: usa Entity::dropdown nativo (Select2 com AJAX) em vez de SELECT * + loop
-        // Lista todas as entidades de forma paginada/lazy, evita payload de 500+ options
+        echo "<div class='d-flex gap-3'>";
+        echo "<div class='form-check'><input class='form-check-input' type='radio' name='categoria' id='cat_pasta' value='pasta' " . ($catVal==='pasta'?'checked':'') . " required><label class='form-check-label' for='cat_pasta'><i class='ti ti-folder'></i> Pasta</label></div>";
+        echo "<div class='form-check'><input class='form-check-input' type='radio' name='categoria' id='cat_malote' value='malote' " . ($catVal==='malote'?'checked':'') . "><label class='form-check-label' for='cat_malote'><i class='ti ti-mail'></i> Malote</label></div>";
+        echo "</div>";
+        echo "<small class='text-muted'>Separa gráficos e filtros</small>";
+        echo "</td>";
+        echo "<td><label>" . __('Data/hora recebimento', 'protocolo') . "</label></td>";
+        $valDt = $this->fields['data_recebimento'] ?? date('Y-m-d\TH:i');
+        $valDtLocal = date('Y-m-d\TH:i', strtotime($valDt));
+        $dtId = $isNew ? "id='data_recebimento_field'" : "";
+        echo "<td><input type='datetime-local' name='data_recebimento' $dtId class='form-control' value='$valDtLocal'></td>";
+        echo "</tr>";
+
+        // Origem
+        $origemTipo = $this->fields['origem_tipo'] ?? ($isNew ? 'ure' : 'escola');
+        if (!in_array($origemTipo, ['outro','ure','escola'])) $origemTipo = 'ure';
+        $origemOutro = $this->fields['origem_outro'] ?? '';
+        $origemEnt = (int)($this->fields['origem_entities_id'] ?? 0);
+        // Fallback legacy: se origem vazia e tem plugin_protocolo_escolas_id, assume origem ure
+        if (!$isNew && empty($this->fields['origem_tipo']) && !empty($this->fields['plugin_protocolo_escolas_id'])) $origemTipo='ure';
+        echo "<tr class='tab_bg_1'>";
+        echo "<td><label>" . __('Origem', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(de onde vem)</small></label></td>";
+        echo "<td colspan='3'>";
+        echo "<div class='d-flex gap-3 mb-2'>";
+        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outro</label></div>";
+        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . "><label class='form-check-label' for='origem_ure'>URE (ID 0)</label></div>";
+        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_escola' value='escola' " . ($origemTipo==='escola'?'checked':'') . "><label class='form-check-label' for='origem_escola'>Escola</label></div>";
+        echo "</div>";
+        echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
+        echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - ID 0 (URE)'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
+        echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
         try {
             \Entity::dropdown([
-                'name'   => 'plugin_protocolo_escolas_id',
-                'value'  => $escolaId,
+                'name'   => 'origem_entities_id',
+                'value'  => $origemTipo==='escola' ? $origemEnt : 0,
                 'width'  => '100%',
                 'display_emptychoice' => true,
                 'emptylabel' => '-- ' . __('Selecione a escola', 'protocolo') . ' --',
                 'comments' => false,
                 'entity' => 0,
                 'entity_sons' => true,
-                'required' => true,
             ]);
         } catch (\Throwable $e) {
-            // Fallback leve: apenas entidade atual + selecionada
-            echo "<select name='plugin_protocolo_escolas_id' id='escola_select' class='form-select' required style='width:100%'><option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
-            if ($escolaId) {
-                $entName = self::getEscolaName($escolaId);
-                echo "<option value='" . $escolaId . "' selected>" . htmlspecialchars($entName) . "</option>";
-            }
+            echo "<select name='origem_entities_id' class='form-select' style='width:100%'><option value=''>-- Selecione --</option>";
+            if ($origemEnt) { $n = self::getEscolaName($origemEnt); echo "<option value='$origemEnt' selected>" . htmlspecialchars($n) . "</option>"; }
             echo "</select>";
         }
-        echo "<div class='form-text'><small class='text-muted'>" . __('Entidade GLPI = Escola. Gerencie em Administração → Entidades', 'protocolo') . "</small></div>";
-        echo "</td>";
+        echo "</div>";
+        echo "</td></tr>";
 
-        echo "<td><label>" . __('Data/hora recebimento', 'protocolo') . "</label></td>";
-        $valDt = $this->fields['data_recebimento'] ?? date('Y-m-d\TH:i');
-        // converte para datetime-local (fallback servidor, JS sobrescreve com hora local do computador se for novo)
-        $valDtLocal = date('Y-m-d\TH:i', strtotime($valDt));
-        $dtId = $isNew ? "id='data_recebimento_field'" : "";
-        echo "<td><input type='datetime-local' name='data_recebimento' $dtId class='form-control' value='$valDtLocal'></td>";
-        echo "</tr>";
+        // Destino
+        $destinoTipo = $this->fields['destino_tipo'] ?? ($isNew ? 'escola' : 'escola');
+        if (!in_array($destinoTipo, ['outro','ure','escola'])) $destinoTipo = 'escola';
+        $destinoOutro = $this->fields['destino_outro'] ?? '';
+        $destinoEnt = (int)($this->fields['destino_entities_id'] ?? $this->fields['plugin_protocolo_escolas_id'] ?? 0);
+        echo "<tr class='tab_bg_1'>";
+        echo "<td><label>" . __('Destino', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(para onde vai)</small></label></td>";
+        echo "<td colspan='3'>";
+        echo "<div class='d-flex gap-3 mb-2'>";
+        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . "><label class='form-check-label' for='destino_outro'>Outro</label></div>";
+        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_ure' value='ure' " . ($destinoTipo==='ure'?'checked':'') . "><label class='form-check-label' for='destino_ure'>URE (ID 0)</label></div>";
+        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_escola' value='escola' " . ($destinoTipo==='escola'?'checked':'') . "><label class='form-check-label' for='destino_escola'>Escola</label></div>";
+        echo "</div>";
+        echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
+        echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - ID 0 (URE)'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
+        echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
+        try {
+            \Entity::dropdown([
+                'name'   => 'destino_entities_id',
+                'value'  => $destinoTipo==='escola' ? $destinoEnt : 0,
+                'width'  => '100%',
+                'display_emptychoice' => true,
+                'emptylabel' => '-- ' . __('Selecione a escola', 'protocolo') . ' --',
+                'comments' => false,
+                'entity' => 0,
+                'entity_sons' => true,
+            ]);
+        } catch (\Throwable $e) {
+            echo "<select name='destino_entities_id' class='form-select' style='width:100%'><option value=''>-- Selecione --</option>";
+            if ($destinoEnt) { $n = self::getEscolaName($destinoEnt); echo "<option value='$destinoEnt' selected>" . htmlspecialchars($n) . "</option>"; }
+            echo "</select>";
+        }
+        echo "</div>";
+        // compat: mantém plugin_protocolo_escolas_id escondido para buscas antigas (espelha destino quando escola)
+        echo "<input type='hidden' name='plugin_protocolo_escolas_id' id='compat_escola_id' value='$destinoEnt'>";
+        echo "</td></tr>";
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label></td>";
@@ -761,15 +914,47 @@ class Pasta extends CommonDBTM
             setupDoc(document.getElementById('recebido_documento_tipo'), document.getElementById('recebido_documento'), document.getElementById('recebido_doc_hint'));
             setupDoc(document.getElementById('retirado_documento_tipo'), document.getElementById('retirado_documento'), document.getElementById('retirado_doc_hint'));
 
-            // Escola searchable (digitar para achar)
-            var escolaSel = document.getElementById('escola_select');
-            if(escolaSel){
-                if(window.$ && $.fn.select2){
-                    $(escolaSel).select2({width:'100%', placeholder:'-- Selecione a escola --', allowClear:true});
-                } else if(window.TomSelect){
-                    new TomSelect(escolaSel, {create:false, sortField:{field:'text', direction:'asc'}, maxOptions:100, placeholder:'Digite para buscar...'});
+            // Origem/Destino toggle + compat escola_id
+            function setupOrigemDestino(){
+                function bindTipo(prefix){
+                    var radios = document.querySelectorAll('input[name=\"'+prefix+'_tipo\"]');
+                    var outroWrap = document.getElementById(prefix+'_outro_wrap');
+                    var ureWrap = document.getElementById(prefix+'_ure_wrap');
+                    var escolaWrap = document.getElementById(prefix+'_escola_wrap');
+                    function update(){
+                        var val = document.querySelector('input[name=\"'+prefix+'_tipo\"]:checked')?.value || 'escola';
+                        if(outroWrap) outroWrap.style.display = val==='outro' ? 'block' : 'none';
+                        if(ureWrap) ureWrap.style.display = val==='ure' ? 'block' : 'none';
+                        if(escolaWrap) escolaWrap.style.display = val==='escola' ? 'block' : 'none';
+                        // required handling
+                        var outroInp = document.getElementById(prefix+'_outro_input');
+                        if(outroInp) outroInp.required = val==='outro';
+                        // compat: atualiza plugin_protocolo_escolas_id escondido com destino
+                        if(prefix==='destino'){
+                            var compat = document.getElementById('compat_escola_id');
+                            var sel = escolaWrap ? escolaWrap.querySelector('select') : null;
+                            if(compat){
+                                if(val==='escola' && sel) compat.value = sel.value || '0';
+                                else if(val==='ure') compat.value = '0';
+                                else compat.value = '0';
+                            }
+                        }
+                    }
+                    radios.forEach(r => r.addEventListener('change', update));
+                    // escuta mudança no select escola para compat
+                    var sel2 = document.getElementById(prefix+'_escola_wrap')?.querySelector('select');
+                    if(sel2) sel2.addEventListener('change', function(){
+                        if(prefix==='destino'){
+                            var c=document.getElementById('compat_escola_id');
+                            if(c) c.value = this.value;
+                        }
+                    });
+                    update();
                 }
+                bindTipo('origem');
+                bindTipo('destino');
             }
+            setupOrigemDestino();
 
             // Tipos -> Itens auto preenchimento (fallback inline caso js/app.js não carregue)
             var tipoChecks = document.querySelectorAll('.tipo-check');
@@ -819,9 +1004,79 @@ class Pasta extends CommonDBTM
 
     public function prepareInputForAdd($input)
     {
-        if (empty($input['plugin_protocolo_escolas_id']) || empty($input['recebido_de'])) {
-            error_log("[protocolo][lab-debug] prepareInputForAdd falhou: escola/recebido vazio POST=" . json_encode($input, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
-            Session::addMessageAfterRedirect(__('Escola e Recebido de são obrigatórios', 'protocolo'), false, ERROR);
+        // Categoria
+        $categoria = strtolower(trim($input['categoria'] ?? 'pasta'));
+        if (!in_array($categoria, ['pasta','malote'])) $categoria = 'pasta';
+        $input['categoria'] = $categoria;
+
+        // Origem (obrigatório)
+        $origemTipo = strtolower(trim($input['origem_tipo'] ?? ''));
+        if (!in_array($origemTipo, ['outro','ure','escola'])) {
+            Session::addMessageAfterRedirect(__('Selecione a Origem (Outro, URE ou Escola)', 'protocolo'), false, ERROR);
+            return false;
+        }
+        $input['origem_tipo'] = $origemTipo;
+        if ($origemTipo === 'outro') {
+            $outro = trim($input['origem_outro'] ?? '');
+            if ($outro === '') {
+                Session::addMessageAfterRedirect(__('Origem: preencha o campo Outro', 'protocolo'), false, ERROR);
+                return false;
+            }
+            $input['origem_outro'] = $outro;
+            $input['origem_entities_id'] = null;
+        } elseif ($origemTipo === 'ure') {
+            $input['origem_outro'] = null;
+            $input['origem_entities_id'] = 0;
+        } else { // escola
+            $eid = (int)($input['origem_entities_id'] ?? 0);
+            if ($eid <= 0) {
+                Session::addMessageAfterRedirect(__('Origem: selecione a Escola', 'protocolo'), false, ERROR);
+                return false;
+            }
+            $input['origem_entities_id'] = $eid;
+            $input['origem_outro'] = null;
+        }
+
+        // Destino (obrigatório)
+        $destinoTipo = strtolower(trim($input['destino_tipo'] ?? ''));
+        if (!in_array($destinoTipo, ['outro','ure','escola'])) {
+            Session::addMessageAfterRedirect(__('Selecione o Destino (Outro, URE ou Escola)', 'protocolo'), false, ERROR);
+            return false;
+        }
+        $input['destino_tipo'] = $destinoTipo;
+        if ($destinoTipo === 'outro') {
+            $outro = trim($input['destino_outro'] ?? '');
+            if ($outro === '') {
+                Session::addMessageAfterRedirect(__('Destino: preencha o campo Outro', 'protocolo'), false, ERROR);
+                return false;
+            }
+            $input['destino_outro'] = $outro;
+            $input['destino_entities_id'] = null;
+        } elseif ($destinoTipo === 'ure') {
+            $input['destino_outro'] = null;
+            $input['destino_entities_id'] = 0;
+        } else {
+            $eid = (int)($input['destino_entities_id'] ?? 0);
+            if ($eid <= 0) {
+                Session::addMessageAfterRedirect(__('Destino: selecione a Escola', 'protocolo'), false, ERROR);
+                return false;
+            }
+            $input['destino_entities_id'] = $eid;
+            $input['destino_outro'] = null;
+        }
+
+        // Compat: plugin_protocolo_escolas_id espelha destino quando escola, senão origem
+        if ($destinoTipo === 'escola') {
+            $input['plugin_protocolo_escolas_id'] = $input['destino_entities_id'];
+        } elseif ($origemTipo === 'escola') {
+            $input['plugin_protocolo_escolas_id'] = $input['origem_entities_id'];
+        } else {
+            $input['plugin_protocolo_escolas_id'] = 0;
+        }
+
+        if (empty($input['recebido_de'])) {
+            error_log("[protocolo][lab-debug] prepareInputForAdd falhou: recebido_de vazio POST=" . json_encode($input, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
+            Session::addMessageAfterRedirect(__('Recebido de é obrigatório', 'protocolo'), false, ERROR);
             return false;
         }
         // Itens validation
@@ -861,8 +1116,8 @@ class Pasta extends CommonDBTM
             }
         }
 
-        // Gera código e datas
-        $input['codigo'] = Install::gerarCodigoPasta();
+        // Gera código e datas (prefixo depende da categoria)
+        $input['codigo'] = Install::gerarCodigoPasta($input['categoria'] ?? 'pasta');
         $input['status'] = 'aguardando';
         $input['data_recebimento'] = $input['data_recebimento'] ?? date('Y-m-d H:i:s');
         if (strpos($input['data_recebimento'], 'T') !== false) {
@@ -929,6 +1184,62 @@ class Pasta extends CommonDBTM
 
     public function prepareInputForUpdate($input)
     {
+        // Categoria / Origem / Destino (se enviados)
+        if (isset($input['categoria'])) {
+            $cat = strtolower(trim($input['categoria']));
+            if (!in_array($cat, ['pasta','malote'])) {
+                Session::addMessageAfterRedirect(__('Categoria inválida', 'protocolo'), false, ERROR);
+                return false;
+            }
+            $input['categoria'] = $cat;
+        }
+        if (isset($input['origem_tipo']) || isset($input['origem_outro']) || isset($input['origem_entities_id'])) {
+            $origemTipo = strtolower(trim($input['origem_tipo'] ?? $this->fields['origem_tipo'] ?? 'ure'));
+            if (!in_array($origemTipo, ['outro','ure','escola'])) {
+                Session::addMessageAfterRedirect(__('Origem tipo inválido', 'protocolo'), false, ERROR);
+                return false;
+            }
+            $input['origem_tipo'] = $origemTipo;
+            if ($origemTipo === 'outro') {
+                $outro = trim($input['origem_outro'] ?? $this->fields['origem_outro'] ?? '');
+                if ($outro === '') { Session::addMessageAfterRedirect(__('Origem Outro vazio', 'protocolo'), false, ERROR); return false; }
+                $input['origem_outro'] = $outro;
+                $input['origem_entities_id'] = null;
+            } elseif ($origemTipo === 'ure') {
+                $input['origem_outro'] = null;
+                $input['origem_entities_id'] = 0;
+            } else {
+                $eid = (int)($input['origem_entities_id'] ?? $this->fields['origem_entities_id'] ?? 0);
+                if ($eid <= 0) { Session::addMessageAfterRedirect(__('Origem Escola inválida', 'protocolo'), false, ERROR); return false; }
+                $input['origem_entities_id'] = $eid;
+                $input['origem_outro'] = null;
+            }
+        }
+        if (isset($input['destino_tipo']) || isset($input['destino_outro']) || isset($input['destino_entities_id'])) {
+            $destinoTipo = strtolower(trim($input['destino_tipo'] ?? $this->fields['destino_tipo'] ?? 'escola'));
+            if (!in_array($destinoTipo, ['outro','ure','escola'])) {
+                Session::addMessageAfterRedirect(__('Destino tipo inválido', 'protocolo'), false, ERROR);
+                return false;
+            }
+            $input['destino_tipo'] = $destinoTipo;
+            if ($destinoTipo === 'outro') {
+                $outro = trim($input['destino_outro'] ?? $this->fields['destino_outro'] ?? '');
+                if ($outro === '') { Session::addMessageAfterRedirect(__('Destino Outro vazio', 'protocolo'), false, ERROR); return false; }
+                $input['destino_outro'] = $outro;
+                $input['destino_entities_id'] = null;
+            } elseif ($destinoTipo === 'ure') {
+                $input['destino_outro'] = null;
+                $input['destino_entities_id'] = 0;
+            } else {
+                $eid = (int)($input['destino_entities_id'] ?? $this->fields['destino_entities_id'] ?? 0);
+                if ($eid <= 0) { Session::addMessageAfterRedirect(__('Destino Escola inválida', 'protocolo'), false, ERROR); return false; }
+                $input['destino_entities_id'] = $eid;
+                $input['destino_outro'] = null;
+            }
+            // compat
+            if ($destinoTipo === 'escola') $input['plugin_protocolo_escolas_id'] = $input['destino_entities_id'];
+            elseif (isset($input['origem_entities_id']) && $input['origem_tipo']==='escola') $input['plugin_protocolo_escolas_id'] = $input['origem_entities_id'];
+        }
         // Só permite atualizar campos básicos se ainda aguardando; se retirada, só obs?
         // Por simplicidade permite editar recebido_de, observacao, etc se tiver UPDATE
         if (isset($input['recebido_de']) && empty(trim($input['recebido_de']))) {

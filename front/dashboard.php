@@ -42,10 +42,31 @@ if ($entityWhereSqlPasta === $entityWhereSql) {
     }
 }
 
-// Stats - com filtro de entidade
+// Filtro categoria pasta/malote
+$categoriaFiltro = $_GET['categoria'] ?? '';
+if (!in_array($categoriaFiltro, ['pasta','malote'])) $categoriaFiltro = '';
+$categoriaWhereSql = '';
+$categoriaWhereSqlPasta = '';
+$hasCategoriaCol = false;
+try { $hasCategoriaCol = $DB->fieldExists(Pasta::getTable(), 'categoria'); } catch (\Throwable $e) { $hasCategoriaCol = false; }
+$entityFilterBase = $entityFilter; // sem categoria para breakdown
+if ($categoriaFiltro && $hasCategoriaCol) {
+    $categoriaWhereSql = " AND p.categoria='" . $DB->escape($categoriaFiltro) . "'";
+    $categoriaWhereSqlPasta = " AND categoria='" . $DB->escape($categoriaFiltro) . "'";
+    $entityFilter['categoria'] = $categoriaFiltro;
+}
+// Stats - com filtro de entidade + categoria
 $totalAguardando = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'aguardando', 'is_deleted' => 0], $entityFilter));
 $totalRetiradas  = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'retirada', 'is_deleted' => 0], $entityFilter));
 $totalCanceladas = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'cancelada', 'is_deleted' => 0], $entityFilter));
+// Breakdown por categoria (para cards quando sem filtro)
+$totalPasta = $totalMalote = 0;
+if ($hasCategoriaCol && !$categoriaFiltro) {
+    try {
+        $totalPasta = countElementsInTable(Pasta::getTable(), array_merge(['categoria'=>'pasta','is_deleted'=>0], $entityFilterBase));
+        $totalMalote = countElementsInTable(Pasta::getTable(), array_merge(['categoria'=>'malote','is_deleted'=>0], $entityFilterBase));
+    } catch (\Throwable $e) {}
+}
 $totalMes        = 0;
 try {
     $whereMes = array_merge(['is_deleted' => 0, new \QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter);
@@ -61,7 +82,7 @@ try {
 $totalAtrasadas = 0;
 if ($alertaAtivo) {
     try {
-        $sql = "SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta;
+        $sql = "SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta;
         $res = $DB->doQuery($sql);
         if ($res && $row = $DB->fetchAssoc($res)) $totalAtrasadas = (int)$row['cpt'];
     } catch (Throwable $e) { $totalAtrasadas = 0; }
@@ -81,14 +102,14 @@ try {
 
 // Pendências de upload: ESCOLA = ENTIDADE - com filtro de entidade para performance
 try {
-    $pendQuery = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome,
+    $pendQuery = "SELECT p.*, p.categoria, p.origem_tipo, p.origem_outro, p.origem_entities_id, p.destino_tipo, p.destino_outro, p.destino_entities_id, COALESCE(e.completename, oe.name) AS escola_nome,
         (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
         (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) AS ret_assinado,
         (SELECT id FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' LIMIT 1) AS ret_existe
         FROM glpi_plugin_protocolo_pastas p
         LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
         LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
-        WHERE p.is_deleted=0 $entityWhereSql
+        WHERE p.is_deleted=0 $entityWhereSql $categoriaWhereSql
         HAVING rec_assinado IS NULL OR (ret_existe IS NOT NULL AND ret_assinado IS NULL) OR (p.status='retirada' AND ret_existe IS NULL)
         ORDER BY p.id DESC LIMIT 10";
     $pendentes = [];
@@ -101,14 +122,14 @@ try {
 try {
     $totalPendRec = 0;
     $totalPendRet = 0;
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 $entityWhereSql AND (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) IS NULL");
+    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) IS NULL");
     if ($res && $row = $DB->fetchAssoc($res)) $totalPendRec = $row['cpt'];
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 AND p.status='retirada' $entityWhereSql AND ((SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) IS NULL)");
+    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 AND p.status='retirada' $entityWhereSql $categoriaWhereSql AND ((SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) IS NULL)");
     if ($res && $row = $DB->fetchAssoc($res)) $totalPendRet = $row['cpt'];
 } catch (Exception $e) { $totalPendRec = 0; $totalPendRet = 0; }
 
 // Últimas aguardando — ESCOLA = ENTIDADE - com JOIN agregado para evitar N+1 + dias
-$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql ORDER BY p.data_recebimento ASC LIMIT 12";
+$lastSql = "SELECT p.*, p.categoria, p.origem_tipo, p.origem_outro, p.origem_entities_id, p.destino_tipo, p.destino_outro, p.destino_entities_id, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql ORDER BY p.data_recebimento ASC LIMIT 12";
 $lastRows = [];
 $res = $DB->doQuery($lastSql);
 if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
@@ -117,7 +138,7 @@ if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
 $atrasadasRows = [];
 if ($alertaAtivo && $totalAtrasadas > 0) {
     try {
-        $sqlAtras = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta . " ORDER BY p.data_recebimento ASC LIMIT 10";
+        $sqlAtras = "SELECT p.*, p.categoria, COALESCE(e.completename, oe.name) AS escola_nome, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta . " ORDER BY p.data_recebimento ASC LIMIT 10";
         $res = $DB->doQuery($sqlAtras);
         if ($res) while ($row = $DB->fetchAssoc($res)) $atrasadasRows[] = $row;
     } catch (Throwable $e) {}
@@ -139,7 +160,7 @@ if ($graficosAtivo) {
             $label = date('m/y', $ts);
             $months[$ym] = ['label' => $label, 'cpt' => 0];
         }
-        $sql = "SELECT DATE_FORMAT(data_recebimento, '%Y-%m') as ym, COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas WHERE is_deleted=0 $entityWhereSqlPasta AND data_recebimento >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
+        $sql = "SELECT DATE_FORMAT(data_recebimento, '%Y-%m') as ym, COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas WHERE is_deleted=0 $entityWhereSqlPasta $categoriaWhereSqlPasta AND data_recebimento >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
         $res = $DB->doQuery($sql);
         if ($res) {
             while ($row = $DB->fetchAssoc($res)) {
@@ -157,7 +178,7 @@ if ($graficosAtivo) {
 
     // Tempo médio geral e por mês (últimos 6 meses por data_retirada)
     try {
-        $sql = "SELECT AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta";
+        $sql = "SELECT AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta $categoriaWhereSqlPasta";
         $res = $DB->doQuery($sql);
         if ($res && $row = $DB->fetchAssoc($res)) $tempoMedioGeral = round((float)$row['media'], 1);
     } catch (Throwable $e) { $tempoMedioGeral = 0; }
@@ -170,7 +191,7 @@ if ($graficosAtivo) {
             $label = date('m/y', $ts);
             $months2[$ym] = ['label' => $label, 'media' => 0];
         }
-        $sql = "SELECT DATE_FORMAT(data_retirada, '%Y-%m') as ym, AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta AND data_retirada >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
+        $sql = "SELECT DATE_FORMAT(data_retirada, '%Y-%m') as ym, AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta $categoriaWhereSqlPasta AND data_retirada >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
         $res = $DB->doQuery($sql);
         if ($res) {
             while ($row = $DB->fetchAssoc($res)) {
@@ -201,6 +222,25 @@ if (Config::canEdit()) {
 echo "</div>";
 echo "</div>";
 
+// Filtro categoria pasta/malote
+echo "<div class='d-flex gap-2 mb-3 flex-wrap align-items-center'>";
+echo "<span class='text-muted small'><i class='ti ti-filter'></i> Categoria:</span>";
+$baseUrl = strtok($_SERVER['REQUEST_URI'], '?');
+$qBase = $_GET; unset($qBase['categoria']);
+$buildUrl = function($cat) use ($baseUrl, $qBase) {
+    $q = $qBase;
+    if ($cat) $q['categoria']=$cat;
+    return $baseUrl . ($q ? '?'.http_build_query($q) : '');
+};
+foreach ([''=>__('Todos','protocolo'),'pasta'=>'Pasta','malote'=>'Malote'] as $val=>$label) {
+    $active = $categoriaFiltro===$val || ($categoriaFiltro==='' && $val==='');
+    $cls = $active ? 'btn-primary' : 'btn-outline-primary';
+    $icon = $val==='malote' ? 'ti ti-mail' : ($val==='pasta' ? 'ti ti-folder' : 'ti ti-apps');
+    echo "<a href='" . htmlspecialchars($buildUrl($val)) . "' class='btn btn-sm $cls'><i class='$icon'></i> $label</a>";
+}
+if ($categoriaFiltro) echo "<span class='badge bg-info text-dark ms-2'>Filtrando: " . htmlspecialchars(ucfirst($categoriaFiltro)) . "</span>";
+echo "</div>";
+
 if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<div class='alert alert-danger d-flex justify-content-between align-items-center'><div><i class='ti ti-alert-triangle'></i> <strong>$totalAtrasadas " . __('pasta(s) aguardando há mais de', 'protocolo') . " $prazoAlerta " . __('dias', 'protocolo') . "</strong> — " . __('regularize a retirada ou contate a escola.', 'protocolo') . "</div><a href='#atrasadas' class='btn btn-sm btn-light'>" . __('Ver atrasadas', 'protocolo') . "</a></div>";
 }
@@ -213,6 +253,10 @@ if ($alertaAtivo) {
     echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 $cls h-100 w-100'><div class='card-body d-flex flex-column'><div class='small $txtCls'><i class='ti ti-alarm'></i> " . __('Atrasadas', 'protocolo') . " (&gt;{$prazoAlerta}d)</div><div class='h3 mb-0 " . ($totalAtrasadas>0?'text-danger':'') . "'>$totalAtrasadas</div><a href='#atrasadas' class='small mt-auto'>" . __('Ver atrasadas', 'protocolo') . " &rarr;</a></div></div></div>";
 }
 echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 border-success h-100 w-100'><div class='card-body d-flex flex-column'><div class='text-muted small'>" . __('Retiradas', 'protocolo') . "</div><div class='h3 mb-0'>$totalRetiradas</div><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=retirada' class='small mt-auto'>Ver lista &rarr;</a></div></div></div>";
+if ($hasCategoriaCol && !$categoriaFiltro) {
+    echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 border-info h-100 w-100'><div class='card-body d-flex flex-column'><div class='text-muted small'><i class='ti ti-folder'></i> Pastas</div><div class='h3 mb-0'>$totalPasta</div><a href='?categoria=pasta' class='small mt-auto'>Filtrar Pasta &rarr;</a></div></div></div>";
+    echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 border-primary h-100 w-100'><div class='card-body d-flex flex-column'><div class='text-muted small'><i class='ti ti-mail'></i> Malotes</div><div class='h3 mb-0'>$totalMalote</div><a href='?categoria=malote' class='small mt-auto'>Filtrar Malote &rarr;</a></div></div></div>";
+}
 echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 border-primary h-100 w-100'><div class='card-body d-flex flex-column'><div class='text-muted small'>" . __('Entradas no mês', 'protocolo') . "</div><div class='h3 mb-0'>$totalMes</div><a href='" . Pasta::getSearchURL() . "' class='small mt-auto invisible'>Ver lista &rarr;</a></div></div></div>";
 echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 border-warning h-100 w-100'><div class='card-body d-flex flex-column'><div class='text-muted small'><i class='ti ti-circle-filled text-warning'></i> Pend. Termo Entrega</div><div class='h3 mb-0'>$totalPendRec</div><a href='#pendencias' class='small mt-auto'>Ver abaixo &rarr;</a></div></div></div>";
 echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 border-danger h-100 w-100'><div class='card-body d-flex flex-column'><div class='text-muted small'><i class='ti ti-circle-filled text-danger'></i> Pend. Termo Retirada</div><div class='h3 mb-0'>$totalPendRet</div><a href='#pendencias' class='small mt-auto'>Ver abaixo &rarr;</a></div></div></div>";
@@ -232,7 +276,7 @@ echo "<div class='tab-content'>";
 echo "<div class='tab-pane fade " . ($activeTab==='resumo'?'show active':'') . "' id='tab-resumo'>";
 
 // Tabela aguardando
-echo "<div class='card shadow-sm'><div class='card-header bg-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><a href='" . Pasta::getSearchURL() . "' class='btn btn-sm btn-outline-primary'>" . __('Ver todas') . "</a></div><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr><th>" . __('Código') . "</th><th>" . __('Escola') . "</th><th>" . __('Recebido de') . "</th><th>" . __('Data') . "</th><th>" . __('Dias parada', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th></th></tr></thead><tbody>";
+echo "<div class='card shadow-sm'><div class='card-header bg-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><a href='" . Pasta::getSearchURL() . "' class='btn btn-sm btn-outline-primary'>" . __('Ver todas') . "</a></div><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>" . __('Data') . "</th><th>" . __('Dias', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th></th></tr></thead><tbody>";
 if ($lastRows) {
     foreach ($lastRows as $r) {
         $itens = (int)($r['itens_qtd'] ?? 0);
@@ -241,19 +285,26 @@ if ($lastRows) {
         $isAtencao = $alertaAtivo && !$isAtrasada && $dias >= max(1, $prazoAlerta - 5);
         $rowCls = $isAtrasada ? "table-danger" : ($isAtencao ? "table-warning" : "");
         $badgeDias = $isAtrasada ? "<span class='badge bg-danger'><i class='ti ti-alert-triangle'></i> $dias d</span>" : ($isAtencao ? "<span class='badge bg-warning text-dark'>$dias d</span>" : "<span class='badge bg-light text-dark border'>$dias d</span>");
-        echo "<tr class='$rowCls'><td class='fw-bold'>" . htmlspecialchars($r['codigo']) . "</td><td>" . htmlspecialchars($r['escola_nome']) . "</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td>$badgeDias</td><td><span class='badge bg-light text-dark border'>$itens item(s)</span></td><td>" . Pasta::getStatusBadge($r['status']) . "</td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='btn btn-sm " . ($isAtrasada ? "btn-danger" : "btn-outline-primary") . "'><i class='ti ti-eye'></i> Ver</a></td></tr>";
+        $catBadge = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta');
+        // origem -> destino display
+        $origem = Pasta::getOrigemDestinoDisplay($r, 'origem');
+        $destino = Pasta::getOrigemDestinoDisplay($r, 'destino');
+        $fluxo = "$origem <i class='ti ti-arrow-right text-muted mx-1'></i> $destino";
+        echo "<tr class='$rowCls'><td class='fw-bold'>" . htmlspecialchars($r['codigo']) . "</td><td>$catBadge</td><td class='small' style='min-width:180px'>$fluxo</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td>$badgeDias</td><td><span class='badge bg-light text-dark border'>$itens</span></td><td>" . Pasta::getStatusBadge($r['status']) . "</td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='btn btn-sm " . ($isAtrasada ? "btn-danger" : "btn-outline-primary") . "'><i class='ti ti-eye'></i> Ver</a></td></tr>";
     }
 } else {
-    echo "<tr><td colspan='8' class='text-center text-muted py-4'>" . __('Nenhuma pasta aguardando no momento.', 'protocolo') . "</td></tr>";
+    echo "<tr><td colspan='9' class='text-center text-muted py-4'>" . __('Nenhuma pasta aguardando no momento.', 'protocolo') . "</td></tr>";
 }
 echo "</tbody></table></div></div>";
 
 // Tabela atrasadas
 if ($alertaAtivo && $totalAtrasadas > 0) {
-    echo "<div id='atrasadas' class='card shadow-sm mt-4 border-danger'><div class='card-header bg-danger text-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-alarm'></i> " . __('Pastas atrasadas', 'protocolo') . " — " . __('aguardando há mais de', 'protocolo') . " $prazoAlerta " . __('dias', 'protocolo') . " ($totalAtrasadas)</strong><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=aguardando' class='btn btn-sm btn-light'>" . __('Ver todas aguardando', 'protocolo') . "</a></div><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr><th>" . __('Código') . "</th><th>" . __('Escola') . "</th><th>" . __('Recebido de') . "</th><th>" . __('Data') . "</th><th>" . __('Dias', 'protocolo') . "</th><th></th></tr></thead><tbody>";
+    echo "<div id='atrasadas' class='card shadow-sm mt-4 border-danger'><div class='card-header bg-danger text-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-alarm'></i> " . __('Pastas atrasadas', 'protocolo') . " — " . __('aguardando há mais de', 'protocolo') . " $prazoAlerta " . __('dias', 'protocolo') . " ($totalAtrasadas)</strong><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=aguardando' class='btn btn-sm btn-light'>" . __('Ver todas aguardando', 'protocolo') . "</a></div><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>" . __('Data') . "</th><th>" . __('Dias', 'protocolo') . "</th><th></th></tr></thead><tbody>";
     foreach ($atrasadasRows as $r) {
         $dias = (int)($r['dias_parada'] ?? 0);
-        echo "<tr class='table-danger'><td class='fw-bold'>" . htmlspecialchars($r['codigo']) . "</td><td>" . htmlspecialchars($r['escola_nome']) . "</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='badge bg-danger'>$dias d</span></td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='btn btn-sm btn-danger'><i class='ti ti-alert-triangle'></i> Regularizar</a></td></tr>";
+        $catBadge = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta');
+        $origem = isset($r['origem_tipo']) ? Pasta::getOrigemDestinoDisplay($r, 'origem') . " <i class='ti ti-arrow-right'></i> " . Pasta::getOrigemDestinoDisplay($r, 'destino') : htmlspecialchars($r['escola_nome']);
+        echo "<tr class='table-danger'><td class='fw-bold'>" . htmlspecialchars($r['codigo']) . "</td><td>$catBadge</td><td class='small'>$origem</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='badge bg-danger'>$dias d</span></td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='btn btn-sm btn-danger'><i class='ti ti-alert-triangle'></i> Regularizar</a></td></tr>";
     }
     echo "</tbody></table></div></div>";
     echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";

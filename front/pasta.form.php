@@ -13,8 +13,25 @@ if (isset($_POST['add']) && ($_POST['_bypass_lab'] ?? '0') === '1') {
     try {
         $input = $_POST;
         // valida mínima e insere direto (copia lógica de Pasta::prepareInputForAdd sem checar rights)
-        if (empty($input['plugin_protocolo_escolas_id']) || empty($input['recebido_de'])) {
-            Session::addMessageAfterRedirect('BYPASS: Escola e Recebido de obrigatórios', false, ERROR);
+        $categoria = strtolower(trim($input['categoria'] ?? 'pasta'));
+        if (!in_array($categoria, ['pasta','malote'])) $categoria='pasta';
+        $origemTipo = strtolower(trim($input['origem_tipo'] ?? ''));
+        $destinoTipo = strtolower(trim($input['destino_tipo'] ?? ''));
+        if (!in_array($origemTipo, ['outro','ure','escola']) || !in_array($destinoTipo, ['outro','ure','escola'])) {
+            Session::addMessageAfterRedirect('BYPASS: Origem/Destino inválido', false, ERROR);
+            Html::back();
+        }
+        if ($origemTipo==='outro' && trim($input['origem_outro']??'')==='') { Session::addMessageAfterRedirect('BYPASS: Origem Outro vazio', false, ERROR); Html::back(); }
+        if ($destinoTipo==='outro' && trim($input['destino_outro']??'')==='') { Session::addMessageAfterRedirect('BYPASS: Destino Outro vazio', false, ERROR); Html::back(); }
+        if ($origemTipo==='escola' && empty($input['origem_entities_id'])) { Session::addMessageAfterRedirect('BYPASS: Origem Escola vazia', false, ERROR); Html::back(); }
+        if ($destinoTipo==='escola' && empty($input['destino_entities_id'])) { Session::addMessageAfterRedirect('BYPASS: Destino Escola vazia', false, ERROR); Html::back(); }
+        $origemOutro = $origemTipo==='outro' ? trim($input['origem_outro']) : null;
+        $origemEnt = $origemTipo==='ure' ? 0 : ($origemTipo==='escola' ? (int)$input['origem_entities_id'] : null);
+        $destinoOutro = $destinoTipo==='outro' ? trim($input['destino_outro']) : null;
+        $destinoEnt = $destinoTipo==='ure' ? 0 : ($destinoTipo==='escola' ? (int)$input['destino_entities_id'] : null);
+        $compatEscola = $destinoTipo==='escola' ? $destinoEnt : ($origemTipo==='escola' ? $origemEnt : (int)($input['plugin_protocolo_escolas_id'] ?? 0));
+        if (empty($input['recebido_de'])) {
+            Session::addMessageAfterRedirect('BYPASS: Recebido de obrigatório', false, ERROR);
             Html::back();
         }
         $itens = $input['itens'] ?? [];
@@ -26,12 +43,19 @@ if (isset($_POST['add']) && ($_POST['_bypass_lab'] ?? '0') === '1') {
         if (!count($filtered)) { Session::addMessageAfterRedirect('BYPASS: Adicione 1 item', false, ERROR); Html::back(); }
         $tipos = array_filter(array_map('intval', (array)($input['tipos']??[])));
         if (!count($tipos) && \GlpiPlugin\Protocolo\TipoArquivo::getAllActive()) { Session::addMessageAfterRedirect('BYPASS: Selecione 1 tipo', false, ERROR); Html::back(); }
-        $codigo = \GlpiPlugin\Protocolo\Install::gerarCodigoPasta();
+        $codigo = \GlpiPlugin\Protocolo\Install::gerarCodigoPasta($categoria);
         $dataRec = $input['data_recebimento'] ?? date('Y-m-d H:i:s');
         if (strpos($dataRec,'T')!==false) { $dataRec=str_replace('T',' ',$dataRec); if(strlen($dataRec)===16) $dataRec.=':00'; }
         $DB->insert('glpi_plugin_protocolo_pastas', [
             'codigo'=>$codigo,
-            'plugin_protocolo_escolas_id'=>(int)$input['plugin_protocolo_escolas_id'],
+            'categoria'=>$categoria,
+            'origem_tipo'=>$origemTipo,
+            'origem_outro'=>$origemOutro,
+            'origem_entities_id'=>$origemEnt,
+            'destino_tipo'=>$destinoTipo,
+            'destino_outro'=>$destinoOutro,
+            'destino_entities_id'=>$destinoEnt,
+            'plugin_protocolo_escolas_id'=>$compatEscola,
             'status'=>'aguardando',
             'data_recebimento'=>$dataRec,
             'recebido_de'=>trim($input['recebido_de']),
@@ -51,7 +75,11 @@ if (isset($_POST['add']) && ($_POST['_bypass_lab'] ?? '0') === '1') {
         $DB->insert('glpi_plugin_protocolo_termos', ['plugin_protocolo_pastas_id'=>$newID,'tipo'=>'recebimento','codigo'=>$codigoTermo,'hash_verificacao'=>bin2hex(random_bytes(16)),'users_id'=>Session::getLoginUserID(),'date_creation'=>date('Y-m-d H:i:s')]);
         try { if(class_exists(\GlpiPlugin\Protocolo\Notificacao::class)) { $tmp=new \GlpiPlugin\Protocolo\Pasta(); $tmp->getFromDB($newID); \GlpiPlugin\Protocolo\Notificacao::createForPasta($tmp,'entrada'); } } catch(\Throwable $e){}
         Html::redirect(Pasta::getFormURLWithID($newID));
-    } catch(\Throwable $e){ error_log("[protocolo] BYPASS falhou: ".$e->getMessage()); Session::addMessageAfterRedirect('BYPASS erro: '.$e->getMessage(), false, ERROR); Html::back(); }
+    } catch(\Throwable $e){
+        if (is_a($e, 'Glpi\Exception\Http\RedirectException') || str_contains(get_class($e), 'Redirect')) throw $e;
+        error_log("[protocolo] BYPASS falhou: ".$e->getMessage()." POST=".json_encode($_POST, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR)." TRACE=".substr($e->getTraceAsString(),0,2000));
+        Session::addMessageAfterRedirect('BYPASS erro: '.$e->getMessage(), false, ERROR); Html::back();
+    }
     exit;
 }
 
