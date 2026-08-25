@@ -5,6 +5,7 @@ use GlpiPlugin\Protocolo\Config;
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\EntityMail;
 use GlpiPlugin\Protocolo\Escola;
+use GlpiPlugin\Protocolo\TipoArquivo;
 
 Session::checkLoginUser();
 
@@ -220,7 +221,8 @@ echo "<div class='d-flex gap-1 mt-1 align-items-center'><label class='btn btn-sm
 echo "</div>";
 echo "</div>";
 echo "<div class='form-text mt-2 d-flex flex-wrap gap-2 align-items-center'><a href='#' onclick=\"if(confirm('Restaurar padrões?')){document.querySelectorAll('textarea[name^=notificacao_email_body]').forEach(t=>t.value=''); document.querySelector('input[name=notificacao_email_subject]').value='[Protocolo] {acao} - {codigo}';} return false;\">Restaurar padrões</a> <span class='text-muted'>— deixe em branco para usar padrão interno.</span> <span class='ms-auto text-muted' style='font-size:11px'><i class='ti ti-info-circle'></i> Importar preenche o campo; clique em <strong>Salvar</strong> para gravar.</span></div>";
-echo "<script>
+echo <<<'JS2'
+<script>
 document.querySelectorAll('.protocolo-import-html').forEach(function(inp){
   inp.addEventListener('change', function(e){
     var file = e.target.files[0];
@@ -228,7 +230,7 @@ document.querySelectorAll('.protocolo-import-html').forEach(function(inp){
     if(file.size > 512*1024){ alert('Arquivo muito grande (>512KB)'); e.target.value=''; return; }
     var reader = new FileReader();
     reader.onload = function(ev){
-      var target = document.querySelector('[name=\"' + inp.dataset.target + '\"]');
+      var target = document.querySelector('[name="' + inp.dataset.target + '"]');
       if(target){ target.value = ev.target.result; target.dispatchEvent(new Event('input')); target.focus(); }
     };
     reader.onerror = function(){ alert('Falha ao ler arquivo'); };
@@ -238,11 +240,12 @@ document.querySelectorAll('.protocolo-import-html').forEach(function(inp){
 });
 document.querySelectorAll('.protocolo-clear-html').forEach(function(btn){
   btn.addEventListener('click', function(){
-    var target = document.querySelector('[name=\"' + btn.dataset.target + '\"]');
+    var target = document.querySelector('[name="' + btn.dataset.target + '"]');
     if(target && confirm('Limpar template deste tipo?')){ target.value=''; target.focus(); }
   });
 });
-</script>";
+</script>
+JS2;
 
 echo "</div><div class='card-footer bg-white d-flex gap-2'>";
 echo "<button type='submit' name='update' value='1' class='btn btn-primary'><i class='ti ti-device-floppy'></i> " . __('Salvar', 'protocolo') . "</button>";
