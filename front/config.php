@@ -229,36 +229,58 @@ echo "<div id='entity-emails' class='card shadow-sm mt-4'><div class='card-heade
 
 echo "<div class='alert alert-info small'><i class='ti ti-info-circle'></i> " . __('Cadastre e-mails por Entidade (GLPI → Administração → Entidades). Esses e-mails recebem notificações de entrada/retirada/atraso daquela entidade, além do e-mail da Escola e cópia global. Prioridade: Entidade Plugin > Escola > Entidade GLPI > Cópia.', 'protocolo') . "</div>";
 
-// Lista existente
+// Lista agrupada por Entidade - mostra todos e-mails do PLUGIN por entidade
 $entityMails = EntityMail::getAllWithEntityNames();
-if ($entityMails) {
-    echo "<div class='table-responsive'><table class='table table-sm table-hover align-middle'><thead><tr><th>" . __('Entidade') . "</th><th>E-mail</th><th>" . __('Ativo') . "</th><th></th></tr></thead><tbody>";
-    foreach ($entityMails as $em) {
-        $eid = (int)$em['entities_id'];
-        $email = htmlspecialchars($em['email']);
-        $active = (int)$em['is_active'];
-        $badge = $active ? "<span class='badge bg-success'>Sim</span>" : "<span class='badge bg-secondary'>Não</span>";
-        $toggleLabel = $active ? __('Desativar') : __('Ativar');
-        $toggleClass = $active ? 'btn-outline-warning' : 'btn-outline-success';
-        $toggleIcon = $active ? 'ti ti-pause' : 'ti ti-player-play';
-        echo "<tr><td>" . htmlspecialchars($em['entity_name']) . " <small class='text-muted'>#{$eid}</small></td><td><code>$email</code></td><td>$badge</td><td class='text-end'>";
-        // Toggle
-        echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
-        echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
-        echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
-        echo "<button type='submit' name='toggle_entity_email' value='1' class='btn btn-sm $toggleClass me-1' title='$toggleLabel'><i class='$toggleIcon'></i> $toggleLabel</button>";
-        echo "</form>";
-        // Delete
-        echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover $email?')\">";
-        echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
-        echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
-        echo "<button type='submit' name='delete_entity_email' value='1' class='btn btn-sm btn-outline-danger'><i class='ti ti-trash'></i></button>";
-        echo "</form>";
-        echo "</td></tr>";
+$grouped = [];
+foreach ($entityMails as $em) {
+    $eid = (int)$em['entities_id'];
+    if (!isset($grouped[$eid])) $grouped[$eid] = ['name' => $em['entity_name'], 'mails' => []];
+    $grouped[$eid]['mails'][] = $em;
+}
+if ($grouped) {
+    echo "<div class='alert alert-light border small mb-3'><i class='ti ti-plug'></i> " . __('Mostrando apenas e-mails cadastrados <strong>no PLUGIN</strong> (tabela <code>glpi_plugin_protocolo_entity_emails</code>). São esses que o cron usa para enviar. E-mails de <code>glpi_entities.email</code> ou <code>Escola.email</code> são fallback se não houver no plugin.', 'protocolo') . "</div>";
+    echo "<div class='row g-3'>";
+    foreach ($grouped as $eid => $data) {
+        $cnt = count($data['mails']);
+        $activeCnt = count(array_filter($data['mails'], fn($m) => (int)$m['is_active'] === 1));
+        $inactiveCnt = $cnt - $activeCnt;
+        echo "<div class='col-md-6 col-lg-4'><div class='card border h-100 shadow-sm'>";
+        echo "<div class='card-header bg-white d-flex justify-content-between align-items-center'><div><strong><i class='ti ti-building'></i> " . htmlspecialchars($data['name']) . "</strong> <small class='text-muted'>#{$eid}</small></div><span class='badge bg-primary'>{$cnt} <i class='ti ti-mail'></i></span></div>";
+        echo "<div class='card-header bg-light py-1 d-flex gap-2'><span class='badge bg-success'>{$activeCnt} ativos</span>" . ($inactiveCnt ? " <span class='badge bg-secondary'>{$inactiveCnt} inativos</span>" : "") . " <small class='text-muted ms-auto'>PLUG-IN</small></div>";
+        echo "<div class='card-body p-2' style='max-height:240px; overflow-y:auto;'>";
+        foreach ($data['mails'] as $em) {
+            $email = htmlspecialchars($em['email']);
+            $active = (int)$em['is_active'];
+            $rowBg = $active ? 'bg-white' : 'bg-light opacity-75';
+            $statusBadge = $active ? "<span class='badge bg-success'>Ativo</span>" : "<span class='badge bg-secondary'>Inativo</span>";
+            echo "<div class='d-flex justify-content-between align-items-center p-2 mb-1 rounded border $rowBg'>";
+            echo "<div class='text-truncate' style='max-width:160px;'><code class='text-truncate' title='$email'>$email</code><br>$statusBadge</div>";
+            echo "<div class='d-flex gap-1 ms-2'>";
+            // Toggle
+            echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
+            echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+            echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
+            $toggleLabel = $active ? __('Desativar') : __('Ativar');
+            $toggleIcon = $active ? 'ti ti-pause' : 'ti ti-player-play';
+            $toggleClass = $active ? 'btn-outline-warning' : 'btn-outline-success';
+            echo "<button type='submit' name='toggle_entity_email' value='1' class='btn btn-sm $toggleClass' title='$toggleLabel'><i class='$toggleIcon'></i></button>";
+            echo "</form>";
+            // Delete
+            echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover $email da entidade " . htmlspecialchars(addslashes($data['name'])) . "?')\">";
+            echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+            echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
+            echo "<button type='submit' name='delete_entity_email' value='1' class='btn btn-sm btn-outline-danger' title='" . __('Remover') . "'><i class='ti ti-trash'></i></button>";
+            echo "</form>";
+            echo "</div></div>";
+        }
+        echo "</div>";
+        echo "<div class='card-footer bg-white py-1'><small class='text-muted'><i class='ti ti-plug'></i> " . __('Origem', 'protocolo') . ": <code>entity_emails</code> • " . __('Será usado para envio', 'protocolo') . "</small></div>";
+        echo "</div></div>";
     }
-    echo "</tbody></table></div>";
+    echo "</div>";
+    echo "<div class='form-text mt-2'><i class='ti ti-info-circle'></i> " . __('Cada card = 1 Entidade. Todos e-mails listados aqui são do PLUGIN e serão usados pelo cron. Clique em Desativar para pausar sem apagar.', 'protocolo') . "</div>";
 } else {
-    echo "<p class='text-muted'><i class='ti ti-inbox'></i> " . __('Nenhum e-mail por entidade cadastrado. Adicione abaixo.', 'protocolo') . "</p>";
+    echo "<p class='text-muted'><i class='ti ti-inbox'></i> " . __('Nenhum e-mail por entidade cadastrado no PLUGIN. Adicione abaixo. Enquanto não cadastrar, o sistema usa Escola/Entidade GLPI + cópia como fallback.', 'protocolo') . "</p>";
 }
 
 // Form add
