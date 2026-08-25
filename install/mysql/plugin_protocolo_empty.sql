@@ -97,6 +97,18 @@ CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_notificacoes` (
   `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
+CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_entity_emails` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `entities_id` INT NOT NULL,
+  `email` VARCHAR(255) NOT NULL,
+  `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+  `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uniq_entity_email` (`entities_id`, `email`),
+  KEY `entities_id` (`entities_id`),
+  KEY `is_active` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
 INSERT INTO `glpi_plugin_protocolo_tipos` (name, comment) VALUES
 ('Ofício', 'Ofícios diversos'),
 ('Memorando', 'Memorandos e comunicados'),

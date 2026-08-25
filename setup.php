@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '1.2.0');
+define('PLUGIN_PROTOCOLO_VERSION', '1.3.0');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -76,6 +76,7 @@ function plugin_init_protocolo(): void
     Plugin::registerClass(\GlpiPlugin\Protocolo\Termo::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\Notificacao::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\Config::class);
+    Plugin::registerClass(\GlpiPlugin\Protocolo\EntityMail::class);
 
     // Perfil / direitos - aba Protocolo dentro de Administração > Perfis
     Plugin::registerClass(\GlpiPlugin\Protocolo\Profile::class, ['addtabon' => Profile::class]);

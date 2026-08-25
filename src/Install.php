@@ -223,6 +223,18 @@ class Install
               `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
               KEY `plugin_protocolo_pastas_id` (`plugin_protocolo_pastas_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC",
+
+            "CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_entity_emails` (
+              `id` INT AUTO_INCREMENT PRIMARY KEY,
+              `entities_id` INT NOT NULL,
+              `email` VARCHAR(255) NOT NULL,
+              `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+              `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
+              `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+              UNIQUE KEY `uniq_entity_email` (`entities_id`, `email`),
+              KEY `entities_id` (`entities_id`),
+              KEY `is_active` (`is_active`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC",
         ];
 
         foreach ($queries as $q) {
@@ -241,6 +253,7 @@ class Install
         global $DB;
         try {
             $tables = [
+                'glpi_plugin_protocolo_entity_emails',
                 'glpi_plugin_protocolo_notificacoes',
                 'glpi_plugin_protocolo_termos',
                 'glpi_plugin_protocolo_pastatipos',
@@ -385,6 +398,29 @@ class Install
                     } catch (\Throwable $e) {}
                 }
             }
+            // Nova tabela entity_emails
+            if (!$DB->tableExists('glpi_plugin_protocolo_entity_emails')) {
+                try {
+                    $DB->doQuery("CREATE TABLE `glpi_plugin_protocolo_entity_emails` (
+                      `id` INT AUTO_INCREMENT PRIMARY KEY,
+                      `entities_id` INT NOT NULL,
+                      `email` VARCHAR(255) NOT NULL,
+                      `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                      `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                      `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                      UNIQUE KEY `uniq_entity_email` (`entities_id`, `email`),
+                      KEY `entities_id` (`entities_id`),
+                      KEY `is_active` (`is_active`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
+                    error_log("[protocolo] migrateEntities: tabela entity_emails criada");
+                } catch (\Throwable $e) { error_log("[protocolo] migrate entity_emails falhou: " . $e->getMessage()); }
+            }
+            // Garante templates padrão
+            try {
+                if (class_exists(\GlpiPlugin\Protocolo\Config::class)) {
+                    \GlpiPlugin\Protocolo\Config::initDefaults();
+                }
+            } catch (\Throwable $e) {}
         } catch (\Throwable $e) {
             error_log("[protocolo] migrateEntities falhou: " . $e->getMessage());
         }

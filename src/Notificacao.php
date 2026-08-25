@@ -53,7 +53,25 @@ class Notificacao
         $codigo = $pasta->fields['codigo'] ?? "ID $pastaId";
         $destinatarios = [];
 
-        // 1) E-mail da escola (tabela escolas)
+        // 1) E-mails configurados por Entidade no plugin (nova tabela)
+        try {
+            if (class_exists(EntityMail::class)) {
+                $entityMails = EntityMail::getEmailsForEntity($escolaId, true);
+                foreach ($entityMails as $em) {
+                    $destinatarios[] = [$em, 'entidade_plugin'];
+                }
+                // Se não tem e-mail específico para a entidade, tenta entidade pai (ancestrais) se for recursivo?
+                // Busca também e-mails da entidade raiz (0) como fallback
+                if (empty($entityMails) && $escolaId !== 0) {
+                    $rootMails = EntityMail::getEmailsForEntity(0, true);
+                    foreach ($rootMails as $em) {
+                        $destinatarios[] = [$em, 'entidade_plugin_raiz'];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // 2) E-mail da escola (tabela escolas) - compatibilidade legada
         try {
             $it = $DB->request(['FROM' => 'glpi_plugin_protocolo_escolas', 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
             foreach ($it as $row) {
@@ -63,7 +81,7 @@ class Notificacao
             }
         } catch (\Throwable $e) {}
 
-        // 2) E-mail da entidade (glpi_entities)
+        // 3) E-mail da entidade (glpi_entities.email) - fallback
         try {
             $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
             foreach ($it as $row) {
@@ -73,10 +91,20 @@ class Notificacao
             }
         } catch (\Throwable $e) {}
 
-        // 3) Email cópia da config
+        // 4) Email cópia da config (global)
         $copia = Config::get('notificacao_email_copia', '');
         if ($copia && filter_var($copia, FILTER_VALIDATE_EMAIL)) {
             $destinatarios[] = [$copia, 'copia'];
+        }
+        // Suporte a múltiplos e-mails separados por , ou ; no campo cópia
+        if (strpos($copia, ',') !== false || strpos($copia, ';') !== false) {
+            $parts = preg_split('/[;,]+/', $copia);
+            foreach ($parts as $p) {
+                $p = trim($p);
+                if ($p && filter_var($p, FILTER_VALIDATE_EMAIL)) {
+                    $destinatarios[] = [$p, 'copia_multi'];
+                }
+            }
         }
 
         // Dedup por email
@@ -116,32 +144,136 @@ class Notificacao
 
     public static function buildAssunto(string $codigo, string $evento): string
     {
-        $prefix = trim((string)Config::get('notificacao_assunto_prefix', '[Protocolo]'));
-        if ($prefix === '') $prefix = '[Protocolo]';
-        $map = [
+        $mapAcao = [
             'entrada'  => "Nova pasta registrada",
             'retirada' => "Pasta retirada",
             'atraso'   => "Pasta com retirada pendente",
             'lembrete' => "Lembrete de retirada",
         ];
-        $acao = $map[$evento] ?? $evento;
-        return "$prefix $acao - $codigo";
+        $acao = $mapAcao[$evento] ?? $evento;
+        $template = trim((string)Config::get('notificacao_email_subject', ''));
+        if ($template === '') {
+            $prefix = trim((string)Config::get('notificacao_assunto_prefix', '[Protocolo]'));
+            if ($prefix === '') $prefix = '[Protocolo]';
+            return "$prefix $acao - $codigo";
+        }
+        // Render template com placeholders
+        return self::renderTemplate($template, [
+            'codigo' => $codigo,
+            'acao'   => $acao,
+            'evento' => $evento,
+        ]);
+    }
+
+    public static function renderTemplate(string $template, array $vars): string
+    {
+        // Placeholders são case-insensitive e com chaves {codigo}, {acao}, etc
+        foreach ($vars as $k => $v) {
+            $template = str_ireplace('{' . $k . '}', (string)$v, $template);
+        }
+        return $template;
+    }
+
+    public static function getTemplateForEvento(string $evento): string
+    {
+        $keyMap = [
+            'entrada'  => 'notificacao_email_body_entrada',
+            'retirada' => 'notificacao_email_body_retirada',
+            'atraso'   => 'notificacao_email_body_atraso',
+        ];
+        $key = $keyMap[$evento] ?? 'notificacao_email_body_entrada';
+        $tpl = trim((string)Config::get($key, ''));
+        if ($tpl === '') {
+            // fallback para defaults do Config
+            $defs = Config::getDefaults();
+            $tpl = $defs[$key] ?? '';
+        }
+        return $tpl;
     }
 
     public static function buildMensagem(\GlpiPlugin\Protocolo\Pasta $pasta, string $escolaNome, string $codigo, string $evento): string
     {
-        global $CFG_GLPI;
+        global $CFG_GLPI, $DB;
         $root = $CFG_GLPI['root_doc'] ?? '';
         $link = $root . "/plugins/protocolo/front/pasta.form.php?id=" . $pasta->getID();
-        $dataRec = Html::convDateTime($pasta->fields['data_recebimento'] ?? date('Y-m-d H:i:s'));
+
+        $dataRecRaw = $pasta->fields['data_recebimento'] ?? date('Y-m-d H:i:s');
+        $dataRec = Html::convDateTime($dataRecRaw);
+        $dataRecIso = $dataRecRaw;
         $recebidoDe = $pasta->fields['recebido_de'] ?? '-';
-        $itensResumo = '';
+        $recebidoDoc = $pasta->fields['recebido_documento'] ?? '';
+        $recebidoDocTipo = strtoupper($pasta->fields['recebido_documento_tipo'] ?? 'CPF');
+        $retiradoPor = $pasta->fields['retirado_por'] ?? '-';
+        $retiradoDoc = $pasta->fields['retirado_documento'] ?? '';
+        $retiradoDocTipo = strtoupper($pasta->fields['retirado_documento_tipo'] ?? 'CPF');
+        $dataRetRaw = $pasta->fields['data_retirada'] ?? '';
+        $dataRet = $dataRetRaw ? Html::convDateTime($dataRetRaw) : '-';
+        $status = $pasta->fields['status'] ?? '-';
+        $observacao = $pasta->fields['observacao'] ?? '';
+        $observacaoRet = $pasta->fields['observacao_retirada'] ?? '';
+        $escolaCodigo = '';
         try {
-            global $DB;
-            $it = $DB->request(['COUNT' => 'cpt', 'FROM' => 'glpi_plugin_protocolo_itens', 'WHERE' => ['plugin_protocolo_pastas_id' => $pasta->getID()]]);
-            foreach ($it as $r) $itensResumo = $r['cpt'] . " item(s)";
+            $itE = $DB->request(['FROM' => 'glpi_plugin_protocolo_escolas', 'WHERE' => ['id' => (int)($pasta->fields['plugin_protocolo_escolas_id'] ?? 0)], 'LIMIT' => 1]);
+            foreach ($itE as $r) $escolaCodigo = $r['codigo'] ?? '';
+            if (!$escolaCodigo) {
+                $itE2 = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => (int)($pasta->fields['plugin_protocolo_escolas_id'] ?? 0)], 'LIMIT' => 1]);
+                foreach ($itE2 as $r) $escolaCodigo = $r['name'] ?? '';
+            }
         } catch (\Throwable $e) {}
 
+        $itensResumo = '';
+        $quantidadeItens = 0;
+        $itensLista = '';
+        try {
+            $it = $DB->request(['FROM' => 'glpi_plugin_protocolo_itens', 'WHERE' => ['plugin_protocolo_pastas_id' => $pasta->getID()]]);
+            $names = [];
+            foreach ($it as $r) {
+                $names[] = $r['name'] . ' (' . (int)$r['quantidade'] . ')';
+                $quantidadeItens += (int)$r['quantidade'];
+            }
+            $itensResumo = implode(', ', $names);
+            $itensLista = implode("\n- ", $names);
+            if ($itensLista) $itensLista = "- " . $itensLista;
+            if (!$itensResumo) $itensResumo = $quantidadeItens . " item(s)";
+        } catch (\Throwable $e) {
+            $itensResumo = $quantidadeItens . " item(s)";
+        }
+
+        $dias = 0;
+        try { $dias = (int)floor((time() - strtotime($dataRecRaw)) / 86400); } catch (\Throwable $e) {}
+
+        $acaoMap = ['entrada' => 'registrada', 'retirada' => 'retirada', 'atraso' => 'com retirada pendente'];
+        $acao = $acaoMap[$evento] ?? $evento;
+
+        $template = self::getTemplateForEvento($evento);
+        if ($template !== '') {
+            $vars = [
+                'codigo' => $codigo,
+                'escola' => $escolaNome,
+                'escola_codigo' => $escolaCodigo,
+                'recebido_de' => $recebidoDe,
+                'recebido_documento' => $recebidoDoc ? "($recebidoDocTipo: $recebidoDoc)" : '',
+                'recebido_documento_tipo' => $recebidoDocTipo,
+                'data_recebimento' => $dataRec,
+                'data_recebimento_iso' => $dataRecIso,
+                'data_retirada' => $dataRet,
+                'retirado_por' => $retiradoPor,
+                'retirado_documento' => $retiradoDoc ? "($retiradoDocTipo: $retiradoDoc)" : '',
+                'itens' => $itensResumo,
+                'itens_lista' => $itensLista,
+                'quantidade_itens' => $quantidadeItens,
+                'link' => $link,
+                'dias' => $dias,
+                'acao' => $acao,
+                'evento' => $evento,
+                'status' => $status,
+                'observacao' => $observacao,
+                'observacao_retirada' => $observacaoRet,
+            ];
+            return self::renderTemplate($template, $vars);
+        }
+
+        // Fallback hardcoded (compatibilidade)
         if ($evento === 'entrada') {
             return "Olá,\n\nA pasta $codigo destinada à escola \"$escolaNome\" foi registrada no protocolo em $dataRec.\n"
                 . "Recebido de: $recebidoDe\n"
@@ -152,15 +284,11 @@ class Notificacao
                 . "— Sistema de Protocolo - URE";
         }
         if ($evento === 'retirada') {
-            $retiradoPor = $pasta->fields['retirado_por'] ?? '-';
-            $dataRet = Html::convDateTime($pasta->fields['data_retirada'] ?? date('Y-m-d H:i:s'));
             return "Olá,\n\nA pasta $codigo da escola \"$escolaNome\" foi RETIRADA em $dataRet por $retiradoPor.\n"
                 . "Acesse o termo e comprovante: $link\n\n"
                 . "— Sistema de Protocolo - URE";
         }
         if ($evento === 'atraso') {
-            $dias = 0;
-            try { $dias = (int)floor((time() - strtotime($pasta->fields['data_recebimento'])) / 86400); } catch (\Throwable $e) {}
             return "Atenção: A pasta $codigo da escola \"$escolaNome\" está aguardando retirada há $dias dias (desde $dataRec).\n"
                 . "Recebido de: $recebidoDe\n"
                 . "Acesse para regularizar: $link\n\n"
@@ -418,29 +546,13 @@ class Notificacao
             $res = $DB->doQuery($sql);
             if ($res) {
                 while ($row = $DB->fetchAssoc($res)) {
-                    $escolaId = (int)$row['plugin_protocolo_escolas_id'];
-                    $codigo = $row['codigo'];
-                    $escolaNome = Pasta::getEscolaName($escolaId);
-                    $msg = "Atenção: A pasta $codigo da escola \"$escolaNome\" está aguardando retirada há $prazo+ dias.\nAcesse o GLPI para regularizar.";
-                    // busca email cópia
-                    $dest = Config::get('notificacao_email_copia', '');
-                    if ($dest && filter_var($dest, FILTER_VALIDATE_EMAIL)) {
-                        $assunto = self::buildAssunto($codigo, 'atraso');
-                        self::enqueue((int)$row['id'], $escolaId, 'email', $dest, $assunto . "\n\n" . $msg);
-                        self::enqueue((int)$row['id'], $escolaId, 'sistema', 'sistema', $msg);
-                        $count++;
-                    } else {
-                        // tenta email da escola
-                        $schoolEmail = null;
-                        $it = $DB->request(['FROM' => 'glpi_plugin_protocolo_escolas', 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
-                        foreach ($it as $erow) $schoolEmail = $erow['email'] ?? null;
-                        if ($schoolEmail && filter_var($schoolEmail, FILTER_VALIDATE_EMAIL)) {
-                            $assunto = self::buildAssunto($codigo, 'atraso');
-                            self::enqueue((int)$row['id'], $escolaId, 'email', $schoolEmail, $assunto . "\n\n" . $msg);
-                            self::enqueue((int)$row['id'], $escolaId, 'sistema', 'sistema', $msg);
-                            $count++;
-                        }
-                    }
+                    // Reusa createForPasta para respeitar EntityMail + templates
+                    $p = new Pasta();
+                    $p->fields = $row;
+                    // Garante que getID() retorna correto (caso fields não tenha sido setado via getFromDB)
+                    if (!isset($p->fields['id'])) $p->fields['id'] = $row['id'];
+                    $n = self::createForPasta($p, 'atraso');
+                    if ($n > 0) $count++;
                 }
             }
         } catch (\Throwable $e) {
