@@ -103,7 +103,7 @@ try {
 
 // Pendências de upload: ESCOLA = ENTIDADE - com filtro de entidade para performance
 try {
-    $pendQuery = "SELECT p.*, p.categoria, p.origem_tipo, p.origem_outro, p.origem_entities_id, p.destino_tipo, p.destino_outro, p.destino_entities_id, COALESCE(e.completename, oe.name) AS escola_nome,
+    $pendQuery = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome,
         (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
         (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) AS ret_assinado,
         (SELECT id FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' LIMIT 1) AS ret_existe
@@ -130,7 +130,7 @@ try {
 } catch (Exception $e) { $totalPendRec = 0; $totalPendRet = 0; }
 
 // Últimas aguardando — ESCOLA = ENTIDADE - com JOIN agregado para evitar N+1 + dias
-$lastSql = "SELECT p.*, p.categoria, p.origem_tipo, p.origem_outro, p.origem_entities_id, p.destino_tipo, p.destino_outro, p.destino_entities_id, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql ORDER BY p.data_recebimento ASC LIMIT 12";
+$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql ORDER BY p.data_recebimento ASC LIMIT 12";
 $lastRows = [];
 $res = $DB->doQuery($lastSql);
 if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
@@ -139,7 +139,7 @@ if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
 $atrasadasRows = [];
 if ($alertaAtivo && $totalAtrasadas > 0) {
     try {
-        $sqlAtras = "SELECT p.*, p.categoria, COALESCE(e.completename, oe.name) AS escola_nome, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta . " ORDER BY p.data_recebimento ASC LIMIT 10";
+        $sqlAtras = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta . " ORDER BY p.data_recebimento ASC LIMIT 10";
         $res = $DB->doQuery($sqlAtras);
         if ($res) while ($row = $DB->fetchAssoc($res)) $atrasadasRows[] = $row;
     } catch (Throwable $e) {}
