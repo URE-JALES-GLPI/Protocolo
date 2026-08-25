@@ -72,6 +72,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_entity_email']
     Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php#entity-emails');
 }
 
+// Enviar teste e-mail (3 modelos)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_test_email'])) {
+    protocolo_check_csrf_or_bypass();
+    if (!Config::canEdit()) Html::displayRightError();
+    $testEmail = trim($_POST['test_email'] ?? '');
+    $eventoFilter = trim($_POST['test_evento'] ?? 'all');
+    if (!in_array($eventoFilter, ['all','entrada','retirada','atraso'])) $eventoFilter = 'all';
+    if ($testEmail === '' || !filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
+        Session::addMessageAfterRedirect(__('E-mail de teste inválido', 'protocolo'), false, ERROR);
+    } else {
+        try {
+            [$enviados, $falhas, $detalhes] = \GlpiPlugin\Protocolo\Notificacao::sendTest($testEmail, $eventoFilter);
+            if ($enviados > 0) {
+                Session::addMessageAfterRedirect(__('Teste enviado', 'protocolo') . " ($enviados ok, $falhas falhas) para " . htmlspecialchars($testEmail) . " — " . htmlspecialchars(implode(', ', $detalhes)) . " — verifique sua caixa e a fila GLPI (glpi_queuednotifications).", false, INFO);
+            } else {
+                Session::addMessageAfterRedirect(__('Falha ao enviar teste', 'protocolo') . " — " . htmlspecialchars(implode(', ', $detalhes)) . " — verifique configuração de e-mail do GLPI (Configuração → Notificações → Configuração de e-mail).", false, ERROR);
+            }
+        } catch (Throwable $e) {
+            Session::addMessageAfterRedirect(__('Erro no teste: ', 'protocolo') . $e->getMessage(), false, ERROR);
+        }
+    }
+    Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php#test-email');
+}
+
 // Save config geral (inclui templates)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     protocolo_check_csrf_or_bypass();
@@ -252,6 +276,28 @@ echo "<button type='submit' name='update' value='1' class='btn btn-primary'><i c
 echo "<a href='" . Pasta::getSearchURL() . "' class='btn btn-outline-secondary'>" . __('Cancelar') . "</a>";
 echo "</div></div>";
 echo "</form>";
+
+// --- Teste de envio (3 modelos) ---
+$testDefault = '';
+try {
+    $uid = Session::getLoginUserID();
+    if ($uid) {
+        global $DB;
+        $it = $DB->request(['FROM' => 'glpi_users', 'WHERE' => ['id' => $uid], 'LIMIT' => 1]);
+        foreach ($it as $r) { if (!empty($r['email']) && filter_var($r['email'], FILTER_VALIDATE_EMAIL)) $testDefault = $r['email']; }
+        if ($testDefault === '' && !empty($r['name'])) $testDefault = '';
+    }
+} catch (Throwable $e) {}
+echo "<div id='test-email' class='card shadow-sm mt-4'><div class='card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2'><strong><i class='ti ti-mail-forward'></i> " . __('Testar envio — enviar os 3 modelos', 'protocolo') . "</strong><span class='badge bg-info'>" . __('Envia Entrada + Retirada + Atraso', 'protocolo') . "</span></div><div class='card-body'>";
+echo "<p class='small text-muted mb-2'><i class='ti ti-info-circle'></i> " . __('Envia os 3 templates (Entrada, Retirada, Atraso) com dados de exemplo para o e-mail informado. Use para validar seu HTML antes de ativar. O e-mail é enviado via fila GLPI (mesmo mecanismo real).', 'protocolo') . "</p>";
+echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#test-email' class='row g-2 align-items-end'>";
+echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+echo "<div class='col-md-6'><label class='form-label fw-semibold small'>" . __('E-mail de teste', 'protocolo') . " <span class='text-danger'>*</span></label><input type='email' name='test_email' class='form-control' placeholder='seu@email.com' required value='" . htmlspecialchars($testDefault) . "'><div class='form-text' style='font-size:11px'>" . __('Receberá os modelos com [TESTE] no assunto.', 'protocolo') . "</div></div>";
+echo "<div class='col-md-3'><label class='form-label small fw-semibold'>" . __('Modelos', 'protocolo') . "</label><select name='test_evento' class='form-select'><option value='all'>" . __('Todos (3) — Entrada, Retirada, Atraso', 'protocolo') . "</option><option value='entrada'>" . __('Apenas Entrada', 'protocolo') . "</option><option value='retirada'>" . __('Apenas Retirada', 'protocolo') . "</option><option value='atraso'>" . __('Apenas Atraso', 'protocolo') . "</option></select></div>";
+echo "<div class='col-md-3'><button type='submit' name='send_test_email' value='1' class='btn btn-primary w-100'><i class='ti ti-send'></i> " . __('Enviar teste', 'protocolo') . "</button></div>";
+echo "</form>";
+echo "<div class='form-text mt-2' style='font-size:11px'><i class='ti ti-mail-check'></i> " . __('Remetente: e-mail configurado em GLPI (Configuração → Notificações → Configuração de e-mail). Verifique também <code>glpi_queuednotifications</code> e cron.', 'protocolo') . " <a href='" . $CFG_GLPI['root_doc'] . "/front/crontask.php' class='small'>" . __('Ver cron', 'protocolo') . "</a></div>";
+echo "</div></div>";
 
 // --- Entidades / E-mails — VISÃO MELHORADA ---
 echo "<div id='entity-emails' class='card shadow-sm mt-4'><div class='card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2'><div><strong><i class='ti ti-building'></i> " . __('E-mails por Entidade (Escola)', 'protocolo') . "</strong> <span class='badge bg-primary ms-2'>" . __('Para onde enviar notificações', 'protocolo') . "</span></div><small class='text-muted'><i class='ti ti-mail-check'></i> " . __('Somente e-mails <span class="badge bg-success">Ativos</span> desta lista recebem notificações', 'protocolo') . "</small></div><div class='card-body'>";

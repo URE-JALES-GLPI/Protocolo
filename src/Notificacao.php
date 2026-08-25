@@ -312,6 +312,109 @@ class Notificacao
     }
 
     /**
+     * Vars de exemplo para teste de templates (todos placeholders)
+     */
+    public static function getTestVars(string $evento): array
+    {
+        global $CFG_GLPI;
+        $root = $CFG_GLPI['root_doc'] ?? '';
+        $link = $root . "/plugins/protocolo/front/pasta.form.php?id=0";
+        if (empty($root)) $link = "/plugins/protocolo/front/pasta.form.php?id=0";
+        if (strpos($link, 'http') !== 0 && !empty($_SERVER['HTTP_HOST'])) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $link = $scheme . '://' . $_SERVER['HTTP_HOST'] . $link;
+        }
+        $acaoMap = ['entrada' => 'Nova pasta registrada', 'retirada' => 'Pasta retirada', 'atraso' => 'Pasta com retirada pendente'];
+        $acao = $acaoMap[$evento] ?? $evento;
+        return [
+            'codigo' => 'TEST-' . date('Y') . '-0001',
+            'escola' => 'Escola Teste - URE Jales (DEMO)',
+            'escola_codigo' => 'ESC001',
+            'acao' => $acao,
+            'evento' => $evento,
+            'recebido_de' => 'João da Silva (DEMO)',
+            'recebido_documento' => '(CPF: 123.456.789-00)',
+            'recebido_documento_tipo' => 'CPF',
+            'data_recebimento' => date('d/m/Y H:i'),
+            'data_recebimento_iso' => date('Y-m-d H:i:s'),
+            'data_retirada' => date('d/m/Y H:i'),
+            'retirado_por' => 'Maria Oliveira (DEMO)',
+            'retirado_documento' => '(CPF: 987.654.321-00)',
+            'quantidade_itens' => 3,
+            'itens' => 'Ofício (2), Memorando (1)',
+            'itens_lista' => "- Ofício (2)\n- Memorando (1)",
+            'link' => $link,
+            'dias' => 15,
+            'status' => 'aguardando',
+            'observacao' => 'Observação de teste — esta é uma mensagem de TESTE do Protocolo.',
+            'observacao_retirada' => 'Retirada de teste — documento conferido.',
+        ];
+    }
+
+    public static function buildTestSubject(string $evento): string
+    {
+        $codigo = 'TEST-' . date('Y') . '-0001';
+        return self::buildAssunto($codigo, $evento);
+    }
+
+    public static function buildTestBody(string $evento): string
+    {
+        $tpl = self::getTemplateForEvento($evento);
+        $vars = self::getTestVars($evento);
+        if (trim($tpl) !== '') {
+            return self::renderTemplate($tpl, $vars);
+        }
+        $p = new \GlpiPlugin\Protocolo\Pasta();
+        $p->fields = [
+            'id' => 0,
+            'codigo' => $vars['codigo'],
+            'plugin_protocolo_escolas_id' => 0,
+            'status' => $vars['status'],
+            'data_recebimento' => date('Y-m-d H:i:s'),
+            'recebido_de' => $vars['recebido_de'],
+            'recebido_documento' => '12345678900',
+            'recebido_documento_tipo' => 'cpf',
+            'observacao' => $vars['observacao'],
+            'data_retirada' => date('Y-m-d H:i:s'),
+            'retirado_por' => $vars['retirado_por'],
+            'retirado_documento' => '98765432100',
+            'retirado_documento_tipo' => 'cpf',
+            'observacao_retirada' => $vars['observacao_retirada'],
+        ];
+        $p->fields['id'] = 0;
+        return self::buildMensagem($p, $vars['escola'], $vars['codigo'], $evento);
+    }
+
+    /**
+     * Envia teste para e-mail informado; retorna [enviados, falhas, detalhes]
+     */
+    public static function sendTest(string $to, string $eventoFilter = 'all'): array
+    {
+        $eventos = $eventoFilter === 'all' ? ['entrada','retirada','atraso'] : [$eventoFilter];
+        $enviados = 0; $falhas = 0; $detalhes = [];
+        foreach ($eventos as $ev) {
+            if (!in_array($ev, ['entrada','retirada','atraso'])) continue;
+            $subject = self::buildTestSubject($ev);
+            $body = self::buildTestBody($ev);
+            if (stripos($subject, '[TESTE]') === false && stripos($subject, 'TESTE') === false) {
+                $subject = '[TESTE] ' . $subject;
+            }
+            if (!self::isHtml($body)) {
+                $body = "[TESTE - $ev] Esta é uma mensagem de TESTE. Dados fictícios.\n\n" . $body;
+            } else {
+                if (stripos($body, 'TESTE') === false) {
+                    $body = '<div style="background:#fff3cd;border:1px solid #ffe69c;padding:6px 10px;margin-bottom:12px;font-size:12px;color:#664d03">🧪 <strong>TESTE</strong> — ' . htmlspecialchars($ev) . ' — dados fictícios</div>' . $body;
+                }
+            }
+            $full = $subject . "\n\n" . $body;
+            $row = ['plugin_protocolo_pastas_id' => 0];
+            $ok = self::sendEmail($to, $full, $row);
+            if ($ok) { $enviados++; $detalhes[] = "$ev: ok"; } else { $falhas++; $detalhes[] = "$ev: falha"; }
+        }
+        return [$enviados, $falhas, $detalhes];
+    }
+
+    /**
      * Tenta enviar pendentes (chamado por cron)
      * Retorna [enviados, falhas]
      */
