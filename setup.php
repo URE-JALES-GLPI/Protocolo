@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '1.0.1');
+define('PLUGIN_PROTOCOLO_VERSION', '1.1.0');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -74,6 +74,8 @@ function plugin_init_protocolo(): void
     Plugin::registerClass(\GlpiPlugin\Protocolo\Escola::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\TipoArquivo::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\Termo::class);
+    Plugin::registerClass(\GlpiPlugin\Protocolo\Notificacao::class);
+    Plugin::registerClass(\GlpiPlugin\Protocolo\Config::class);
 
     // Perfil / direitos - aba Protocolo dentro de Administração > Perfis
     Plugin::registerClass(\GlpiPlugin\Protocolo\Profile::class, ['addtabon' => Profile::class]);
@@ -122,6 +124,9 @@ function plugin_init_protocolo(): void
     ];
     $PLUGIN_HOOKS['config_page']['protocolo'] = 'front/config.php';
 
+    // Cron
+    $PLUGIN_HOOKS['cron']['protocolo'] = 3600;
+
     // JS/CSS
     $PLUGIN_HOOKS['add_javascript']['protocolo'] = [
         'js/app.js'
@@ -138,6 +143,8 @@ function plugin_init_protocolo(): void
             try { $migratedVersion = \Config::getConfigurationValue('plugin:protocolo', 'migrated_version'); } catch (\Throwable $e) {}
             if ($migratedVersion !== PLUGIN_PROTOCOLO_VERSION) {
                 \GlpiPlugin\Protocolo\Install::migrateEntities($DB);
+                try { \GlpiPlugin\Protocolo\Config::initDefaults(); } catch (\Throwable $e2) {}
+                try { \GlpiPlugin\Protocolo\Install::registerCron(); } catch (\Throwable $e2) {}
                 try { \Config::setConfigurationValues('plugin:protocolo', ['migrated_version' => PLUGIN_PROTOCOLO_VERSION]); } catch (\Throwable $e) {}
             }
         }

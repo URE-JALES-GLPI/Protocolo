@@ -902,6 +902,15 @@ class Pasta extends CommonDBTM
             'users_id' => Session::getLoginUserID(),
             'date_creation' => date('Y-m-d H:i:s')
         ]);
+
+        // Notificação automática de entrada
+        try {
+            if (class_exists(Notificacao::class)) {
+                Notificacao::createForPasta($this, 'entrada');
+            }
+        } catch (\Throwable $e) {
+            error_log("[protocolo] Notificacao entrada falhou: " . $e->getMessage());
+        }
     }
 
     public function prepareInputForUpdate($input)
@@ -984,6 +993,21 @@ class Pasta extends CommonDBTM
             'users_id' => Session::getLoginUserID(),
             'date_creation' => date('Y-m-d H:i:s')
         ]);
+        // Atualiza fields em memória para notificação usar dados frescos
+        $this->fields['status'] = 'retirada';
+        $this->fields['data_retirada'] = $dataRet;
+        $this->fields['retirado_por'] = $retiradoPor;
+        $this->fields['retirado_documento'] = $docRet;
+        $this->fields['retirado_documento_tipo'] = $tipoRet;
+        $this->fields['observacao_retirada'] = trim($params['observacao_retirada'] ?? '') ?: null;
+        // Notificação automática de retirada
+        try {
+            if (class_exists(Notificacao::class)) {
+                Notificacao::createForPasta($this, 'retirada');
+            }
+        } catch (\Throwable $e) {
+            error_log("[protocolo] Notificacao retirada falhou: " . $e->getMessage());
+        }
         Session::addMessageAfterRedirect(__('Retirada registrada! Agora gere o Termo de Retirada.', 'protocolo'), false, INFO);
         return true;
     }

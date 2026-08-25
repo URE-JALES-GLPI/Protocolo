@@ -44,14 +44,20 @@ class Install
                 @chmod($uploadDir, 0775);
             }
 
-            // 4. Marca config
-            if (class_exists(Config::class)) {
-                try {
+            // 4. Config defaults
+            try {
+                if (class_exists(\GlpiPlugin\Protocolo\Config::class)) {
+                    \GlpiPlugin\Protocolo\Config::initDefaults();
                     Config::setConfigurationValues('plugin:protocolo', ['installed' => date('Y-m-d H:i:s')]);
-                } catch (\Throwable $e) {
-                    error_log("[protocolo] Config::setConfigurationValues falhou: " . $e->getMessage());
+                } elseif (class_exists(Config::class)) {
+                    Config::setConfigurationValues('plugin:protocolo', ['installed' => date('Y-m-d H:i:s')]);
                 }
+            } catch (\Throwable $e) {
+                error_log("[protocolo] Config::setConfigurationValues falhou: " . $e->getMessage());
             }
+
+            // 5. Cron
+            try { self::registerCron(); } catch (\Throwable $e) { error_log("[protocolo] registerCron falhou: " . $e->getMessage()); }
 
             return true;
         } catch (\Throwable $e) {
@@ -434,6 +440,34 @@ class Install
             }
         }
         return $prefix . str_pad((string)random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+    }
+
+    public static function registerCron(): void
+    {
+        global $DB;
+        if (!$DB->tableExists('glpi_crontasks')) return;
+        try {
+            $existing = $DB->request(['FROM' => 'glpi_crontasks', 'WHERE' => ['itemtype' => Notificacao::class, 'name' => 'protocolo']]);
+            $found = false;
+            foreach ($existing as $r) { $found = true; break; }
+            if (!$found) {
+                $DB->insert('glpi_crontasks', [
+                    'itemtype'  => Notificacao::class,
+                    'name'      => 'protocolo',
+                    'frequency' => 3600, // 1h
+                    'param'     => 20,
+                    'state'     => 1,
+                    'mode'      => 2, // MODE_EXTERNAL
+                    'allowmode' => 3,
+                    'logs_lifetime' => 30,
+                    'hourmin'   => 0,
+                    'hourmax'   => 24,
+                    'comment'   => 'Envio de notificações pendentes do Protocolo'
+                ]);
+            }
+        } catch (\Throwable $e) {
+            error_log("[protocolo] registerCron insert falhou: " . $e->getMessage());
+        }
     }
 
     /**

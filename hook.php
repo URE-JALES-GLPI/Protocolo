@@ -59,3 +59,26 @@ function plugin_protocolo_getAddSearchOptionsNew($itemtype): array
 {
     return [];
 }
+
+function plugin_protocolo_cronInfo(): array
+{
+    return [
+        'protocolo' => [
+            'description' => 'Envio de notificações pendentes do Protocolo',
+            'parameter'   => 'Número de notificações a processar por execução'
+        ]
+    ];
+}
+
+function plugin_protocolo_cronProtocolo(\CronTask $task): int
+{
+    include_once __DIR__ . '/src/Config.php';
+    include_once __DIR__ . '/src/Notificacao.php';
+    return \GlpiPlugin\Protocolo\Notificacao::cronProtocolo($task);
+}
+
+// Alias para compat com tarefas antigas protocolo_send
+function plugin_protocolo_cronProtocolo_send(\CronTask $task): int
+{
+    return plugin_protocolo_cronProtocolo($task);
+}
