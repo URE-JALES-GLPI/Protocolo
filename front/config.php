@@ -13,7 +13,17 @@ if (!Config::canEdit()) {
 $config = Config::getAll();
 
 // Save - precisa vir antes de qualquer saída
-if (isset($_POST['update'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
+    // Validação CSRF manual para evitar die com "Ação não permitida" sem log
+    $csrfToken = $_POST['_glpi_csrf_token'] ?? '';
+    $tokens = $_SESSION['glpicsrftokens'] ?? [];
+    if (empty($csrfToken) || !isset($tokens[$csrfToken])) {
+        error_log("[protocolo] CSRF inválido em config.php POST token=" . $csrfToken . " tokens=" . json_encode(array_keys($tokens)) . " POST=" . json_encode($_POST));
+        // Tenta validar via Session::checkCSRF para manter comportamento padrão se houver outro storage
+        // mas não deixa morrer sem mensagem
+        Session::addMessageAfterRedirect(__('Erro de validação CSRF. Atualize a página (F5) e tente novamente. Se persistir, limpe o cache do navegador.', 'protocolo'), false, ERROR);
+        Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php');
+    }
     Session::checkCSRF($_POST);
     if (!Config::canEdit()) {
         Html::displayRightError();
@@ -30,8 +40,12 @@ if (isset($_POST['update'])) {
     if ($toSet['notificacao_email_copia'] !== '' && !filter_var($toSet['notificacao_email_copia'], FILTER_VALIDATE_EMAIL)) {
         Session::addMessageAfterRedirect(__('E-mail de cópia inválido', 'protocolo'), false, ERROR);
     } else {
-        Config::set($toSet);
-        Session::addMessageAfterRedirect(__('Configuração salva com sucesso', 'protocolo'), false, INFO);
+        $ok = Config::set($toSet);
+        if ($ok) {
+            Session::addMessageAfterRedirect(__('Configuração salva com sucesso', 'protocolo'), false, INFO);
+        } else {
+            Session::addMessageAfterRedirect(__('Falha ao salvar configuração. Verifique logs.', 'protocolo'), false, ERROR);
+        }
     }
     Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php');
 }
@@ -42,7 +56,7 @@ echo "<div class='container-fluid'>";
 echo "<h3><i class='ti ti-settings'></i> " . __('Configuração do Plugin Protocolo', 'protocolo') . "</h3>";
 
 echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php'>";
-echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
 echo "<div class='card shadow-sm'><div class='card-header bg-white'><strong><i class='ti ti-adjustments'></i> " . __('Parâmetros gerais', 'protocolo') . "</strong></div><div class='card-body'>";
 
 // Prazo alerta
