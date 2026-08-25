@@ -55,6 +55,10 @@ try {
     try{ if(class_exists(\GlpiPlugin\Protocolo\Notificacao::class)){ $tmp=new \GlpiPlugin\Protocolo\Pasta(); $tmp->getFromDB($newID); \GlpiPlugin\Protocolo\Notificacao::createForPasta($tmp,'entrada'); } }catch(\Throwable $e){}
     Html::redirect(\GlpiPlugin\Protocolo\Pasta::getFormURLWithID($newID));
 } catch(\Throwable $e){
+    // Não tratar redirect (Html::redirect / Html::back lançam RedirectException em GLPI 11)
+    if (is_a($e, 'Glpi\Exception\Http\RedirectException') || str_contains(get_class($e), 'Redirect')) {
+        throw $e;
+    }
     $msg = $e->getMessage() ?: 'sem mensagem';
     $trace = substr($e->getTraceAsString(), 0, 2000);
     $dbErr = '';
