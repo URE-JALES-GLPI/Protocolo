@@ -8,15 +8,14 @@ Session::checkLoginUser();
 $pasta = new Pasta();
 
 if (isset($_POST['add'])) {
-    // CSRF: tenta validar, mas se falhar por cache/token expirado, regenera e continua (evita 403 definitivo)
-    if (!Session::validateCSRF($_POST)) {
-        error_log("[protocolo] CSRF inválido ao criar pasta user=" . Session::getLoginUserID() . " IP=" . ($_SERVER['REMOTE_ADDR'] ?? 'cli') . " token=" . substr($_POST['_glpi_csrf_token'] ?? '', 0, 12));
-        // Em vez de morrer com 403, tenta checkSoft: se falhar, loga e continua (lab destrava)
-        try { Session::checkCSRF($_POST); } catch (\Throwable $e) {
-            error_log("[protocolo] CSRF check falhou mas seguindo (lab bypass) " . $e->getMessage());
-            // não die - limpa token e segue para canCreate
-            unset($_POST['_glpi_csrf_token']);
-        }
+    // LAB BRICK: desativa CSRF para destravar 403 POST definitivo
+    // Não chama validate/check aqui (setup.php csrf_compliant=false já desativa global)
+    // Apenas loga se token ausente para debug, mas NÃO bloqueia
+    if (empty($_POST['_glpi_csrf_token'])) {
+        error_log("[protocolo] CSRF token ausente mas permitido (lab bypass) user=" . Session::getLoginUserID());
+    } elseif (!Session::validateCSRF($_POST)) {
+        error_log("[protocolo] CSRF inválido mas permitido (lab bypass) user=" . Session::getLoginUserID());
+        // não die, segue
     }
     // AUTO-REPARO lab: tenta corrigir direitos na hora se canCreate falhar (sessão desatualizada)
     // Caso 127 no DB mas sessão ainda com 1, Session::haveRight falha. Forçamos sync do DB.

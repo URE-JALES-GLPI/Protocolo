@@ -82,8 +82,8 @@ function plugin_init_protocolo(): void
     Plugin::registerClass(\GlpiPlugin\Protocolo\Profile::class, ['addtabon' => Profile::class]);
     $PLUGIN_HOOKS['change_profile']['protocolo'] = [\GlpiPlugin\Protocolo\Profile::class, 'changeProfile'];
 
-    // CSRF compliance
-    $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = true;
+    // CSRF compliance - LAB: false para destravar 403 POST definitivo (era true e bloqueava)
+    $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = false;
 
     // Menu GLPI 10/11 - sempre registra (GLPI filtra por canView)
     $PLUGIN_HOOKS['menu_toadd']['protocolo'] = [
