@@ -11,7 +11,7 @@ if (!Pasta::canView()) {
     Html::displayRightError();
 }
 
-global $DB;
+global $DB, $CFG_GLPI;
 
 // Config
 $cfg = Config::getAll();
@@ -51,8 +51,9 @@ $hasCategoriaCol = false;
 try { $hasCategoriaCol = $DB->fieldExists(Pasta::getTable(), 'categoria'); } catch (\Throwable $e) { $hasCategoriaCol = false; }
 $entityFilterBase = $entityFilter; // sem categoria para breakdown
 if ($categoriaFiltro && $hasCategoriaCol) {
-    $categoriaWhereSql = " AND p.categoria='" . $DB->escape($categoriaFiltro) . "'";
-    $categoriaWhereSqlPasta = " AND categoria='" . $DB->escape($categoriaFiltro) . "'";
+    // categoria já validada via in_array, sem necessidade de escape
+    $categoriaWhereSql = " AND p.categoria='" . $categoriaFiltro . "'";
+    $categoriaWhereSqlPasta = " AND categoria='" . $categoriaFiltro . "'";
     $entityFilter['categoria'] = $categoriaFiltro;
 }
 // Stats - com filtro de entidade + categoria
