@@ -139,27 +139,16 @@ body{ background:#eee; }
     <tr><td style="width:50%"><strong><?= __('Categoria', 'protocolo') ?>:</strong><br><?= $categoria === 'malote' ? 'Malote' : 'Pasta' ?> (<?= htmlspecialchars($pasta->fields['codigo']) ?>)</td>
         <td><strong><?= __('Data/hora', 'protocolo') ?>:</strong><br><?= date('d/m/Y \à\s H:i', strtotime($dataRef)) ?></td></tr>
     <tr><td><strong><?= __('Origem', 'protocolo') ?>:</strong><br><?= htmlspecialchars($origemNome) ?></td>
-        <td><strong><?= __('Destino', 'protocolo') ?>:</strong><br><?= htmlspecialchars($destinoNome) ?></td></tr>
-    <tr><td style="width:50%"><strong><?= __('Escola destinatária', 'protocolo') ?>:</strong><br><?= htmlspecialchars($escolaNome) ?> <?= $escolaCodigo ? '(' . htmlspecialchars($escolaCodigo) . ')' : '' ?></td>
-        <td><strong><?= $tipo === 'recebimento' ? __('Recebido de:', 'protocolo') : __('Retirado por:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td></tr>
-    <tr><td><strong><?= __('Responsável protocolo:', 'protocolo') ?></strong><br><?= htmlspecialchars($criadorNome) ?></td>
-        <td><strong><?= __('Código pasta', 'protocolo') ?>:</strong><br><?= htmlspecialchars($pasta->fields['codigo']) ?></td></tr>
-    <?php if ($escolaEndereco): ?><tr><td colspan="2"><strong><?= __('Endereço escola', 'protocolo') ?>:</strong> <?= htmlspecialchars($escolaEndereco) ?></td></tr><?php endif; ?>
+        <td><strong><?= __('Destino', 'protocolo') ?> / <?= __('Destinatário', 'protocolo') ?>:</strong><br><?= htmlspecialchars($destinoNome) ?></td></tr>
+    <tr><td><strong><?= $tipo === 'recebimento' ? __('Recebido de:', 'protocolo') : __('Retirado por:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td>
+        <td><strong><?= __('Responsável protocolo:', 'protocolo') ?></strong><br><?= htmlspecialchars($criadorNome) ?></td></tr>
+    <?php if ($escolaEndereco && $destinoTipo==='escola'): ?><tr><td colspan="2"><strong><?= __('Endereço escola', 'protocolo') ?>:</strong> <?= htmlspecialchars($escolaEndereco) ?></td></tr><?php endif; ?>
   </table>
 
   <?php if ($tipo === 'recebimento'): ?>
     <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('recebi nesta data', 'protocolo') ?></strong> <?= __('no setor de protocolo', 'protocolo') ?> <?= $categoria==='malote' ? 'o malote' : 'a pasta' ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('entregue por', 'protocolo') ?> <strong><?= htmlspecialchars($pasta->fields['recebido_de']) ?></strong><?= $pasta->fields['recebido_documento'] ? ' (doc. ' . htmlspecialchars($pasta->fields['recebido_documento']) . ')' : '' ?>, <?= __('contendo os seguintes itens/documentos:', 'protocolo') ?></p>
   <?php else: ?>
     <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('retirei nesta data', 'protocolo') ?></strong> <?= __('junto ao setor de protocolo', 'protocolo') ?> <?= $categoria==='malote' ? 'o malote' : 'a pasta' ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('contendo os seguintes itens/documentos, assumindo a responsabilidade pelo transporte e entrega:', 'protocolo') ?></p>
-  <?php endif; ?>
-
-  <?php if ($tipos): ?>
-  <div style="border:1px solid #111; padding:10px 12px; margin-bottom:14px; font-size:13px;">
-    <strong><?= __('Tipos de arquivos assinalados:', 'protocolo') ?></strong><br>
-    <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px 14px;">
-      <?php foreach ($tipos as $tn): ?><span style="border:1px solid #333; padding:2px 8px; font-size:12px;"><span style="font-weight:bold;">☑</span> <?= htmlspecialchars($tn) ?></span><?php endforeach; ?>
-    </div>
-  </div>
   <?php endif; ?>
 
   <table class="table table-bordered itens">
