@@ -522,37 +522,54 @@ class Install
      */
     public static function repairZeroRights($DB): void
     {
-        // Apenas para perfis Technician-like (Admin, Hotliner, Technician, Supervisor) que ainda estão com rights=1
+        // Corrige TODOS os perfis que ainda têm rights baixo (0,1) - cobre perfis custom
+        try {
+            $allProfiles = $DB->request(['FROM' => 'glpi_profiles']);
+            foreach ($allProfiles as $prof) {
+                $pid = (int)$prof['id'];
+                self::repairActiveProfile($DB, $pid, false);
+            }
+        } catch (\Throwable $e) { error_log("[protocolo] repairZeroRights all: " . $e->getMessage()); }
+        // fallback legado para ids conhecidos
         $targets = [4,5,6,8];
         foreach ($targets as $pid) {
-            try {
-                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_pasta']]);
-                $found = false;
-                $current = null;
-                foreach ($it as $row) { $found = true; $current = (int)$row['rights']; break; }
-                if ($found && $current === 1) {
-                    // 1 = só READ, precisa de CREATE/UPDATE etc => sobe para 255
-                    $DB->update('glpi_profilerights', ['rights' => 255], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_pasta']);
-                    error_log("[protocolo] repairZeroRights pasta profile $pid 1->255");
-                }
-                // também garante escola/tipo se faltar
-                $it2 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_escola']]);
-                $found2 = false; $curr2 = null;
-                foreach ($it2 as $row) { $found2 = true; $curr2 = (int)$row['rights']; break; }
-                if ($found2 && $curr2 === 1) {
-                    $DB->update('glpi_profilerights', ['rights' => 255], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_escola']);
-                }
-                $it3 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_tipo']]);
-                $found3 = false;
-                foreach ($it3 as $row) { $found3 = true; break; }
-                if (!$found3) {
-                    $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_tipo', 'rights' => 255]);
-                } elseif (count($it3) > 0) {
-                    // se existe mas 0, corrige
-                    foreach ($it3 as $row) { if ((int)$row['rights'] === 0) $DB->update('glpi_profilerights', ['rights' => 255], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_tipo']); }
-                }
-            } catch (\Throwable $e) { error_log("[protocolo] repairZeroRights pid $pid: " . $e->getMessage()); }
+            try { self::repairActiveProfile($DB, $pid, false); } catch (\Throwable $e) {}
         }
+    }
+
+    /**
+     * Repara UM perfil específico: se plugin_protocolo_pasta for 0/1 ou falta CREATE, sobe para 255
+     * $force = true repara mesmo sem checar Session::haveRight (usado em migrate)
+     */
+    public static function repairActiveProfile($DB, int $pid, bool $forceLog = true): void
+    {
+        try {
+            $rightsToFix = ['plugin_protocolo_pasta', 'plugin_protocolo_escola', 'plugin_protocolo_tipo'];
+            foreach ($rightsToFix as $rname) {
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $rname]]);
+                $found = false; $current = null;
+                foreach ($it as $row) { $found = true; $current = (int)$row['rights']; break; }
+                if (!$found) {
+                    $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => $rname, 'rights' => 255]);
+                    if ($forceLog) error_log("[protocolo] repairActiveProfile $rname profile $pid criado 255");
+                } elseif ($current !== null && $current < 23) {
+                    // 23 = READ(1)+UPDATE(2)+CREATE(4)+PURGE(16) sem DELETE; abaixo disso não consegue criar
+                    // Também cobre 0 e 1 que eram defaults antigos
+                    // Verifica se realmente falta CREATE
+                    $hasCreate = ($current & CREATE) !== 0;
+                    if (!$hasCreate || $current <= 1) {
+                        $DB->update('glpi_profilerights', ['rights' => 255], ['profiles_id' => $pid, 'name' => $rname]);
+                        if ($forceLog) error_log("[protocolo] repairActiveProfile $rname profile $pid $current->255");
+                        // força recarregar sessão se for perfil ativo
+                        if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
+                            $_SESSION['glpiactive_profile'][$rname] = 255;
+                            // GLPI 11 também usa $_SESSION['glpiactiveprofile'][$rname]
+                            $_SESSION['glpiactiveprofile'][$rname] = 255;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) { error_log("[protocolo] repairActiveProfile pid $pid: " . $e->getMessage()); }
     }
 
     /**
