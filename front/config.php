@@ -204,19 +204,45 @@ echo "</div>";
 
 echo "<div class='row g-2'>";
 echo "<div class='col-md-4'>";
-echo "<label class='form-label fw-semibold small mb-1'>" . __('Corpo - Entrada', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
-echo "<textarea name='notificacao_email_body_entrada' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: &lt;div&gt;pasta {codigo} &lt;a href=&quot;{link}&quot;&gt;Ver&lt;/a&gt;&lt;/div&gt;'>" . htmlspecialchars($config['notificacao_email_body_entrada']) . "</textarea>";
+echo "<label class='form-label fw-semibold small mb-1 d-flex justify-content-between align-items-center'>" . __('Corpo - Entrada', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
+echo "<textarea name='notificacao_email_body_entrada' id='tpl_entrada' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: &lt;div&gt;pasta {codigo} &lt;a href=&quot;{link}&quot;&gt;Ver&lt;/a&gt;&lt;/div&gt;'>" . htmlspecialchars($config['notificacao_email_body_entrada']) . "</textarea>";
+echo "<div class='d-flex gap-1 mt-1 align-items-center'><label class='btn btn-sm btn-outline-secondary py-0 px-2 mb-0' style='font-size:11px; cursor:pointer'><i class='ti ti-upload'></i> Importar <input type='file' accept='.html,.htm,.txt' class='d-none protocolo-import-html' data-target='notificacao_email_body_entrada'></label><button type='button' class='btn btn-sm btn-outline-danger py-0 px-2 protocolo-clear-html' data-target='notificacao_email_body_entrada' style='font-size:11px' title='Limpar'><i class='ti ti-trash'></i></button><small class='text-muted ms-auto' style='font-size:10px'>.html</small></div>";
 echo "</div>";
 echo "<div class='col-md-4'>";
-echo "<label class='form-label fw-semibold small mb-1'>" . __('Corpo - Retirada', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
-echo "<textarea name='notificacao_email_body_retirada' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: {codigo} retirada por {retirado_por}'>" . htmlspecialchars($config['notificacao_email_body_retirada']) . "</textarea>";
+echo "<label class='form-label fw-semibold small mb-1 d-flex justify-content-between align-items-center'>" . __('Corpo - Retirada', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
+echo "<textarea name='notificacao_email_body_retirada' id='tpl_retirada' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: {codigo} retirada por {retirado_por}'>" . htmlspecialchars($config['notificacao_email_body_retirada']) . "</textarea>";
+echo "<div class='d-flex gap-1 mt-1 align-items-center'><label class='btn btn-sm btn-outline-secondary py-0 px-2 mb-0' style='font-size:11px; cursor:pointer'><i class='ti ti-upload'></i> Importar <input type='file' accept='.html,.htm,.txt' class='d-none protocolo-import-html' data-target='notificacao_email_body_retirada'></label><button type='button' class='btn btn-sm btn-outline-danger py-0 px-2 protocolo-clear-html' data-target='notificacao_email_body_retirada' style='font-size:11px' title='Limpar'><i class='ti ti-trash'></i></button><small class='text-muted ms-auto' style='font-size:10px'>.html</small></div>";
 echo "</div>";
 echo "<div class='col-md-4'>";
-echo "<label class='form-label fw-semibold small mb-1'>" . __('Corpo - Atraso', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
-echo "<textarea name='notificacao_email_body_atraso' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: {codigo} h&aacute; {dias} dias'>" . htmlspecialchars($config['notificacao_email_body_atraso']) . "</textarea>";
+echo "<label class='form-label fw-semibold small mb-1 d-flex justify-content-between align-items-center'>" . __('Corpo - Atraso', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
+echo "<textarea name='notificacao_email_body_atraso' id='tpl_atraso' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: {codigo} h&aacute; {dias} dias'>" . htmlspecialchars($config['notificacao_email_body_atraso']) . "</textarea>";
+echo "<div class='d-flex gap-1 mt-1 align-items-center'><label class='btn btn-sm btn-outline-secondary py-0 px-2 mb-0' style='font-size:11px; cursor:pointer'><i class='ti ti-upload'></i> Importar <input type='file' accept='.html,.htm,.txt' class='d-none protocolo-import-html' data-target='notificacao_email_body_atraso'></label><button type='button' class='btn btn-sm btn-outline-danger py-0 px-2 protocolo-clear-html' data-target='notificacao_email_body_atraso' style='font-size:11px' title='Limpar'><i class='ti ti-trash'></i></button><small class='text-muted ms-auto' style='font-size:10px'>.html</small></div>";
 echo "</div>";
 echo "</div>";
-echo "<div class='form-text mt-2'><a href='#' onclick=\"if(confirm('Restaurar padrões?')){document.querySelectorAll('textarea[name^=notificacao_email_body]').forEach(t=>t.value=''); document.querySelector('input[name=notificacao_email_subject]').value='[Protocolo] {acao} - {codigo}';} return false;\">Restaurar padrões</a> — deixe em branco para usar padrão interno.</div>";
+echo "<div class='form-text mt-2 d-flex flex-wrap gap-2 align-items-center'><a href='#' onclick=\"if(confirm('Restaurar padrões?')){document.querySelectorAll('textarea[name^=notificacao_email_body]').forEach(t=>t.value=''); document.querySelector('input[name=notificacao_email_subject]').value='[Protocolo] {acao} - {codigo}';} return false;\">Restaurar padrões</a> <span class='text-muted'>— deixe em branco para usar padrão interno.</span> <span class='ms-auto text-muted' style='font-size:11px'><i class='ti ti-info-circle'></i> Importar preenche o campo; clique em <strong>Salvar</strong> para gravar.</span></div>";
+echo "<script>
+document.querySelectorAll('.protocolo-import-html').forEach(function(inp){
+  inp.addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    if(file.size > 512*1024){ alert('Arquivo muito grande (>512KB)'); e.target.value=''; return; }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var target = document.querySelector('[name=\"' + inp.dataset.target + '\"]');
+      if(target){ target.value = ev.target.result; target.dispatchEvent(new Event('input')); target.focus(); }
+    };
+    reader.onerror = function(){ alert('Falha ao ler arquivo'); };
+    reader.readAsText(file, 'UTF-8');
+    e.target.value='';
+  });
+});
+document.querySelectorAll('.protocolo-clear-html').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var target = document.querySelector('[name=\"' + btn.dataset.target + '\"]');
+    if(target && confirm('Limpar template deste tipo?')){ target.value=''; target.focus(); }
+  });
+});
+</script>";
 
 echo "</div><div class='card-footer bg-white d-flex gap-2'>";
 echo "<button type='submit' name='update' value='1' class='btn btn-primary'><i class='ti ti-device-floppy'></i> " . __('Salvar', 'protocolo') . "</button>";
