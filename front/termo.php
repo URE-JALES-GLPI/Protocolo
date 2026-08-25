@@ -98,8 +98,15 @@ body{ background:#eee; }
 .termo .meta{ font-size:11.5px; margin-bottom:12px; }
 .termo .meta td{ padding:4px 7px; }
 .termo p{ font-size:11.5px; line-height:1.45; text-align:justify; margin-bottom:8px; }
-.termo table.itens{ font-size:11px; }
-.termo table.itens th, .termo table.itens td{ padding:3px 6px; }
+.termo table.itens{ font-size:11.5px; border-collapse:collapse; width:100%; margin-bottom:14px; border:1px solid #333; }
+.termo table.itens th{ background:#1e3a5f; color:#fff; font-weight:700; text-transform:uppercase; font-size:10px; letter-spacing:.6px; padding:8px 10px; border:1px solid #1e3a5f; text-align:center; }
+.termo table.itens th:first-child{ border-radius:4px 0 0 0; }
+.termo table.itens th:last-child{ border-radius:0 4px 0 0; }
+.termo table.itens td{ padding:7px 10px; border:1px solid #d0d0d0; vertical-align:top; }
+.termo table.itens tbody tr:nth-child(even){ background:#f8f9fa; }
+.termo table.itens tbody tr:last-child td:first-child{ border-radius:0 0 0 4px; }
+.termo table.itens tbody tr:last-child td:last-child{ border-radius:0 0 4px 0; }
+.termo table.itens tfoot td{ font-weight:700; background:#e9ecef; border:1px solid #adb5bd; }
 .termo .assinaturas{ margin-top:24px; display:flex; gap:30px; justify-content:space-between; }
 .termo .assinatura{ flex:1; border-top:1px solid #000; padding-top:5px; text-align:center; font-size:10.5px; }
 .termo .hash{ margin-top:16px; border:1px dashed #999; padding:6px 8px; font-size:9.5px; background:#fafafa; line-height:1.3; }
@@ -151,14 +158,17 @@ body{ background:#eee; }
     <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('retirei nesta data', 'protocolo') ?></strong> <?= __('junto ao setor de protocolo', 'protocolo') ?> <?= $categoria==='malote' ? 'o malote' : 'a pasta' ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('contendo os seguintes itens/documentos, assumindo a responsabilidade pelo transporte e entrega:', 'protocolo') ?></p>
   <?php endif; ?>
 
-  <table class="table table-bordered itens">
-    <thead class="table-light"><tr><th style="width:40px">#</th><th><?= __('Descrição do item/documento', 'protocolo') ?></th><th style="width:70px">Qtd</th><th><?= __('Observação', 'protocolo') ?></th></tr></thead>
+  <table class="itens">
+    <thead><tr><th style="width:45px">#</th><th style="text-align:left"><i class="ti ti-file-text" style="margin-right:4px"></i><?= __('Descrição do item/documento', 'protocolo') ?></th><th style="width:75px">Qtd</th><th style="text-align:left"><?= __('Observação', 'protocolo') ?></th></tr></thead>
     <tbody>
       <?php foreach ($itens as $i => $it): ?>
-        <tr><td><?= $i + 1 ?></td><td><?= htmlspecialchars($it['name']) ?></td><td><?= (int)$it['quantidade'] ?></td><td><?= htmlspecialchars($it['comment'] ?? '') ?></td></tr>
+        <tr><td style="text-align:center; font-weight:600; color:#1e3a5f"><?= $i + 1 ?></td><td><?= htmlspecialchars($it['name']) ?></td><td style="text-align:center; font-weight:600"><?= (int)$it['quantidade'] ?></td><td class="small text-muted"><?= nl2br(htmlspecialchars($it['comment'] ?? '')) ?: '<span style="color:#adb5bd">—</span>' ?></td></tr>
       <?php endforeach; ?>
-      <?php if (!$itens): ?><tr><td colspan="4" class="text-center text-muted"><?= __('Sem itens cadastrados.', 'protocolo') ?></td></tr><?php endif; ?>
+      <?php if (!$itens): ?><tr><td colspan="4" class="text-center text-muted" style="padding:16px"><?= __('Sem itens cadastrados.', 'protocolo') ?></td></tr><?php endif; ?>
     </tbody>
+    <?php if ($itens): $totalQtd = array_sum(array_column($itens, 'quantidade')); ?>
+    <tfoot><tr><td colspan="2" style="text-align:right">Total de itens: <?= count($itens) ?> &nbsp;|&nbsp; Quantidade total:</td><td style="text-align:center"><?= $totalQtd ?></td><td></td></tr></tfoot>
+    <?php endif; ?>
   </table>
 
   <?php if ($pasta->fields['observacao'] && $tipo === 'recebimento'): ?><p><strong><?= __('Observações (recebimento):', 'protocolo') ?></strong> <?= nl2br(htmlspecialchars($pasta->fields['observacao'])) ?></p><?php endif; ?>
