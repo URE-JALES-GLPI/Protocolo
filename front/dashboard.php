@@ -218,14 +218,18 @@ echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm
 echo "<div class='col-md-2 col-sm-6 d-flex'><div class='card card-stat shadow-sm border-start border-4 border-danger h-100 w-100'><div class='card-body d-flex flex-column'><div class='text-muted small'><i class='ti ti-circle-filled text-danger'></i> Pend. Termo Retirada</div><div class='h3 mb-0'>$totalPendRet</div><a href='#pendencias' class='small mt-auto'>Ver abaixo &rarr;</a></div></div></div>";
 echo "</div>";
 
-// Gráficos
-if ($graficosAtivo) {
-    echo "<div class='row g-3 mb-4'>";
-    echo "<div class='col-lg-5'><div class='card shadow-sm h-100'><div class='card-header bg-white'><strong><i class='ti ti-chart-bar'></i> " . __('Entradas por mês (últimos 6 meses)', 'protocolo') . "</strong></div><div class='card-body'><canvas id='chartEntradas' height='200'></canvas></div></div></div>";
-    echo "<div class='col-lg-3'><div class='card shadow-sm h-100'><div class='card-header bg-white'><strong><i class='ti ti-chart-pie'></i> " . __('Por status', 'protocolo') . "</strong></div><div class='card-body d-flex align-items-center justify-content-center'><canvas id='chartStatus' height='200'></canvas></div></div></div>";
-    echo "<div class='col-lg-4'><div class='card shadow-sm h-100'><div class='card-header bg-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-clock'></i> " . __('Tempo médio de guarda (dias)', 'protocolo') . "</strong><span class='badge bg-primary'>Média geral: " . ($tempoMedioGeral ?: '—') . "d</span></div><div class='card-body'><canvas id='chartTempo' height='200'></canvas><small class='text-muted d-block mt-2'>" . __('Média entre recebimento e retirada por mês de retirada.', 'protocolo') . "</small></div></div></div>";
-    echo "</div>";
-}
+// Tabs Resumo / Dashboards
+$activeTab = $_GET['tab'] ?? 'resumo';
+if (!in_array($activeTab, ['resumo', 'dashboards'])) $activeTab = 'resumo';
+echo "<ul class='nav nav-tabs mb-3' id='protocoloDashTabs' role='tablist'>";
+echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='resumo'?'active':'') . "' href='?tab=resumo'><i class='ti ti-list'></i> " . __('Resumo', 'protocolo') . "</a></li>";
+echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='dashboards'?'active':'') . "' href='?tab=dashboards'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a></li>";
+echo "</ul>";
+
+// Tab content
+echo "<div class='tab-content'>";
+// Resumo
+echo "<div class='tab-pane fade " . ($activeTab==='resumo'?'show active':'') . "' id='tab-resumo'>";
 
 // Tabela aguardando
 echo "<div class='card shadow-sm'><div class='card-header bg-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><a href='" . Pasta::getSearchURL() . "' class='btn btn-sm btn-outline-primary'>" . __('Ver todas') . "</a></div><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr><th>" . __('Código') . "</th><th>" . __('Escola') . "</th><th>" . __('Recebido de') . "</th><th>" . __('Data') . "</th><th>" . __('Dias parada', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th></th></tr></thead><tbody>";
@@ -274,7 +278,31 @@ echo "</tbody></table></div></div>";
 
 echo "<div class='alert alert-info mt-4'><strong>" . __('Fluxo do sistema:', 'protocolo') . "</strong> 1) " . __('Alguém deixa a pasta → Registrar Entrada → imprime Termo de Recebimento → assina e digitaliza (upload).', 'protocolo') . "<br>2) " . __('Escola vem buscar → abrir pasta → Registrar Retirada → imprime Termo de Entrega/Retirada → assina e digitaliza.', 'protocolo') . "</div>";
 
+echo "</div>"; // fim tab-resumo
+
+// Dashboards
+echo "<div class='tab-pane fade " . ($activeTab==='dashboards'?'show active':'') . "' id='tab-dashboards'>";
+
+echo "<div class='d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2'>";
+echo "<h5 class='mb-0'><i class='ti ti-chart-bar'></i> " . __('Dashboards - Gráficos', 'protocolo') . "</h5>";
+echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/export.php?type=dashboards' class='btn btn-success'><i class='ti ti-file-spreadsheet'></i> " . __('Exportar XLSX', 'protocolo') . "</a>";
 echo "</div>";
+
+if ($graficosAtivo) {
+    echo "<div class='row g-3 mb-4'>";
+    echo "<div class='col-lg-5'><div class='card shadow-sm h-100'><div class='card-header bg-white'><strong><i class='ti ti-chart-bar'></i> " . __('Entradas por mês (últimos 6 meses)', 'protocolo') . "</strong></div><div class='card-body'><canvas id='chartEntradas' height='200'></canvas></div></div></div>";
+    echo "<div class='col-lg-3'><div class='card shadow-sm h-100'><div class='card-header bg-white'><strong><i class='ti ti-chart-pie'></i> " . __('Por status', 'protocolo') . "</strong></div><div class='card-body d-flex align-items-center justify-content-center'><canvas id='chartStatus' height='200'></canvas></div></div></div>";
+    echo "<div class='col-lg-4'><div class='card shadow-sm h-100'><div class='card-header bg-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-clock'></i> " . __('Tempo médio de guarda (dias)', 'protocolo') . "</strong><span class='badge bg-primary'>Média geral: " . ($tempoMedioGeral ?: '—') . "d</span></div><div class='card-body'><canvas id='chartTempo' height='200'></canvas><small class='text-muted d-block mt-2'>" . __('Média entre recebimento e retirada por mês de retirada.', 'protocolo') . "</small></div></div></div>";
+    echo "</div>";
+    echo "<div class='alert alert-info'><i class='ti ti-info-circle'></i> " . __('Use Exportar XLSX para baixar os dados dos gráficos e tabelas filtradas por sua entidade ativa.', 'protocolo') . "</div>";
+} else {
+    echo "<div class='alert alert-warning'><i class='ti ti-alert-triangle'></i> " . __('Gráficos desativados. Ative em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>" . __('Configuração', 'protocolo') . "</a>.</div>";
+}
+echo "</div>"; // fim tab-dashboards
+
+echo "</div>"; // fim tab-content
+
+echo "</div>"; // fim container-fluid
 
 // Charts JS
 if ($graficosAtivo) {
@@ -296,30 +324,40 @@ document.addEventListener('DOMContentLoaded', function(){
   Chart.defaults.font.family = "Inter, system-ui, sans-serif";
   Chart.defaults.color = "#6c757d";
 
-  const c1 = document.getElementById('chartEntradas');
-  if (c1) {
-    new Chart(c1, {
-      type: 'bar',
-      data: { labels: $jsonEntradasLabels, datasets: [{ label: 'Entradas', data: $jsonEntradasValues, backgroundColor: '#0d6efd', borderRadius: 4 }] },
-      options: { responsive: true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' pasta(s)' } } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
-    });
+  function initCharts(){
+    const c1 = document.getElementById('chartEntradas');
+    if (c1 && !c1.dataset.inited) {
+      c1.dataset.inited = '1';
+      new Chart(c1, {
+        type: 'bar',
+        data: { labels: $jsonEntradasLabels, datasets: [{ label: 'Entradas', data: $jsonEntradasValues, backgroundColor: '#0d6efd', borderRadius: 4 }] },
+        options: { responsive: true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' pasta(s)' } } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+      });
+    }
+    const c2 = document.getElementById('chartStatus');
+    if (c2 && !c2.dataset.inited) {
+      c2.dataset.inited = '1';
+      new Chart(c2, {
+        type: 'doughnut',
+        data: { labels: $jsonStatusLabels, datasets: [{ data: $jsonStatusValues, backgroundColor:['#ffc107','#198754','#6c757d'], borderWidth:0 }] },
+        options: { responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'58%' }
+      });
+    }
+    const c3 = document.getElementById('chartTempo');
+    if (c3 && !c3.dataset.inited) {
+      c3.dataset.inited = '1';
+      new Chart(c3, {
+        type: 'line',
+        data: { labels: $jsonTempoLabels, datasets: [{ label:'Dias médios', data: $jsonTempoValues, borderColor:'#198754', backgroundColor:'rgba(25,135,84,0.12)', tension:0.35, fill:true, pointRadius:3 }] },
+        options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, title:{ display:true, text:'dias' } } } }
+      });
+    }
   }
-  const c2 = document.getElementById('chartStatus');
-  if (c2) {
-    new Chart(c2, {
-      type: 'doughnut',
-      data: { labels: $jsonStatusLabels, datasets: [{ data: $jsonStatusValues, backgroundColor:['#ffc107','#198754','#6c757d'], borderWidth:0 }] },
-      options: { responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'58%' }
-    });
-  }
-  const c3 = document.getElementById('chartTempo');
-  if (c3) {
-    new Chart(c3, {
-      type: 'line',
-      data: { labels: $jsonTempoLabels, datasets: [{ label:'Dias médios', data: $jsonTempoValues, borderColor:'#198754', backgroundColor:'rgba(25,135,84,0.12)', tension:0.35, fill:true, pointRadius:3 }] },
-      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, title:{ display:true, text:'dias' } } } }
-    });
-  }
+  initCharts();
+  document.querySelectorAll('a[href=\"?tab=dashboards\"], button[data-bs-target=\"#tab-dashboards\"]').forEach(el => el.addEventListener('click', () => setTimeout(initCharts, 300)));
+  const obs = new MutationObserver(initCharts);
+  const pane = document.getElementById('tab-dashboards');
+  if (pane) obs.observe(pane, {attributes:true, attributeFilter:['class']});
 });
 </script>
 HTML;
