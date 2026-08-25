@@ -530,7 +530,9 @@ class Pasta extends CommonDBTM
         // Para novo, não chama showFormHeader ainda porque precisamos custom
 
         $csrf = Session::getNewCSRFToken();
-        echo "<form method='post' action='" . self::getFormURL() . "' enctype='multipart/form-data' id='plugin_protocolo_pasta_form'>";
+        // LAB: usa bypass AJAX para URL /plugins (sem /glpi) não cair em 403 CSRF/rights
+        $formUrl = $isNew ? Plugin::getWebDir('protocolo') . '/ajax/bypass.php' : self::getFormURL();
+        echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form'>";
         echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
         echo '<input type="hidden" name="_bypass_lab" value="1">';
         if (!$isNew) {
