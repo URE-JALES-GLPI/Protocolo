@@ -191,6 +191,20 @@ class Notificacao
         return $tpl;
     }
 
+    /**
+     * Detecta se string é HTML (para templates HTML por tipo)
+     * Critério: contém tag HTML conhecida; evita falso positivo em texto simples com < >
+     */
+    public static function isHtml(string $s): bool
+    {
+        if (strpos($s, '<') === false || strpos($s, '>') === false) return false;
+        // tags comuns em templates de e-mail
+        if (preg_match('/<\s*(html|body|head|table|tr|td|th|div|p|br|h[1-6]|a\s|ul|ol|li|span|strong|em|font|img|style)[\s\/>]/i', $s)) return true;
+        // fallback: qualquer tag <x> com letras
+        if (preg_match('/<[a-z][a-z0-9]*\b[^>]*>/i', $s) && preg_match('/<\/[a-z]+>/i', $s)) return true;
+        return false;
+    }
+
     public static function buildMensagem(\GlpiPlugin\Protocolo\Pasta $pasta, string $escolaNome, string $codigo, string $evento): string
     {
         global $CFG_GLPI, $DB;
@@ -369,8 +383,22 @@ class Notificacao
             $body = $mensagem;
         }
 
-        $bodyHtml = nl2br(htmlspecialchars($body)) . "<br><hr><small style='color:#666'>Enviado automaticamente pelo Sistema de Protocolo - URE. Não responda.</small>";
-        $bodyText = $body;
+        // Detecta se corpo é HTML (template HTML por tipo: entrada/retirada/atraso)
+        $isHtml = self::isHtml($body);
+        if ($isHtml) {
+            // HTML: usa como está + rodapé HTML
+            $bodyHtml = $body . "<br><hr><small style='color:#666'>Enviado automaticamente pelo Sistema de Protocolo - URE. Não responda.</small>";
+            // Texto alternativo: converte <br> para \n e remove tags
+            $textTmp = preg_replace('/<br\s*\/?>/i', "\n", $body);
+            $textTmp = preg_replace('/<\/p>/i', "\n\n", $textTmp);
+            $textTmp = preg_replace('/<\/tr>/i', "\n", $textTmp);
+            $textTmp = preg_replace('/<\/li>/i', "\n", $textTmp);
+            $bodyText = trim(html_entity_decode(strip_tags($textTmp), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+            if ($bodyText === '') $bodyText = trim(strip_tags($body));
+        } else {
+            $bodyHtml = nl2br(htmlspecialchars($body, ENT_QUOTES, 'UTF-8')) . "<br><hr><small style='color:#666'>Enviado automaticamente pelo Sistema de Protocolo - URE. Não responda.</small>";
+            $bodyText = $body;
+        }
 
         // 1) Tenta usar QueuedNotification via Model (GLPI 10/11) ou insert direto
         try {
@@ -462,6 +490,9 @@ class Notificacao
                 if (method_exists($mailer, 'addAddress')) {
                     $mailer->addAddress($to);
                     $mailer->Subject = $subject;
+                    if (method_exists($mailer, 'isHTML')) {
+                        $mailer->isHTML((bool)$isHtml);
+                    }
                     $mailer->Body = $bodyHtml;
                     $mailer->AltBody = $bodyText;
                     return $mailer->send();
@@ -474,6 +505,11 @@ class Notificacao
         // 3) Fallback mail()
         try {
             $headers = "From: Protocolo URE <noreply@protocolo.local>\r\n";
+            if (!empty($isHtml)) {
+                $headers .= "MIME-Version: 1.0\r\n";
+                $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+                return mail($to, $subject, $bodyHtml, $headers);
+            }
             $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
             return mail($to, $subject, $bodyText, $headers);
         } catch (\Throwable $e) {
