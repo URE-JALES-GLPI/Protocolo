@@ -21,6 +21,13 @@ if (isset($_POST['add'])) {
     if ($newID) {
         Html::redirect(Pasta::getFormURLWithID($newID));
     } else {
+        // DEBUG lab: loga motivo do erro quando prepareInputForAdd retorna false sem mensagem visível
+        $msgs = $_SESSION['MESSAGE_AFTER_REDIRECT'] ?? [];
+        error_log("[protocolo][lab-debug] add falhou user=" . Session::getLoginUserID() . " POST=" . json_encode($_POST, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR) . " MSGS=" . json_encode($msgs, JSON_UNESCAPED_UNICODE));
+        // garante que usuário veja algo mesmo se mensagem não apareceu
+        if (empty($msgs)) {
+            Session::addMessageAfterRedirect(__('Falha ao registrar pasta - verifique Escola, Recebido de, pelo menos 1 Tipo e 1 Item com descrição, e CPF/RG válido. Veja php-errors.log [lab-debug]', 'protocolo'), false, ERROR);
+        }
         Html::back();
     }
 } elseif (isset($_POST['update'])) {

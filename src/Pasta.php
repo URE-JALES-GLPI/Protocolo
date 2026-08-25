@@ -812,6 +812,7 @@ class Pasta extends CommonDBTM
     public function prepareInputForAdd($input)
     {
         if (empty($input['plugin_protocolo_escolas_id']) || empty($input['recebido_de'])) {
+            error_log("[protocolo][lab-debug] prepareInputForAdd falhou: escola/recebido vazio POST=" . json_encode($input, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
             Session::addMessageAfterRedirect(__('Escola e Recebido de são obrigatórios', 'protocolo'), false, ERROR);
             return false;
         }
@@ -824,6 +825,7 @@ class Pasta extends CommonDBTM
             $filtered[] = ['descricao' => $desc, 'quantidade' => max(1, (int)($it['quantidade'] ?? 1)), 'observacao' => trim($it['observacao'] ?? '')];
         }
         if (count($filtered) === 0) {
+            error_log("[protocolo][lab-debug] prepareInputForAdd falhou: nenhum item filtrado POST.itens=" . json_encode($input['itens'] ?? [], JSON_UNESCAPED_UNICODE));
             Session::addMessageAfterRedirect(__('Adicione pelo menos 1 item', 'protocolo'), false, ERROR);
             return false;
         }
@@ -831,6 +833,7 @@ class Pasta extends CommonDBTM
         // Só valida tipos se houver tipos ativos
         $ativos = TipoArquivo::getAllActive();
         if (!empty($ativos) && count($tipos) === 0) {
+            error_log("[protocolo][lab-debug] prepareInputForAdd falhou: nenhum tipo marcado ativos=" . count($ativos) . " POST.tipos=" . json_encode($input['tipos'] ?? [], JSON_UNESCAPED_UNICODE));
             Session::addMessageAfterRedirect(__('Selecione pelo menos 1 tipo de arquivo', 'protocolo'), false, ERROR);
             return false;
         }
@@ -843,6 +846,7 @@ class Pasta extends CommonDBTM
         if ($docRec !== '') {
             $ok = ($tipoRec === 'cpf') ? self::validarCPF($docRec) : self::validarRG($docRec);
             if (!$ok) {
+                error_log("[protocolo][lab-debug] prepareInputForAdd falhou: doc invalido tipo=$tipoRec doc=$docRec");
                 $msg = $tipoRec === 'cpf' ? __('CPF inválido. Deve ter 11 dígitos válidos (000.000.000-00)', 'protocolo') : __('RG inválido. Deve ter 7 a 9 dígitos (00.000.000-0)', 'protocolo');
                 Session::addMessageAfterRedirect($msg, false, ERROR);
                 return false;
