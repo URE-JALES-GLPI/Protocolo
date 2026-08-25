@@ -46,4 +46,10 @@ foreach ($rights as $rightName => $label) {
 }
 
 Session::addMessageAfterRedirect(__('Permissões Protocolo salvas com sucesso', 'protocolo'), false, INFO);
-Html::redirect($CFG_GLPI['root_doc'] . "/front/profile.form.php?id=$profiles_id&forcetab=GlpiPlugin\\Protocolo\\Profile$1");
+// força recarregar sessão de direitos na próxima requisição
+if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $profiles_id) {
+    try { if (method_exists('Session', 'reloadCurrentProfile')) \Session::reloadCurrentProfile(); } catch (\Throwable $e) {}
+    // fallback: invalida cache de direitos na sessão para GLPI recarregar em change_profile
+    try { unset($_SESSION['glpiactive_profile'][$_SESSION['glpiactive_profile']['id'] ?? 0]); } catch (\Throwable $e) {}
+}
+Html::redirect($CFG_GLPI['root_doc'] . "/front/profile.form.php?id=" . $profiles_id . "&forcetab=GlpiPlugin\\Protocolo\\Profile\$1");

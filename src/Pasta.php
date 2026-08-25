@@ -514,13 +514,15 @@ class Pasta extends CommonDBTM
 
     public function showForm($ID, array $options = [])
     {
-        if (!self::canView()) { return false; }
+        $isNew = ((int)$ID === 0);
+        if ($isNew) {
+            if (!self::canCreate() && !self::canView()) { return false; }
+        } else {
+            if (!self::canView()) { return false; }
+        }
 
         $this->initForm($ID, $options);
         // Para novo, não chama showFormHeader ainda porque precisamos custom
-
-        // Se é edição, mostra header padrão e depois dados + ações laterais
-        $isNew = ($ID == 0);
 
         $csrf = Session::getNewCSRFToken();
         echo "<form method='post' action='" . self::getFormURL() . "' enctype='multipart/form-data' id='plugin_protocolo_pasta_form'>";

@@ -8,10 +8,15 @@ Session::checkLoginUser();
 $pasta = new Pasta();
 
 if (isset($_POST['add'])) {
-    Session::checkCSRF($_POST);
+    if (!Session::validateCSRF($_POST)) {
+        error_log("[protocolo] CSRF inválido ao criar pasta user=" . Session::getLoginUserID() . " IP=" . ($_SERVER['REMOTE_ADDR'] ?? 'cli'));
+        Session::checkCSRF($_POST);
+    }
     if (!Pasta::canCreate()) {
+        error_log("[protocolo] canCreate negado user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " rights=" . json_encode($_SESSION['glpiactive_profile'][Pasta::$rightname] ?? 'n/a'));
         Html::displayRightError();
     }
+    // log para debug de prepareInputForAdd falhando silencioso
     $newID = $pasta->add($_POST);
     if ($newID) {
         Html::redirect(Pasta::getFormURLWithID($newID));
@@ -77,8 +82,9 @@ if (isset($_POST['add'])) {
     $pasta->display(['id' => (int)$_GET['id']]);
     Html::footer();
 } else {
-    // Novo
+    // Novo - verifica CREATE, loga detalhe se negado
     if (!Pasta::canCreate()) {
+        error_log("[protocolo] canCreate negado ao abrir form novo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0));
         Html::displayRightError();
     }
     Html::header(Pasta::getTypeName(1), $_SERVER['PHP_SELF'], 'tools', Pasta::class);

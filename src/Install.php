@@ -290,6 +290,9 @@ class Install
             $profiles = $DB->request(['FROM' => 'glpi_profiles']);
             foreach ($profiles as $profile) {
                 $profileId = $profile['id'];
+                $isSuperAdmin = ((int)$profileId === 4);
+                // Perfis padrão GLPI: 1 Super-Admin, 2 Self-Service, 3 Observer, 4 Admin, 5 Hotliner, 6 Technician, 8 Supervisor
+                $isTechnicianLike = in_array((int)$profileId, [4,5,6,8], true);
                 foreach ($rights as $rightName => $value) {
                     try {
                         $existing = $DB->request([
@@ -298,10 +301,13 @@ class Install
                         ]);
                         if (count($existing) === 0) {
                             $default = 0;
-                            if ($profileId == 4) {
-                                $default = $value;
-                            } elseif (in_array($rightName, ['plugin_protocolo_pasta', 'plugin_protocolo_escola'])) {
-                                $default = 1;
+                            if ($isSuperAdmin) {
+                                $default = $value; // 255
+                            } elseif (in_array($rightName, ['plugin_protocolo_pasta', 'plugin_protocolo_escola'], true)) {
+                                // Technician/Hotliner/Supervisor já ganham CRUD completo para operar pastas
+                                $default = $isTechnicianLike ? 255 : 1; // READ para demais
+                            } elseif ($rightName === 'plugin_protocolo_tipo') {
+                                $default = $isTechnicianLike ? 255 : 0;
                             }
                             $DB->insert('glpi_profilerights', [
                                 'profiles_id' => $profileId,
@@ -421,6 +427,10 @@ class Install
                     \GlpiPlugin\Protocolo\Config::initDefaults();
                 }
             } catch (\Throwable $e) {}
+            // Auto-reparo de direitos zerados (bug pré-1.3.0 onde perfis Technician ficavam com 1)
+            try {
+                self::repairZeroRights($DB);
+            } catch (\Throwable $e) { error_log("[protocolo] repairZeroRights falhou: " . $e->getMessage()); }
         } catch (\Throwable $e) {
             error_log("[protocolo] migrateEntities falhou: " . $e->getMessage());
         }
@@ -503,6 +513,45 @@ class Install
             }
         } catch (\Throwable $e) {
             error_log("[protocolo] registerCron insert falhou: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Repara direitos zerados/insuficientes para pastas (ex: Technician com READ=1 sem CREATE)
+     * Roda em migrateEntities para não exigir reinstall
+     */
+    public static function repairZeroRights($DB): void
+    {
+        // Apenas para perfis Technician-like (Admin, Hotliner, Technician, Supervisor) que ainda estão com rights=1
+        $targets = [4,5,6,8];
+        foreach ($targets as $pid) {
+            try {
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_pasta']]);
+                $found = false;
+                $current = null;
+                foreach ($it as $row) { $found = true; $current = (int)$row['rights']; break; }
+                if ($found && $current === 1) {
+                    // 1 = só READ, precisa de CREATE/UPDATE etc => sobe para 255
+                    $DB->update('glpi_profilerights', ['rights' => 255], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_pasta']);
+                    error_log("[protocolo] repairZeroRights pasta profile $pid 1->255");
+                }
+                // também garante escola/tipo se faltar
+                $it2 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_escola']]);
+                $found2 = false; $curr2 = null;
+                foreach ($it2 as $row) { $found2 = true; $curr2 = (int)$row['rights']; break; }
+                if ($found2 && $curr2 === 1) {
+                    $DB->update('glpi_profilerights', ['rights' => 255], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_escola']);
+                }
+                $it3 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_tipo']]);
+                $found3 = false;
+                foreach ($it3 as $row) { $found3 = true; break; }
+                if (!$found3) {
+                    $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_tipo', 'rights' => 255]);
+                } elseif (count($it3) > 0) {
+                    // se existe mas 0, corrige
+                    foreach ($it3 as $row) { if ((int)$row['rights'] === 0) $DB->update('glpi_profilerights', ['rights' => 255], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_tipo']); }
+                }
+            } catch (\Throwable $e) { error_log("[protocolo] repairZeroRights pid $pid: " . $e->getMessage()); }
         }
     }
 
