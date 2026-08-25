@@ -224,70 +224,325 @@ echo "<a href='" . Pasta::getSearchURL() . "' class='btn btn-outline-secondary'>
 echo "</div></div>";
 echo "</form>";
 
-// --- Entidades / E-mails ---
-echo "<div id='entity-emails' class='card shadow-sm mt-4'><div class='card-header bg-white d-flex justify-content-between align-items-center'><strong><i class='ti ti-building'></i> " . __('E-mails por Entidade (Escola)', 'protocolo') . "</strong><span class='badge bg-primary'>" . __('Para onde enviar notificações', 'protocolo') . "</span></div><div class='card-body'>";
+// --- Entidades / E-mails — VISÃO MELHORADA ---
+echo "<div id='entity-emails' class='card shadow-sm mt-4'><div class='card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2'><div><strong><i class='ti ti-building'></i> " . __('E-mails por Entidade (Escola)', 'protocolo') . "</strong> <span class='badge bg-primary ms-2'>" . __('Para onde enviar notificações', 'protocolo') . "</span></div><small class='text-muted'><i class='ti ti-mail-check'></i> " . __('Somente e-mails <span class="badge bg-success">Ativos</span> desta lista recebem notificações', 'protocolo') . "</small></div><div class='card-body'>";
 
-echo "<div class='alert alert-info small'><i class='ti ti-info-circle'></i> " . __('Cadastre e-mails por Entidade (GLPI → Administração → Entidades). Esses e-mails recebem notificações de entrada/retirada/atraso daquela entidade, além do e-mail da Escola e cópia global. Prioridade: Entidade Plugin > Escola > Entidade GLPI > Cópia.', 'protocolo') . "</div>";
+echo "<div class='alert alert-info small'><i class='ti ti-info-circle'></i> " . __('Cadastre e-mails por <strong>Entidade</strong> (GLPI → Administração → Entidades). Esses e-mails recebem notificações de <strong>entrada / retirada / atraso</strong> daquela entidade, além do e-mail da Escola e cópia global. Prioridade de envio: <code>Entidade (Plugin)</code> &gt; <code>Escola</code> &gt; <code>Entidade GLPI</code> &gt; <code>Cópia global</code>.', 'protocolo') . "</div>";
 
-// Lista agrupada por Entidade - mostra todos e-mails do PLUGIN por entidade
+// Dados
 $entityMails = EntityMail::getAllWithEntityNames();
 $grouped = [];
 foreach ($entityMails as $em) {
     $eid = (int)$em['entities_id'];
-    if (!isset($grouped[$eid])) $grouped[$eid] = ['name' => $em['entity_name'], 'mails' => []];
+    if (!isset($grouped[$eid])) $grouped[$eid] = ['name' => $em['entity_name'] ?? EntityMail::getEntityName($eid), 'mails' => []];
     $grouped[$eid]['mails'][] = $em;
 }
+$totalEmails = count($entityMails);
+$totalEntidades = count($grouped);
+$activeTotal = count(array_filter($entityMails, fn($m) => (int)$m['is_active'] === 1));
+$inactiveTotal = $totalEmails - $activeTotal;
+$notifAtiva = (int)($config['notificacao_ativa'] ?? 0);
+
+// KPIs
+echo "<div class='row g-2 mb-3'>";
+echo "<div class='col-6 col-md-3'><div class='card border h-100'><div class='card-body py-2 text-center'><div class='text-muted small'>" . __('Entidades com e-mail', 'protocolo') . "</div><div class='h4 mb-0'>{$totalEntidades}</div></div></div></div>";
+echo "<div class='col-6 col-md-3'><div class='card border h-100'><div class='card-body py-2 text-center'><div class='text-muted small'>" . __('Total de e-mails', 'protocolo') . "</div><div class='h4 mb-0'>{$totalEmails}</div></div></div></div>";
+echo "<div class='col-6 col-md-3'><div class='card border-success h-100' style='border-width:2px;'><div class='card-body py-2 text-center'><div class='text-success small fw-semibold'><i class='ti ti-mail-check'></i> " . __('Ativos (recebem)', 'protocolo') . "</div><div class='h4 mb-0 text-success'>{$activeTotal}</div></div></div></div>";
+echo "<div class='col-6 col-md-3'><div class='card border h-100'><div class='card-body py-2 text-center'><div class='text-muted small'>" . __('Inativos (pausados)', 'protocolo') . "</div><div class='h4 mb-0 text-secondary'>{$inactiveTotal}</div></div></div></div>";
+echo "</div>";
+
+if (!$notifAtiva) {
+    echo "<div class='alert alert-warning small py-2'><i class='ti ti-alert-triangle'></i> " . __('Notificações por e-mail estão <strong>DESATIVADAS</strong> nos Parâmetros gerais. Mesmo com e-mails cadastrados aqui, nada será enviado até ativar.', 'protocolo') . "</div>";
+}
+echo "<div class='alert alert-light border small mb-3'><i class='ti ti-plug'></i> " . __('Mostrando apenas e-mails cadastrados <strong>no PLUGIN</strong> (tabela <code>glpi_plugin_protocolo_entity_emails</code>). São esses que o cron usa. E-mails de <code>glpi_entities.email</code> ou <code>Escola.email</code> são fallback se não houver no plugin.', 'protocolo') . "</div>";
+
 if ($grouped) {
-    echo "<div class='alert alert-light border small mb-3'><i class='ti ti-plug'></i> " . __('Mostrando apenas e-mails cadastrados <strong>no PLUGIN</strong> (tabela <code>glpi_plugin_protocolo_entity_emails</code>). São esses que o cron usa para enviar. E-mails de <code>glpi_entities.email</code> ou <code>Escola.email</code> são fallback se não houver no plugin.', 'protocolo') . "</div>";
-    echo "<div class='row g-3'>";
+    // Toolbar filtros
+    echo "<div class='card border bg-light mb-3'><div class='card-body py-2'>";
+    echo "<div class='row g-2 align-items-end'>";
+    echo "<div class='col-md-4'><label class='form-label small fw-semibold mb-1'><i class='ti ti-search'></i> Buscar</label><input type='text' id='protocolo-email-search' class='form-control form-control-sm' placeholder='" . __('Filtrar por entidade ou e-mail…', 'protocolo') . "'></div>";
+    echo "<div class='col-6 col-md-2'><label class='form-label small fw-semibold mb-1'>Status</label><select id='protocolo-filter-status' class='form-select form-select-sm'><option value='all'>" . __('Todos', 'protocolo') . "</option><option value='1'>" . __('Apenas Ativos', 'protocolo') . "</option><option value='0'>" . __('Apenas Inativos', 'protocolo') . "</option></select></div>";
+    echo "<div class='col-6 col-md-3'><label class='form-label small fw-semibold mb-1'>Entidade</label><select id='protocolo-filter-entity' class='form-select form-select-sm'><option value='all'>" . __('Todas as entidades', 'protocolo') . "</option>";
+    foreach ($grouped as $eid => $data) {
+        $cnt = count($data['mails']);
+        echo "<option value='" . (int)$eid . "'>" . htmlspecialchars($data['name']) . " (#{$eid} • {$cnt})</option>";
+    }
+    echo "</select></div>";
+    echo "<div class='col-md-3 d-flex gap-1'>";
+    echo "<button type='button' id='protocolo-btn-clear' class='btn btn-sm btn-outline-secondary flex-fill' title='" . __('Limpar filtros', 'protocolo') . "'><i class='ti ti-x'></i> " . __('Limpar', 'protocolo') . "</button>";
+    echo "<button type='button' id='protocolo-btn-export' class='btn btn-sm btn-outline-primary flex-fill' title='Exportar CSV'><i class='ti ti-download'></i> CSV</button>";
+    echo "<button type='button' id='protocolo-btn-copy-all' class='btn btn-sm btn-outline-success flex-fill' title='" . __('Copiar e-mails ativos visíveis', 'protocolo') . "'><i class='ti ti-copy'></i> " . __('Copiar', 'protocolo') . "</button>";
+    echo "</div>";
+    echo "</div>";
+    echo "<div class='d-flex flex-wrap gap-2 mt-2 align-items-center'>";
+    echo "<small class='text-muted'><span id='protocolo-visible-count'>{$totalEmails}</span> / {$totalEmails} e-mails visíveis • <span id='protocolo-visible-active'>{$activeTotal}</span> ativos visíveis <span class='d-none d-md-inline'>— " . __('estes são os que o cron enviará', 'protocolo') . "</span></small>";
+    echo "<div class='ms-auto d-flex gap-1'>";
+    echo "<button type='button' class='btn btn-xs btn-outline-secondary py-0 px-2' style='font-size:11px' onclick=\"document.querySelectorAll('#accordion-entity .accordion-collapse').forEach(el=>new bootstrap.Collapse(el,{toggle:false}).show())\"><i class='ti ti-chevrons-down'></i> Expandir</button>";
+    echo "<button type='button' class='btn btn-xs btn-outline-secondary py-0 px-2' style='font-size:11px' onclick=\"document.querySelectorAll('#accordion-entity .accordion-collapse').forEach(el=>new bootstrap.Collapse(el,{toggle:false}).hide())\"><i class='ti ti-chevrons-up'></i> Recolher</button>";
+    echo "</div>";
+    echo "</div>";
+    echo "</div></div>";
+
+    // Tabs
+    echo "<ul class='nav nav-tabs' role='tablist'>";
+    echo "<li class='nav-item' role='presentation'><button class='nav-link active' id='tab-lista-btn' data-bs-toggle='tab' data-bs-target='#tab-lista' type='button' role='tab'><i class='ti ti-table'></i> " . __('Lista completa', 'protocolo') . " <span class='badge bg-primary ms-1'>{$totalEmails}</span></button></li>";
+    echo "<li class='nav-item' role='presentation'><button class='nav-link' id='tab-agrupado-btn' data-bs-toggle='tab' data-bs-target='#tab-agrupado' type='button' role='tab'><i class='ti ti-layout-grid'></i> " . __('Agrupado por entidade', 'protocolo') . " <span class='badge bg-secondary ms-1'>{$totalEntidades}</span></button></li>";
+    echo "</ul>";
+    echo "<div class='tab-content border border-top-0 rounded-bottom bg-white'>";
+
+    // TAB 1 — Lista completa (tabela)
+    echo "<div class='tab-pane fade show active p-0' id='tab-lista' role='tabpanel'>";
+    echo "<div class='table-responsive' style='max-height:520px; overflow:auto;'>";
+    echo "<table class='table table-hover table-striped table-sm align-middle mb-0' id='protocolo-table-all'><thead class='table-light sticky-top' style='top:0; z-index:1;'><tr>";
+    echo "<th style='width:40px'>#</th><th><i class='ti ti-building'></i> " . __('Entidade', 'protocolo') . "</th><th><i class='ti ti-mail'></i> E-mail</th><th style='width:110px'>" . __('Status', 'protocolo') . "</th><th style='width:140px' class='d-none d-md-table-cell'>" . __('Cadastrado em', 'protocolo') . "</th><th style='width:200px' class='text-end'>" . __('Ações', 'protocolo') . "</th>";
+    echo "</tr></thead><tbody>";
+    $idx = 0;
+    foreach ($entityMails as $em) {
+        $idx++;
+        $eid = (int)$em['entities_id'];
+        $entityName = htmlspecialchars($grouped[$eid]['name'] ?? $em['entity_name'] ?? "Entidade $eid");
+        $emailRaw = $em['email'];
+        $emailEsc = htmlspecialchars($emailRaw);
+        $active = (int)$em['is_active'];
+        $badge = $active ? "<span class='badge bg-success'><i class='ti ti-check'></i> Ativo</span> <small class='text-success d-block' style='font-size:10px'>" . __('recebe notificação', 'protocolo') . "</small>" : "<span class='badge bg-secondary'><i class='ti ti-pause'></i> Inativo</span> <small class='text-muted d-block' style='font-size:10px'>" . __('pausado', 'protocolo') . "</small>";
+        $rowClass = $active ? '' : 'table-secondary opacity-75';
+        $dateCre = htmlspecialchars($em['date_creation'] ?? '-');
+        // formatar data curta
+        try { if (!empty($em['date_creation']) && $em['date_creation'] !== '-') $dateCre = date('d/m/Y H:i', strtotime($em['date_creation'])); } catch (Throwable $e) {}
+        echo "<tr class='protocolo-row $rowClass' data-entity='{$eid}' data-email='" . htmlspecialchars(strtolower($emailRaw), ENT_QUOTES) . "' data-entityname='" . htmlspecialchars(strtolower($grouped[$eid]['name'] ?? ''), ENT_QUOTES) . "' data-active='{$active}'>";
+        echo "<td class='text-muted small'>{$idx}</td>";
+        echo "<td><strong>{$entityName}</strong><br><small class='text-muted'>#{$eid}</small></td>";
+        echo "<td><code title='{$emailEsc}' class='user-select-all'>{$emailEsc}</code> <button type='button' class='btn btn-xs btn-ghost-secondary ms-1 py-0 px-1 protocolo-copy-btn' data-email='{$emailEsc}' title='" . __('Copiar e-mail', 'protocolo') . "'><i class='ti ti-copy' style='font-size:12px'></i></button></td>";
+        echo "<td>{$badge}</td>";
+        echo "<td class='small text-muted d-none d-md-table-cell'>{$dateCre}</td>";
+        echo "<td class='text-end'><div class='d-inline-flex gap-1'>";
+        // Toggle
+        echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
+        echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+        echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
+        $toggleLabel = $active ? __('Desativar', 'protocolo') : __('Ativar', 'protocolo');
+        $toggleIcon = $active ? 'ti ti-player-pause' : 'ti ti-player-play';
+        $toggleClass = $active ? 'btn-outline-warning' : 'btn-outline-success';
+        $toggleTitle = $active ? __('Pausar sem apagar — não receberá mais', 'protocolo') : __('Reativar — voltará a receber', 'protocolo');
+        echo "<button type='submit' name='toggle_entity_email' value='1' class='btn btn-sm $toggleClass' title='{$toggleTitle}'><i class='$toggleIcon'></i> <span class='d-none d-lg-inline'>{$toggleLabel}</span></button>";
+        echo "</form>";
+        // Delete
+        echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover {$emailEsc} da entidade {$entityName} (#{$eid})?')\">";
+        echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+        echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
+        echo "<button type='submit' name='delete_entity_email' value='1' class='btn btn-sm btn-outline-danger' title='" . __('Remover definitivamente', 'protocolo') . "'><i class='ti ti-trash'></i></button>";
+        echo "</form>";
+        echo "</div></td>";
+        echo "</tr>";
+    }
+    echo "</tbody></table>";
+    echo "</div>";
+    echo "<div id='protocolo-no-results' class='alert alert-warning small m-3 d-none'><i class='ti ti-search-off'></i> " . __('Nenhum e-mail corresponde aos filtros.', 'protocolo') . " <a href='#' onclick=\"document.getElementById('protocolo-btn-clear').click(); return false;\">" . __('Limpar filtros', 'protocolo') . "</a></div>";
+    echo "<div class='card-footer bg-light py-2 d-flex flex-wrap gap-2 align-items-center'><small class='text-muted'><i class='ti ti-info-circle'></i> " . __('Dica: use <strong>Buscar</strong> para filtrar por nome da entidade ou e-mail. Linhas <span class="badge bg-success">Ativo</span> são as que o cron envia.', 'protocolo') . "</small><span class='ms-auto badge bg-success' id='protocolo-footer-active'>{$activeTotal} ativos</span></div>";
+    echo "</div>";
+
+    // TAB 2 — Agrupado por entidade (accordion)
+    echo "<div class='tab-pane fade p-3' id='tab-agrupado' role='tabpanel'>";
+    echo "<div class='accordion' id='accordion-entity'>";
     foreach ($grouped as $eid => $data) {
         $cnt = count($data['mails']);
         $activeCnt = count(array_filter($data['mails'], fn($m) => (int)$m['is_active'] === 1));
         $inactiveCnt = $cnt - $activeCnt;
-        echo "<div class='col-md-6 col-lg-4'><div class='card border h-100 shadow-sm'>";
-        echo "<div class='card-header bg-white d-flex justify-content-between align-items-center'><div><strong><i class='ti ti-building'></i> " . htmlspecialchars($data['name']) . "</strong> <small class='text-muted'>#{$eid}</small></div><span class='badge bg-primary'>{$cnt} <i class='ti ti-mail'></i></span></div>";
-        echo "<div class='card-header bg-light py-1 d-flex gap-2'><span class='badge bg-success'>{$activeCnt} ativos</span>" . ($inactiveCnt ? " <span class='badge bg-secondary'>{$inactiveCnt} inativos</span>" : "") . " <small class='text-muted ms-auto'>PLUG-IN</small></div>";
-        echo "<div class='card-body p-2' style='max-height:240px; overflow-y:auto;'>";
+        $entityEsc = htmlspecialchars($data['name']);
+        $accId = "ent-{$eid}";
+        $emailsJson = htmlspecialchars(json_encode(array_column($data['mails'], 'email')), ENT_QUOTES);
+        $activeEmails = array_filter($data['mails'], fn($m) => (int)$m['is_active'] === 1);
+        $activeList = implode('; ', array_column($activeEmails, 'email'));
+        echo "<div class='accordion-item protocolo-group' data-entity='{$eid}' data-entityname='" . htmlspecialchars(strtolower($data['name']), ENT_QUOTES) . "' data-count='{$cnt}'>";
+        echo "<h2 class='accordion-header' id='heading-{$accId}'><button class='accordion-button collapsed py-2' type='button' data-bs-toggle='collapse' data-bs-target='#collapse-{$accId}'>";
+        echo "<span class='d-flex align-items-center gap-2 w-100'><i class='ti ti-building'></i> <strong>{$entityEsc}</strong> <small class='text-muted'>#{$eid}</small> <span class='badge bg-primary ms-2'>{$cnt} <i class='ti ti-mail'></i></span> <span class='badge bg-success'>{$activeCnt} ativos</span>" . ($inactiveCnt ? " <span class='badge bg-secondary'>{$inactiveCnt} inativos</span>" : "") . " <small class='text-muted ms-auto d-none d-md-inline'><i class='ti ti-send'></i> " . __('envia para', 'protocolo') . " {$activeCnt}</small></span>";
+        echo "</button></h2>";
+        echo "<div id='collapse-{$accId}' class='accordion-collapse collapse' data-bs-parent='#accordion-entity'><div class='accordion-body p-2'>";
+        // barra da entidade
+        echo "<div class='d-flex flex-wrap gap-2 mb-2 align-items-center'>";
+        echo "<small class='text-muted'><i class='ti ti-mail-check'></i> " . __('Notificações ativas desta entidade:', 'protocolo') . " <strong class='text-success'>{$activeCnt}</strong> / {$cnt}</small>";
+        echo "<div class='ms-auto d-flex gap-1'>";
+        if ($activeList !== '') {
+            echo "<button type='button' class='btn btn-sm btn-outline-success py-0 px-2 protocolo-copy-group' data-emails=\"" . htmlspecialchars($activeList, ENT_QUOTES) . "\" style='font-size:12px'><i class='ti ti-copy'></i> " . __('Copiar ativos', 'protocolo') . "</button>";
+        }
+        $allList = implode('; ', array_column($data['mails'], 'email'));
+        echo "<button type='button' class='btn btn-sm btn-outline-secondary py-0 px-2 protocolo-copy-group-all' data-emails=\"" . htmlspecialchars($allList, ENT_QUOTES) . "\" style='font-size:12px'><i class='ti ti-copy'></i> " . __('Copiar todos', 'protocolo') . "</button>";
+        echo "</div></div>";
+        echo "<div class='table-responsive'><table class='table table-sm table-hover mb-0'><thead class='table-light'><tr><th>E-mail</th><th style='width:110px'>Status</th><th class='d-none d-md-table-cell' style='width:130px'>Cadastro</th><th style='width:180px' class='text-end'>" . __('Ações', 'protocolo') . "</th></tr></thead><tbody>";
         foreach ($data['mails'] as $em) {
             $email = htmlspecialchars($em['email']);
             $active = (int)$em['is_active'];
-            $rowBg = $active ? 'bg-white' : 'bg-light opacity-75';
-            $statusBadge = $active ? "<span class='badge bg-success'>Ativo</span>" : "<span class='badge bg-secondary'>Inativo</span>";
-            echo "<div class='d-flex justify-content-between align-items-center p-2 mb-1 rounded border $rowBg'>";
-            echo "<div class='text-truncate' style='max-width:160px;'><code class='text-truncate' title='$email'>$email</code><br>$statusBadge</div>";
-            echo "<div class='d-flex gap-1 ms-2'>";
-            // Toggle
+            $badge = $active ? "<span class='badge bg-success'>Ativo</span>" : "<span class='badge bg-secondary'>Inativo</span>";
+            $rowBg = $active ? '' : 'table-secondary opacity-75';
+            $dateCre = htmlspecialchars($em['date_creation'] ?? '-');
+            try { if (!empty($em['date_creation']) && $em['date_creation'] !== '-') $dateCre = date('d/m/Y H:i', strtotime($em['date_creation'])); } catch (Throwable $e) {}
+            echo "<tr class='protocolo-group-row $rowBg' data-email='" . htmlspecialchars(strtolower($em['email']), ENT_QUOTES) . "' data-active='{$active}'><td><code>{$email}</code> <button type='button' class='btn btn-xs btn-ghost-secondary ms-1 py-0 px-1 protocolo-copy-btn' data-email='{$email}' title='" . __('Copiar', 'protocolo') . "'><i class='ti ti-copy' style='font-size:12px'></i></button></td><td>{$badge}</td><td class='small text-muted d-none d-md-table-cell'>{$dateCre}</td><td class='text-end'><div class='d-inline-flex gap-1'>";
             echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
             echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
             echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
             $toggleLabel = $active ? __('Desativar') : __('Ativar');
-            $toggleIcon = $active ? 'ti ti-pause' : 'ti ti-player-play';
+            $toggleIcon = $active ? 'ti ti-player-pause' : 'ti ti-player-play';
             $toggleClass = $active ? 'btn-outline-warning' : 'btn-outline-success';
-            echo "<button type='submit' name='toggle_entity_email' value='1' class='btn btn-sm $toggleClass' title='$toggleLabel'><i class='$toggleIcon'></i></button>";
+            echo "<button type='submit' name='toggle_entity_email' value='1' class='btn btn-sm $toggleClass py-0 px-2' style='font-size:12px'><i class='$toggleIcon'></i> {$toggleLabel}</button>";
             echo "</form>";
-            // Delete
-            echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover $email da entidade " . htmlspecialchars(addslashes($data['name'])) . "?')\">";
+            echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover {$email} da entidade {$entityEsc}?')\">";
             echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
             echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
-            echo "<button type='submit' name='delete_entity_email' value='1' class='btn btn-sm btn-outline-danger' title='" . __('Remover') . "'><i class='ti ti-trash'></i></button>";
+            echo "<button type='submit' name='delete_entity_email' value='1' class='btn btn-sm btn-outline-danger py-0 px-2' style='font-size:12px'><i class='ti ti-trash'></i></button>";
             echo "</form>";
-            echo "</div></div>";
+            echo "</div></td></tr>";
         }
-        echo "</div>";
-        echo "<div class='card-footer bg-white py-1'><small class='text-muted'><i class='ti ti-plug'></i> " . __('Origem', 'protocolo') . ": <code>entity_emails</code> • " . __('Será usado para envio', 'protocolo') . "</small></div>";
+        echo "</tbody></table></div>";
+        echo "<div class='form-text mt-2'><i class='ti ti-info-circle'></i> " . __('Este agrupamento mostra todos e-mails do PLUGIN para a entidade. Apenas os <span class="badge bg-success">Ativos</span> serão usados no envio.', 'protocolo') . "</div>";
         echo "</div></div>";
+        echo "</div>";
     }
-    echo "</div>";
-    echo "<div class='form-text mt-2'><i class='ti ti-info-circle'></i> " . __('Cada card = 1 Entidade. Todos e-mails listados aqui são do PLUGIN e serão usados pelo cron. Clique em Desativar para pausar sem apagar.', 'protocolo') . "</div>";
+    echo "</div>"; // accordion
+    // Entidades sem e-mail (diagnóstico)
+    try {
+        global $DB;
+        if ($DB->tableExists('glpi_entities')) {
+            $allEnt = [];
+            $it = $DB->request(['FROM' => 'glpi_entities', 'ORDER' => 'completename', 'LIMIT' => 200]);
+            foreach ($it as $r) $allEnt[(int)$r['id']] = $r['completename'] ?? $r['name'];
+            $missing = array_diff_key($allEnt, $grouped);
+            if (!empty($missing)) {
+                $missCnt = count($missing);
+                echo "<div class='alert alert-light border mt-3 mb-0'><details><summary class='fw-semibold' style='cursor:pointer'><i class='ti ti-alert-circle'></i> " . __('Entidades sem e-mail no plugin', 'protocolo') . " ({$missCnt}) — " . __('usarão fallback', 'protocolo') . " <small class='text-muted'>(" . __('clique para ver', 'protocolo') . ")</small></summary><div class='mt-2 small' style='max-height:160px; overflow:auto;'><ul class='mb-0'>";
+                $shown = 0;
+                foreach ($missing as $mid => $mname) {
+                    if ($shown++ >= 50) { echo "<li class='text-muted'>... + " . ($missCnt - 50) . " outras</li>"; break; }
+                    echo "<li>" . htmlspecialchars($mname) . " <small class='text-muted'>#{$mid}</small> <span class='badge bg-light text-dark border'>sem e-mail plugin</span></li>";
+                }
+                echo "</ul><div class='form-text'>" . __('Cadastre e-mails para essas entidades se quiser notificações específicas, senão o sistema usa Escola/Entidade GLPI + cópia.', 'protocolo') . "</div></div></details></div>";
+            }
+        }
+    } catch (Throwable $e) {}
+    echo "</div>"; // tab agrupado
+    echo "</div>"; // tab-content
+
+    // JS filtros + ações (nowdoc para não precisar escapar)
+    echo <<<'JS'
+<script>
+    (function(){
+        const search = document.getElementById('protocolo-email-search');
+        const fStatus = document.getElementById('protocolo-filter-status');
+        const fEntity = document.getElementById('protocolo-filter-entity');
+        const btnClear = document.getElementById('protocolo-btn-clear');
+        const btnExport = document.getElementById('protocolo-btn-export');
+        const btnCopyAll = document.getElementById('protocolo-btn-copy-all');
+        const rows = document.querySelectorAll('#protocolo-table-all tbody tr.protocolo-row');
+        const groups = document.querySelectorAll('.protocolo-group');
+        const noRes = document.getElementById('protocolo-no-results');
+        const visCount = document.getElementById('protocolo-visible-count');
+        const visActive = document.getElementById('protocolo-visible-active');
+        const footActive = document.getElementById('protocolo-footer-active');
+        function apply(){
+            const q = (search.value||'').toLowerCase().trim();
+            const s = fStatus.value;
+            const e = fEntity.value;
+            let visible=0, visibleActive=0;
+            rows.forEach(r=>{
+                const email = r.dataset.email||'';
+                const ename = r.dataset.entityname||'';
+                const eid = r.dataset.entity||'';
+                const active = r.dataset.active||'';
+                let ok = true;
+                if(q && email.indexOf(q)===-1 && ename.indexOf(q)===-1 && eid.indexOf(q)===-1) ok=false;
+                if(s!=='all' && active!==s) ok=false;
+                if(e!=='all' && eid!==e) ok=false;
+                r.style.display = ok ? '' : 'none';
+                if(ok){ visible++; if(active==='1') visibleActive++; }
+            });
+            groups.forEach(g=>{
+                const gid = g.dataset.entity||'';
+                const gname = g.dataset.entityname||'';
+                const innerRows = g.querySelectorAll('.protocolo-group-row');
+                let gVisible=0;
+                innerRows.forEach(ir=>{
+                    const iemail = ir.dataset.email||'';
+                    const iact = ir.dataset.active||'';
+                    let ok = true;
+                    if(q && iemail.indexOf(q)===-1 && gname.indexOf(q)===-1) ok=false;
+                    if(s!=='all' && iact!==s) ok=false;
+                    ir.style.display = ok ? '' : 'none';
+                    if(ok){ gVisible++; }
+                });
+                let groupOk = true;
+                if(e!=='all' && gid!==e) groupOk=false;
+                if(q && gVisible===0) groupOk=false;
+                if(s!=='all' && gVisible===0) groupOk=false;
+                g.style.display = groupOk ? '' : 'none';
+            });
+            if(visCount) visCount.textContent = visible;
+            if(visActive) visActive.textContent = visibleActive;
+            if(footActive) footActive.textContent = visibleActive + ' ativos';
+            if(noRes) noRes.classList.toggle('d-none', visible!==0);
+        }
+        if(search) search.addEventListener('input', apply);
+        if(fStatus) fStatus.addEventListener('change', apply);
+        if(fEntity) fEntity.addEventListener('change', apply);
+        if(btnClear) btnClear.addEventListener('click', ()=>{ search.value=''; fStatus.value='all'; fEntity.value='all'; apply(); search.focus(); });
+        document.addEventListener('click', function(ev){
+            const btn = ev.target.closest('.protocolo-copy-btn');
+            if(btn){
+                const em = btn.dataset.email||'';
+                if(!em) return;
+                if(navigator.clipboard){ navigator.clipboard.writeText(em).then(()=>{ const o=btn.innerHTML; btn.innerHTML='<i class="ti ti-check" style="font-size:12px"></i>'; setTimeout(()=>btn.innerHTML=o,1200); }); } else { prompt('Copie:', em); }
+            }
+            const gbtn = ev.target.closest('.protocolo-copy-group');
+            if(gbtn){
+                const ems = gbtn.dataset.emails||'';
+                if(!ems) return;
+                if(navigator.clipboard){ navigator.clipboard.writeText(ems).then(()=>{ const o=gbtn.innerHTML; gbtn.innerHTML='<i class="ti ti-check"></i> Copiado!'; setTimeout(()=>gbtn.innerHTML=o,1500); }); } else { prompt('Copie:', ems); }
+            }
+            const gall = ev.target.closest('.protocolo-copy-group-all');
+            if(gall){
+                const ems = gall.dataset.emails||'';
+                if(!ems) { alert('Nenhum e-mail neste grupo.'); return; }
+                if(!confirm('Copiar TODOS os e-mails desta entidade (ativos + inativos)?')) return;
+                if(navigator.clipboard){ navigator.clipboard.writeText(ems).then(()=>{ const o=gall.innerHTML; gall.innerHTML='<i class="ti ti-check"></i> Copiado!'; setTimeout(()=>gall.innerHTML=o,1500); }); } else { prompt('Copie:', ems); }
+            }
+        });
+        if(btnCopyAll) btnCopyAll.addEventListener('click', ()=>{
+            const visibleRows = Array.from(rows).filter(r=>r.style.display!=='none' && r.dataset.active==='1');
+            const emails = visibleRows.map(r=>r.dataset.email).filter(Boolean);
+            const uniq = [...new Set(emails)];
+            if(!uniq.length){ alert('Nenhum e-mail ativo visível para copiar.'); return; }
+            const txt = uniq.join('; ');
+            if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(()=>{ const o=btnCopyAll.innerHTML; btnCopyAll.innerHTML='<i class="ti ti-check"></i> Copiado!'; setTimeout(()=>btnCopyAll.innerHTML=o,1500); }); } else { prompt('Copie:', txt); }
+        });
+        if(btnExport) btnExport.addEventListener('click', ()=>{
+            const visibleRows = Array.from(rows).filter(r=>r.style.display!=='none');
+            if(!visibleRows.length){ alert('Nada para exportar com filtros atuais.'); return; }
+            let csv = 'Entidade ID,Entidade,E-mail,Status,Cadastrado em\n';
+            visibleRows.forEach(r=>{
+                const eid = r.dataset.entity;
+                const tds = r.querySelectorAll('td');
+                const ent = tds[1]?.innerText.replace(/\n/g,' ').replace(/"/g,'""')||'';
+                const email = r.dataset.email||'';
+                const status = r.dataset.active==='1'?'Ativo':'Inativo';
+                const date = tds[4]?.innerText||'';
+                csv += '"'+eid+'","'+ent+'","'+email+'","'+status+'","'+date+'"\n';
+            });
+            const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href=url; a.download='protocolo-emails-por-entidade.csv'; a.click(); URL.revokeObjectURL(url);
+        });
+        apply();
+    })();
+</script>
+JS;
+    echo "<div class='form-text mt-2'><i class='ti ti-info-circle'></i> " . __('Cada card/accordion = 1 Entidade. Clique em <strong>Ativar/Desativar</strong> para pausar sem apagar. Use <strong>Buscar</strong> ou filtros para achar rápido. Aba <strong>Lista completa</strong> mostra tudo em tabela — ideal para conferência e exportação.', 'protocolo') . "</div>";
 } else {
-    echo "<p class='text-muted'><i class='ti ti-inbox'></i> " . __('Nenhum e-mail por entidade cadastrado no PLUGIN. Adicione abaixo. Enquanto não cadastrar, o sistema usa Escola/Entidade GLPI + cópia como fallback.', 'protocolo') . "</p>";
+    echo "<div class='text-center py-4'><div class='mb-2'><i class='ti ti-inbox' style='font-size:32px; opacity:.4'></i></div><p class='text-muted mb-2'><strong>" . __('Nenhum e-mail por entidade cadastrado no PLUGIN.', 'protocolo') . "</strong></p><p class='small text-muted'>" . __('Adicione abaixo. Enquanto não cadastrar, o sistema usa <code>Escola.email</code> / <code>glpi_entities.email</code> + <code>cópia global</code> como fallback.', 'protocolo') . "</p></div>";
+    echo "<div class='alert alert-light border small'><i class='ti ti-bulb'></i> <strong>" . __('Como funciona o envio?', 'protocolo') . "</strong><br>" . __('1) Se a entidade da pasta tem e-mails <span class="badge bg-success">Ativos</span> aqui → envia para eles.<br>2) Senão, tenta e-mail da Escola e da Entidade GLPI.<br>3) Sempre adiciona cópia global (se configurada).<br>Portanto, cadastre aqui os e-mails que <strong>devem receber</strong>.', 'protocolo') . "</div>";
 }
 
-// Form add
-echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='row g-2 align-items-end mt-3 p-3 bg-light rounded border'>";
+// Form add — melhorado
+echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='row g-2 align-items-end mt-4 p-3 bg-light rounded border'>";
 echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
-echo "<div class='col-md-5'><label class='form-label fw-semibold'>" . __('Entidade', 'protocolo') . "</label>";
-// Usa Entity dropdown
+echo "<div class='col-md-5'><label class='form-label fw-semibold'><i class='ti ti-building'></i> " . __('Entidade', 'protocolo') . " <span class='text-danger'>*</span></label>";
 try {
     echo "<div class='entity-dropdown-wrapper'>";
     \Entity::dropdown(['name' => 'entities_id', 'value' => ($_SESSION['glpiactive_entity'] ?? 0), 'entity' => 0, 'entity_sons' => true, 'comments' => false, 'width' => '100%']);
@@ -301,11 +556,11 @@ try {
     } catch (Throwable $e2) {}
     echo "</select>";
 }
-echo "</div>";
-echo "<div class='col-md-5'><label class='form-label fw-semibold'>E-mail</label><input type='email' name='entity_email' class='form-control' placeholder='escola@ure.sp.gov.br' required></div>";
+echo "<div class='form-text' style='font-size:11px'>" . __('Entidade que receberá notificações neste e-mail.', 'protocolo') . "</div></div>";
+echo "<div class='col-md-5'><label class='form-label fw-semibold'><i class='ti ti-mail'></i> E-mail <span class='text-danger'>*</span></label><input type='email' name='entity_email' class='form-control' placeholder='escola@ure.sp.gov.br' required><div class='form-text' style='font-size:11px'><i class='ti ti-send'></i> " . __('Este e-mail entrará como <span class="badge bg-success">Ativo</span> e já começará a receber.', 'protocolo') . "</div></div>";
 echo "<div class='col-md-2'><button type='submit' name='add_entity_email' value='1' class='btn btn-primary w-100'><i class='ti ti-plus'></i> " . __('Adicionar', 'protocolo') . "</button></div>";
 echo "</form>";
-echo "<div class='form-text mt-2'><small class='text-muted'>" . __('Dica: cadastre a Entidade raiz (0) para fallback quando a entidade da pasta não tiver e-mail específico.', 'protocolo') . "</small></div>";
+echo "<div class='form-text mt-2'><small class='text-muted'><i class='ti ti-lightbulb'></i> " . __('Dica: cadastre a <strong>Entidade raiz (0)</strong> para fallback quando a entidade da pasta não tiver e-mail específico. Você pode cadastrar <strong>vários e-mails por entidade</strong> — todos os ativos recebem.', 'protocolo') . "</small></div>";
 
 echo "</div></div>";
 
