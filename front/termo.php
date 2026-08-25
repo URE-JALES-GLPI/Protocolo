@@ -55,11 +55,26 @@ foreach ($it2 as $r) $tipos[] = $r['name'];
 $termo = Termo::getOrCreate($id, $tipo);
 // Se já existe arquivo assinado, mantemos imprimível
 
-$titulo = $tipo === 'recebimento' ? 'TERMO DE RECEBIMENTO DE PASTA' : 'TERMO DE ENTREGA / RETIRADA DE PASTA';
+$categoria = strtolower($pasta->fields['categoria'] ?? 'pasta');
+$catLabel = $categoria === 'malote' ? 'MALOTE' : 'PASTA';
+$titulo = $tipo === 'recebimento' ? "TERMO DE RECEBIMENTO DE $catLabel" : "TERMO DE ENTREGA / RETIRADA DE $catLabel";
 $subtitulo = $tipo === 'recebimento' ? 'Comprovante de recebimento e guarda temporária' : 'Comprovante de entrega à escola / retirada';
 $dataRef = $tipo === 'recebimento' ? $pasta->fields['data_recebimento'] : ($pasta->fields['data_retirada'] ?? date('Y-m-d H:i:s'));
 $responsavel = $tipo === 'recebimento' ? $pasta->fields['recebido_de'] : ($pasta->fields['retirado_por'] ?? '_________________________');
 $documento = $tipo === 'recebimento' ? $pasta->fields['recebido_documento'] : ($pasta->fields['retirado_documento'] ?? '');
+// Origem/Destino para termo
+$origemTipo = $pasta->fields['origem_tipo'] ?? 'ure';
+$destinoTipo = $pasta->fields['destino_tipo'] ?? 'escola';
+$origemOutro = $pasta->fields['origem_outro'] ?? '';
+$destinoOutro = $pasta->fields['destino_outro'] ?? '';
+$origemEnt = (int)($pasta->fields['origem_entities_id'] ?? 0);
+$destinoEnt = (int)($pasta->fields['destino_entities_id'] ?? $pasta->fields['plugin_protocolo_escolas_id'] ?? 0);
+if ($origemTipo === 'outro') $origemNome = $origemOutro ?: 'Outro';
+elseif ($origemTipo === 'ure') $origemNome = 'Unidade Regional de Ensino de Jales - URE';
+else $origemNome = Pasta::getEscolaName($origemEnt);
+if ($destinoTipo === 'outro') $destinoNome = $destinoOutro ?: 'Outro';
+elseif ($destinoTipo === 'ure') $destinoNome = 'Unidade Regional de Ensino de Jales - URE';
+else $destinoNome = Pasta::getEscolaName($destinoEnt);
 
 // Criador
 $criadorNome = getUserName($pasta->fields['users_id'] ?? 0);
@@ -121,17 +136,21 @@ body{ background:#eee; }
   </div>
 
   <table class="table table-bordered meta">
-    <tr><td style="width:50%"><strong><?= __('Escola destinatária', 'protocolo') ?>:</strong><br><?= htmlspecialchars($escolaNome) ?> <?= $escolaCodigo ? '(' . htmlspecialchars($escolaCodigo) . ')' : '' ?></td>
+    <tr><td style="width:50%"><strong><?= __('Categoria', 'protocolo') ?>:</strong><br><?= $categoria === 'malote' ? 'Malote' : 'Pasta' ?> (<?= htmlspecialchars($pasta->fields['codigo']) ?>)</td>
         <td><strong><?= __('Data/hora', 'protocolo') ?>:</strong><br><?= date('d/m/Y \à\s H:i', strtotime($dataRef)) ?></td></tr>
-    <tr><td><strong><?= $tipo === 'recebimento' ? __('Recebido de:', 'protocolo') : __('Retirado por:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td>
-        <td><strong><?= __('Responsável protocolo:', 'protocolo') ?></strong><br><?= htmlspecialchars($criadorNome) ?></td></tr>
+    <tr><td><strong><?= __('Origem', 'protocolo') ?>:</strong><br><?= htmlspecialchars($origemNome) ?></td>
+        <td><strong><?= __('Destino', 'protocolo') ?>:</strong><br><?= htmlspecialchars($destinoNome) ?></td></tr>
+    <tr><td style="width:50%"><strong><?= __('Escola destinatária', 'protocolo') ?>:</strong><br><?= htmlspecialchars($escolaNome) ?> <?= $escolaCodigo ? '(' . htmlspecialchars($escolaCodigo) . ')' : '' ?></td>
+        <td><strong><?= $tipo === 'recebimento' ? __('Recebido de:', 'protocolo') : __('Retirado por:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td></tr>
+    <tr><td><strong><?= __('Responsável protocolo:', 'protocolo') ?></strong><br><?= htmlspecialchars($criadorNome) ?></td>
+        <td><strong><?= __('Código pasta', 'protocolo') ?>:</strong><br><?= htmlspecialchars($pasta->fields['codigo']) ?></td></tr>
     <?php if ($escolaEndereco): ?><tr><td colspan="2"><strong><?= __('Endereço escola', 'protocolo') ?>:</strong> <?= htmlspecialchars($escolaEndereco) ?></td></tr><?php endif; ?>
   </table>
 
   <?php if ($tipo === 'recebimento'): ?>
-    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('recebi nesta data', 'protocolo') ?></strong> <?= __('no setor de protocolo a pasta identificada acima, destinada à', 'protocolo') ?> <strong><?= htmlspecialchars($escolaNome) ?></strong>, <?= __('entregue por', 'protocolo') ?> <strong><?= htmlspecialchars($pasta->fields['recebido_de']) ?></strong><?= $pasta->fields['recebido_documento'] ? ' (doc. ' . htmlspecialchars($pasta->fields['recebido_documento']) . ')' : '' ?>, <?= __('contendo os seguintes itens/documentos:', 'protocolo') ?></p>
+    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('recebi nesta data', 'protocolo') ?></strong> <?= __('no setor de protocolo', 'protocolo') ?> <?= $categoria==='malote' ? 'o malote' : 'a pasta' ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('entregue por', 'protocolo') ?> <strong><?= htmlspecialchars($pasta->fields['recebido_de']) ?></strong><?= $pasta->fields['recebido_documento'] ? ' (doc. ' . htmlspecialchars($pasta->fields['recebido_documento']) . ')' : '' ?>, <?= __('contendo os seguintes itens/documentos:', 'protocolo') ?></p>
   <?php else: ?>
-    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('retirei nesta data', 'protocolo') ?></strong> <?= __('junto ao setor de protocolo a pasta identificada acima, destinada à', 'protocolo') ?> <strong><?= htmlspecialchars($escolaNome) ?></strong>, <?= __('contendo os seguintes itens/documentos, assumindo a responsabilidade pelo transporte e entrega:', 'protocolo') ?></p>
+    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('retirei nesta data', 'protocolo') ?></strong> <?= __('junto ao setor de protocolo', 'protocolo') ?> <?= $categoria==='malote' ? 'o malote' : 'a pasta' ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('contendo os seguintes itens/documentos, assumindo a responsabilidade pelo transporte e entrega:', 'protocolo') ?></p>
   <?php endif; ?>
 
   <?php if ($tipos): ?>
@@ -164,7 +183,12 @@ body{ background:#eee; }
     <?php endif; ?>
   </p>
 
-  <p style="text-align:center; margin-top:25px; font-size:13px;"><?= __('Local/data: ______________________, ___/___/______ &nbsp;&nbsp; Hora: ____:____', 'protocolo') ?></p>
+  <?php
+  $localFixo = 'R. Oito, 2315 - Centro, Jales - SP, 15700-066';
+  $dataFormatada = date('d/m/Y', strtotime($dataRef));
+  $horaFormatada = date('H:i', strtotime($dataRef));
+  ?>
+  <p style="text-align:center; margin-top:25px; font-size:13px;"><?= __('Local:', 'protocolo') ?> <?= htmlspecialchars($localFixo) ?> &nbsp;&nbsp; <?= __('Data:', 'protocolo') ?> <?= htmlspecialchars($dataFormatada) ?> &nbsp;&nbsp; <?= __('Hora:', 'protocolo') ?> <?= htmlspecialchars($horaFormatada) ?></p>
 
   <div class="assinaturas">
     <div class="assinatura">
