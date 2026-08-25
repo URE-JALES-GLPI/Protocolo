@@ -192,9 +192,9 @@ echo "</div>";
 echo "</div>";
 
 echo "<hr>";
-// Templates — agora com suporte HTML por tipo
-echo "<h5 class='mt-3'><i class='ti ti-mail-cog'></i> " . __('Personalização do e-mail', 'protocolo') . " <span class='badge bg-success'>HTML suportado</span></h5>";
-echo "<div class='alert alert-light border small'><strong>Placeholders disponíveis:</strong> <code>{codigo}</code> <code>{escola}</code> <code>{escola_codigo}</code> <code>{acao}</code> <code>{evento}</code> <code>{recebido_de}</code> <code>{recebido_documento}</code> <code>{data_recebimento}</code> <code>{data_retirada}</code> <code>{retirado_por}</code> <code>{retirado_documento}</code> <code>{itens}</code> <code>{itens_lista}</code> <code>{quantidade_itens}</code> <code>{link}</code> <code>{dias}</code> <code>{status}</code> <code>{observacao}</code> <code>{observacao_retirada}</code><br><small class='text-muted'>Use em Assunto e Corpo. Deixe em branco para usar padrão.</small><br><div class='mt-2 p-2 bg-white rounded border'><i class='ti ti-code'></i> <strong>HTML por tipo:</strong> " . __('você pode colar 1 template HTML para cada tipo (Entrada / Retirada / Atraso). Se o corpo contiver tag HTML (<code>&lt;table&gt;</code> <code>&lt;div&gt;</code> <code>&lt;a&gt;</code> etc.), o envio será como <code>text/html</code> (com <code>text/plain</code> alternativo). Placeholders funcionam dentro de atributos também — ex: <code>&lt;a href=\"{link}\"&gt;Ver pasta&lt;/a&gt;</code>. Deixe como texto simples se preferir — detecção é automática.', 'protocolo') . "</div></div>";
+// Templates — compacto com suporte HTML por tipo
+echo "<h5 class='mt-3'><i class='ti ti-mail-cog'></i> " . __('Personalização do e-mail', 'protocolo') . " <span class='badge bg-success' style='font-size:10px'>HTML</span></h5>";
+echo "<div class='alert alert-light border py-2 px-2 small mb-2' style='line-height:1.4'><strong>Placeholders:</strong> <code>{codigo}</code> <code>{escola}</code> <code>{escola_codigo}</code> <code>{acao}</code> <code>{evento}</code> <code>{recebido_de}</code> <code>{recebido_documento}</code> <code>{data_recebimento}</code> <code>{data_retirada}</code> <code>{retirado_por}</code> <code>{retirado_documento}</code> <code>{itens}</code> <code>{itens_lista}</code> <code>{quantidade_itens}</code> <code>{link}</code> <code>{dias}</code> <code>{status}</code> <code>{observacao}</code> <code>{observacao_retirada}</code> <span class='text-muted'>— use em Assunto/Corpo. Vazio = padrão.</span> <details class='mt-1'><summary style='cursor:pointer'><i class='ti ti-code'></i> HTML por tipo (Entrada/Retirada/Atraso) — clique</summary><div class='mt-1'>Cole 1 template <strong>HTML</strong> por tipo. Se tiver tag (<code>&lt;table&gt;</code> <code>&lt;div&gt;</code> <code>&lt;a&gt;</code>), envia como <code>text/html</code> + <code>text/plain</code> alternativo. Placeholders em atributos: <code>&lt;a href=\"{link}\"&gt;Ver pasta&lt;/a&gt;</code>. Texto simples também funciona (detecção automática).</div></details></div>";
 
 echo "<div class='mb-3'>";
 echo "<label class='form-label fw-semibold'>" . __('Assunto', 'protocolo') . "</label>";
@@ -202,21 +202,18 @@ echo "<input type='text' name='notificacao_email_subject' class='form-control' p
 echo "<div class='form-text'>Ex: <code>[Protocolo] {acao} - {codigo}</code> onde {acao}= Nova pasta registrada / Pasta retirada / Pasta com retirada pendente</div>";
 echo "</div>";
 
-echo "<div class='row g-3'>";
+echo "<div class='row g-2'>";
 echo "<div class='col-md-4'>";
-echo "<label class='form-label fw-semibold'>" . __('Corpo - Entrada', 'protocolo') . " <small class='text-success fw-normal'>(HTML ou texto)</small></label>";
-echo "<textarea name='notificacao_email_body_entrada' class='form-control font-monospace' rows='14' style='font-size:12px' placeholder='Cole aqui seu HTML de Entrada ou texto. Ex: &lt;div&gt;Ol&aacute;, pasta {codigo}... &lt;a href=&quot;{link}&quot;&gt;Ver&lt;/a&gt;&lt;/div&gt;'>" . htmlspecialchars($config['notificacao_email_body_entrada']) . "</textarea>";
-echo "<div class='form-text' style='font-size:11px'><i class='ti ti-info-circle'></i> " . __('Se colar HTML, será enviado como HTML + texto alternativo automático.', 'protocolo') . "</div>";
+echo "<label class='form-label fw-semibold small mb-1'>" . __('Corpo - Entrada', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
+echo "<textarea name='notificacao_email_body_entrada' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: &lt;div&gt;pasta {codigo} &lt;a href=&quot;{link}&quot;&gt;Ver&lt;/a&gt;&lt;/div&gt;'>" . htmlspecialchars($config['notificacao_email_body_entrada']) . "</textarea>";
 echo "</div>";
 echo "<div class='col-md-4'>";
-echo "<label class='form-label fw-semibold'>" . __('Corpo - Retirada', 'protocolo') . " <small class='text-success fw-normal'>(HTML ou texto)</small></label>";
-echo "<textarea name='notificacao_email_body_retirada' class='form-control font-monospace' rows='14' style='font-size:12px' placeholder='Cole aqui seu HTML de Retirada ou texto. Ex: &lt;div&gt;Pasta {codigo} retirada por {retirado_por}...&lt;/div&gt;'>" . htmlspecialchars($config['notificacao_email_body_retirada']) . "</textarea>";
-echo "<div class='form-text' style='font-size:11px'><i class='ti ti-info-circle'></i> " . __('Suporta HTML completo por tipo.', 'protocolo') . "</div>";
+echo "<label class='form-label fw-semibold small mb-1'>" . __('Corpo - Retirada', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
+echo "<textarea name='notificacao_email_body_retirada' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: {codigo} retirada por {retirado_por}'>" . htmlspecialchars($config['notificacao_email_body_retirada']) . "</textarea>";
 echo "</div>";
 echo "<div class='col-md-4'>";
-echo "<label class='form-label fw-semibold'>" . __('Corpo - Atraso', 'protocolo') . " <small class='text-success fw-normal'>(HTML ou texto)</small></label>";
-echo "<textarea name='notificacao_email_body_atraso' class='form-control font-monospace' rows='14' style='font-size:12px' placeholder='Cole aqui seu HTML de Atraso ou texto. Ex: &lt;div&gt;Aten&ccedil;&atilde;o: {codigo} h&aacute; {dias} dias...&lt;/div&gt;'>" . htmlspecialchars($config['notificacao_email_body_atraso']) . "</textarea>";
-echo "<div class='form-text' style='font-size:11px'><i class='ti ti-info-circle'></i> " . __('Use {dias} para atraso.', 'protocolo') . "</div>";
+echo "<label class='form-label fw-semibold small mb-1'>" . __('Corpo - Atraso', 'protocolo') . " <small class='text-success fw-normal'>HTML/texto</small></label>";
+echo "<textarea name='notificacao_email_body_atraso' class='form-control font-monospace' rows='8' style='font-size:11px; resize:vertical' placeholder='HTML ou texto. Ex: {codigo} h&aacute; {dias} dias'>" . htmlspecialchars($config['notificacao_email_body_atraso']) . "</textarea>";
 echo "</div>";
 echo "</div>";
 echo "<div class='form-text mt-2'><a href='#' onclick=\"if(confirm('Restaurar padrões?')){document.querySelectorAll('textarea[name^=notificacao_email_body]').forEach(t=>t.value=''); document.querySelector('input[name=notificacao_email_subject]').value='[Protocolo] {acao} - {codigo}';} return false;\">Restaurar padrões</a> — deixe em branco para usar padrão interno.</div>";
