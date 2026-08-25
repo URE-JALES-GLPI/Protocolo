@@ -50,13 +50,18 @@ class Profile extends \CommonDBTM
         // Se quiser custom, mapear aqui
     }
 
+    public static function getIcon()
+    {
+        return 'ti ti-shield-lock';
+    }
+
     /**
      * Mostra aba de direitos no perfil GLPI
      */
     public function getTabNameForItem(\CommonGLPI $item, $withtemplate = 0)
     {
         if ($item instanceof GlpiProfile) {
-            return self::createTabEntry(__('Protocolo', 'protocolo'));
+            return self::createTabEntry(__('Protocolo', 'protocolo'), 0, null, self::getIcon());
         }
         return '';
     }
