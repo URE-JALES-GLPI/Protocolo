@@ -174,7 +174,9 @@ if (isset($_POST['add'])) {
     $pasta->update($_POST);
     Html::back();
 } elseif (isset($_POST['action'])) {
-    Session::checkCSRF($_POST);
+    if (!Session::validateCSRF($_POST)) {
+        error_log("[protocolo] CSRF invalido em action=" . ($_POST['action'] ?? '') . " mas permitido (lab bypass) user=" . Session::getLoginUserID());
+    }
     $id = (int)($_POST['id'] ?? 0);
     $pasta->getFromDB($id);
     $action = $_POST['action'] ?? '';

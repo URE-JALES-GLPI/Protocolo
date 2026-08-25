@@ -314,15 +314,13 @@ class Escola extends CommonDBTM
 
     public static function getSearchURL($full = true)
     {
-        global $CFG_GLPI;
-        $dir = $full ? $CFG_GLPI['root_doc'] : '';
-        return $dir . '/plugins/protocolo/front/escola.php';
+        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
+        return $dir . Plugin::getWebDir('protocolo') . '/front/escola.php';
     }
 
     public static function getFormURL($full = true)
     {
-        global $CFG_GLPI;
-        $dir = $full ? $CFG_GLPI['root_doc'] : '';
-        return $dir . '/plugins/protocolo/front/escola.form.php';
+        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
+        return $dir . Plugin::getWebDir('protocolo') . '/front/escola.form.php';
     }
 }

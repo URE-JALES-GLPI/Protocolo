@@ -1491,16 +1491,14 @@ class Pasta extends CommonDBTM
 
     public static function getSearchURL($full = true)
     {
-        global $CFG_GLPI;
-        $dir = $full ? $CFG_GLPI['root_doc'] : '';
-        return $dir . '/plugins/protocolo/front/pasta.php';
+        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
+        return $dir . Plugin::getWebDir('protocolo') . '/front/pasta.php';
     }
 
     public static function getFormURL($full = true)
     {
-        global $CFG_GLPI;
-        $dir = $full ? $CFG_GLPI['root_doc'] : '';
-        return $dir . '/plugins/protocolo/front/pasta.form.php';
+        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
+        return $dir . Plugin::getWebDir('protocolo') . '/front/pasta.form.php';
     }
 
     public static function getFormURLWithID($id = 0, $full = true)
