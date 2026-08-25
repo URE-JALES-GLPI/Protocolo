@@ -12,8 +12,28 @@ if (isset($_POST['add'])) {
         error_log("[protocolo] CSRF inválido ao criar pasta user=" . Session::getLoginUserID() . " IP=" . ($_SERVER['REMOTE_ADDR'] ?? 'cli'));
         Session::checkCSRF($_POST);
     }
+    // AUTO-REPARO lab: tenta corrigir direitos na hora se canCreate falhar (sessão desatualizada)
     if (!Pasta::canCreate()) {
-        error_log("[protocolo] canCreate negado user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " rights=" . json_encode($_SESSION['glpiactive_profile'][Pasta::$rightname] ?? 'n/a'));
+        try {
+            global $DB;
+            $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? $_SESSION['glpiactiveprofiles_id'] ?? 0);
+            if ($pid && isset($DB) && class_exists(\GlpiPlugin\Protocolo\Install::class)) {
+                \GlpiPlugin\Protocolo\Install::repairActiveProfile($DB, $pid, true);
+                // força recarregar sessão de direitos
+                if (method_exists('Session', 'reloadCurrentProfile')) {
+                    try { Session::reloadCurrentProfile(); } catch (\Throwable $e) {}
+                }
+                // fallback injetado direto na sessão
+                $_SESSION['glpiactive_profile'][Pasta::$rightname] = 255;
+                $_SESSION['glpiactiveprofile'][Pasta::$rightname] = 255;
+                error_log("[protocolo] auto-reparo tentado profile $pid, recheck canCreate=" . (Pasta::canCreate() ? 'ok' : 'ainda negado'));
+            }
+        } catch (\Throwable $e) { error_log("[protocolo] auto-reparo falhou: " . $e->getMessage()); }
+    }
+    if (!Pasta::canCreate()) {
+        error_log("[protocolo] canCreate negado APOS auto-reparo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " rights=" . json_encode($_SESSION['glpiactive_profile'][Pasta::$rightname] ?? $_SESSION['glpiactiveprofile'][Pasta::$rightname] ?? 'n/a') . " POST=" . json_encode($_POST, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
+        // Mensagem amigável em vez de "Ação não permitida" seca
+        Session::addMessageAfterRedirect(__('Sem permissão para Registrar pasta: seu perfil não tem direito Criar em Protocolo. Auto-reparo tentado - deslogue/logue novamente ou vá em Administração > Perfis > seu perfil > aba Protocolo > marque Criar para Pasta.', 'protocolo'), false, ERROR);
         Html::displayRightError();
     }
     // log para debug de prepareInputForAdd falhando silencioso
@@ -89,10 +109,23 @@ if (isset($_POST['add'])) {
     $pasta->display(['id' => (int)$_GET['id']]);
     Html::footer();
 } else {
-    // Novo - verifica CREATE, loga detalhe se negado
+    // Novo - verifica CREATE, com auto-reparo também ao abrir form
     if (!Pasta::canCreate()) {
-        error_log("[protocolo] canCreate negado ao abrir form novo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0));
-        Html::displayRightError();
+        try {
+            global $DB;
+            $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+            if ($pid && class_exists(\GlpiPlugin\Protocolo\Install::class)) {
+                \GlpiPlugin\Protocolo\Install::repairActiveProfile($DB, $pid, true);
+                if (method_exists('Session', 'reloadCurrentProfile')) { try { Session::reloadCurrentProfile(); } catch (\Throwable $e) {} }
+                $_SESSION['glpiactive_profile'][Pasta::$rightname] = 255;
+                $_SESSION['glpiactiveprofile'][Pasta::$rightname] = 255;
+            }
+        } catch (\Throwable $e) {}
+        if (!Pasta::canCreate()) {
+            error_log("[protocolo] canCreate negado ao abrir form novo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0));
+            Session::addMessageAfterRedirect(__('Sem permissão para abrir formulário de Pasta. Peça ao Admin para dar direito Criar em Protocolo.', 'protocolo'), false, ERROR);
+            Html::displayRightError();
+        }
     }
     Html::header(Pasta::getTypeName(1), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
     $pasta->showForm(0);

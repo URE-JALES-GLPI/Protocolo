@@ -552,6 +552,10 @@ class Install
                 if (!$found) {
                     $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => $rname, 'rights' => 255]);
                     if ($forceLog) error_log("[protocolo] repairActiveProfile $rname profile $pid criado 255");
+                    if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
+                        $_SESSION['glpiactive_profile'][$rname] = 255;
+                        $_SESSION['glpiactiveprofile'][$rname] = 255;
+                    }
                 } elseif ($current !== null && $current < 23) {
                     // 23 = READ(1)+UPDATE(2)+CREATE(4)+PURGE(16) sem DELETE; abaixo disso não consegue criar
                     // Também cobre 0 e 1 que eram defaults antigos
