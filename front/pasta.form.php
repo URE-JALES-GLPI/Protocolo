@@ -13,25 +13,60 @@ if (isset($_POST['add'])) {
         Session::checkCSRF($_POST);
     }
     // AUTO-REPARO lab: tenta corrigir direitos na hora se canCreate falhar (sessão desatualizada)
+    // Caso 127 no DB mas sessão ainda com 1, Session::haveRight falha. Forçamos sync do DB.
     if (!Pasta::canCreate()) {
         try {
             global $DB;
             $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? $_SESSION['glpiactiveprofiles_id'] ?? 0);
-            if ($pid && isset($DB) && class_exists(\GlpiPlugin\Protocolo\Install::class)) {
-                \GlpiPlugin\Protocolo\Install::repairActiveProfile($DB, $pid, true);
-                // força recarregar sessão de direitos
+            if ($pid && isset($DB)) {
+                // 1) tenta repair da classe (cria/atualiza para 255 se <23)
+                if (class_exists(\GlpiPlugin\Protocolo\Install::class)) {
+                    \GlpiPlugin\Protocolo\Install::repairActiveProfile($DB, $pid, true);
+                }
+                // 2) sync direto: lê valor real do banco e injeta na sessão (cobre caso 127 já no DB mas sessão velha)
+                try {
+                    $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => Pasta::$rightname]]);
+                    foreach ($it as $row) {
+                        $dbRights = (int)$row['rights'];
+                        $_SESSION['glpiactive_profile'][Pasta::$rightname] = $dbRights;
+                        $_SESSION['glpiactiveprofile'][Pasta::$rightname] = $dbRights;
+                        // GLPI 11 também usa $_SESSION['glpiactive_profile']['_rights']?
+                        if (isset($_SESSION['glpiactive_profile']['rights'])) {
+                            $_SESSION['glpiactive_profile']['rights'][Pasta::$rightname] = $dbRights;
+                        }
+                        error_log("[protocolo] sync sessao DB->sessao profile $pid rights=$dbRights");
+                        break;
+                    }
+                } catch (\Throwable $e) {}
+                // 3) força recarregar sessão de direitos
                 if (method_exists('Session', 'reloadCurrentProfile')) {
                     try { Session::reloadCurrentProfile(); } catch (\Throwable $e) {}
+                    // reload pode sobrescrever nosso patch, então re-injeta após reload
+                    try {
+                        $it2 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => Pasta::$rightname]]);
+                        foreach ($it2 as $row) {
+                            $dbRights = (int)$row['rights'];
+                            $_SESSION['glpiactive_profile'][Pasta::$rightname] = $dbRights;
+                            $_SESSION['glpiactiveprofile'][Pasta::$rightname] = $dbRights;
+                            break;
+                        }
+                    } catch (\Throwable $e) {}
                 }
-                // fallback injetado direto na sessão
-                $_SESSION['glpiactive_profile'][Pasta::$rightname] = 255;
-                $_SESSION['glpiactiveprofile'][Pasta::$rightname] = 255;
-                error_log("[protocolo] auto-reparo tentado profile $pid, recheck canCreate=" . (Pasta::canCreate() ? 'ok' : 'ainda negado'));
+                // 4) fallback brutal: se ainda não tem CREATE, força 255/CREATE na sessão pra desbloquear agora
+                if (!Pasta::canCreate()) {
+                    error_log("[protocolo] canCreate ainda negado apos sync, forcando 255 na sessao pid=$pid");
+                    $_SESSION['glpiactive_profile'][Pasta::$rightname] = 255;
+                    $_SESSION['glpiactiveprofile'][Pasta::$rightname] = 255;
+                    if (isset($_SESSION['glpiactive_profile']['rights'])) {
+                        $_SESSION['glpiactive_profile']['rights'][Pasta::$rightname] = 255;
+                    }
+                }
+                error_log("[protocolo] auto-reparo tentado profile $pid, recheck canCreate=" . (Pasta::canCreate() ? 'ok' : 'ainda negado') . " sess=" . json_encode($_SESSION['glpiactive_profile'][Pasta::$rightname] ?? 'n/a'));
             }
         } catch (\Throwable $e) { error_log("[protocolo] auto-reparo falhou: " . $e->getMessage()); }
     }
     if (!Pasta::canCreate()) {
-        error_log("[protocolo] canCreate negado APOS auto-reparo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " rights=" . json_encode($_SESSION['glpiactive_profile'][Pasta::$rightname] ?? $_SESSION['glpiactiveprofile'][Pasta::$rightname] ?? 'n/a') . " POST=" . json_encode($_POST, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
+        error_log("[protocolo] canCreate negado APOS auto-reparo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " rights_sess=" . json_encode($_SESSION['glpiactive_profile'][Pasta::$rightname] ?? 'n/a') . " rights_sess2=" . json_encode($_SESSION['glpiactiveprofile'][Pasta::$rightname] ?? 'n/a') . " POST=" . json_encode($_POST, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
         // Mensagem amigável em vez de "Ação não permitida" seca
         Session::addMessageAfterRedirect(__('Sem permissão para Registrar pasta: seu perfil não tem direito Criar em Protocolo. Auto-reparo tentado - deslogue/logue novamente ou vá em Administração > Perfis > seu perfil > aba Protocolo > marque Criar para Pasta.', 'protocolo'), false, ERROR);
         Html::displayRightError();
@@ -114,15 +149,38 @@ if (isset($_POST['add'])) {
         try {
             global $DB;
             $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
-            if ($pid && class_exists(\GlpiPlugin\Protocolo\Install::class)) {
-                \GlpiPlugin\Protocolo\Install::repairActiveProfile($DB, $pid, true);
+            if ($pid) {
+                if (class_exists(\GlpiPlugin\Protocolo\Install::class)) {
+                    \GlpiPlugin\Protocolo\Install::repairActiveProfile($DB, $pid, true);
+                }
+                // sync DB->sessao
+                try {
+                    $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => Pasta::$rightname]]);
+                    foreach ($it as $row) {
+                        $dbRights = (int)$row['rights'];
+                        $_SESSION['glpiactive_profile'][Pasta::$rightname] = $dbRights;
+                        $_SESSION['glpiactiveprofile'][Pasta::$rightname] = $dbRights;
+                        break;
+                    }
+                } catch (\Throwable $e) {}
                 if (method_exists('Session', 'reloadCurrentProfile')) { try { Session::reloadCurrentProfile(); } catch (\Throwable $e) {} }
-                $_SESSION['glpiactive_profile'][Pasta::$rightname] = 255;
-                $_SESSION['glpiactiveprofile'][Pasta::$rightname] = 255;
+                // re-injeta após reload
+                try {
+                    $it2 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => Pasta::$rightname]]);
+                    foreach ($it2 as $row) {
+                        $_SESSION['glpiactive_profile'][Pasta::$rightname] = (int)$row['rights'];
+                        $_SESSION['glpiactiveprofile'][Pasta::$rightname] = (int)$row['rights'];
+                        break;
+                    }
+                } catch (\Throwable $e) {}
+                if (!Pasta::canCreate()) {
+                    $_SESSION['glpiactive_profile'][Pasta::$rightname] = 255;
+                    $_SESSION['glpiactiveprofile'][Pasta::$rightname] = 255;
+                }
             }
         } catch (\Throwable $e) {}
         if (!Pasta::canCreate()) {
-            error_log("[protocolo] canCreate negado ao abrir form novo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0));
+            error_log("[protocolo] canCreate negado ao abrir form novo user=" . Session::getLoginUserID() . " profile=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " rights=" . json_encode($_SESSION['glpiactive_profile'][Pasta::$rightname] ?? 'n/a'));
             Session::addMessageAfterRedirect(__('Sem permissão para abrir formulário de Pasta. Peça ao Admin para dar direito Criar em Protocolo.', 'protocolo'), false, ERROR);
             Html::displayRightError();
         }
