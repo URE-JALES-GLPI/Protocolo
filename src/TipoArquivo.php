@@ -26,21 +26,47 @@ class TipoArquivo extends CommonDBTM
         return 'ti ti-tags';
     }
 
+    private static function hasRightDB(string $right, int $level): bool
+    {
+        global $DB;
+        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
+            try {
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $right]]);
+                foreach ($it as $row) {
+                    $dbRights = (int)$row['rights'];
+                    $hasDb = ($dbRights & $level) === $level;
+                    $hasSess = Session::haveRight($right, $level);
+                    if ($hasSess !== $hasDb) {
+                        error_log("[protocolo] Tipo hasRightDB MISMATCH pid=$pid right=$right level=$level db=$dbRights");
+                        if (!$hasDb && $hasSess) {
+                            $_SESSION['glpiactive_profile'][$right] = $dbRights;
+                            $_SESSION['glpiactiveprofile'][$right] = $dbRights;
+                        }
+                    }
+                    return $hasDb;
+                }
+                return false;
+            } catch (\Throwable $e) {}
+        }
+        return Session::haveRight($right, $level);
+    }
+
     public static function canView(): bool
     {
-        return Session::haveRight(self::$rightname, READ) || Session::haveRight('plugin_protocolo_config', READ);
+        return self::hasRightDB(self::$rightname, READ) || self::hasRightDB('plugin_protocolo_config', READ);
     }
 
     public static function canCreate(): bool
     {
-        return Session::haveRight(self::$rightname, CREATE);
+        return self::hasRightDB(self::$rightname, CREATE);
     }
 
     public function canViewItem(): bool { return self::canView(); }
     public function canCreateItem(): bool { return self::canCreate(); }
-    public function canUpdateItem(): bool { return Session::haveRight(self::$rightname, UPDATE); }
-    public function canDeleteItem(): bool { return Session::haveRight(self::$rightname, DELETE); }
-    public function canPurgeItem(): bool { return Session::haveRight(self::$rightname, PURGE); }
+    public function canUpdateItem(): bool { return self::hasRightDB(self::$rightname, UPDATE); }
+    public function canDeleteItem(): bool { return self::hasRightDB(self::$rightname, DELETE); }
+    public function canPurgeItem(): bool { return self::hasRightDB(self::$rightname, PURGE); }
 
     public static function getNameField() { return 'name'; }
 

@@ -5,11 +5,11 @@ use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;
 use GlpiPlugin\Protocolo\Config;
 
-Html::header(__('Protocolo - Dashboard', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
-
 if (!Pasta::canView()) {
     Html::displayRightError();
 }
+
+Html::header(__('Protocolo - Dashboard', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 
 global $DB, $CFG_GLPI;
 

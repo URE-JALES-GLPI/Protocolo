@@ -11,11 +11,11 @@ include('../../../inc/includes.php');
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;
 
-Html::header(Pasta::getTypeName(2), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
-
 if (!Pasta::canView()) {
     Html::displayRightError();
 }
+
+Html::header(Pasta::getTypeName(2), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 
 global $DB;
 

@@ -20,20 +20,37 @@ class Termo extends CommonDBTM
         return 'glpi_plugin_protocolo_termos';
     }
 
+    private static function hasRightDB(int $level): bool
+    {
+        global $DB;
+        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
+            try {
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
+                foreach ($it as $row) {
+                    $dbRights = (int)$row['rights'];
+                    return ($dbRights & $level) === $level;
+                }
+                return false;
+            } catch (\Throwable $e) {}
+        }
+        return Session::haveRight(self::$rightname, $level);
+    }
+
     public static function canView(): bool
     {
-        return Session::haveRight(self::$rightname, READ);
+        return self::hasRightDB(READ);
     }
 
     public static function canCreate(): bool
     {
-        return Session::haveRight(self::$rightname, CREATE);
+        return self::hasRightDB(CREATE);
     }
 
     public function canViewItem(): bool { return self::canView(); }
     public function canCreateItem(): bool { return self::canCreate(); }
-    public function canUpdateItem(): bool { return Session::haveRight(self::$rightname, UPDATE); }
-    public function canDeleteItem(): bool { return Session::haveRight(self::$rightname, DELETE); }
+    public function canUpdateItem(): bool { return self::hasRightDB(UPDATE); }
+    public function canDeleteItem(): bool { return self::hasRightDB(DELETE); }
 
     public function rawSearchOptions()
     {

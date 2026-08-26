@@ -39,14 +39,40 @@ class Escola extends CommonDBTM
         return 'ti ti-building';
     }
 
+    private static function hasRightDB(string $right, int $level): bool
+    {
+        global $DB;
+        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
+            try {
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $right]]);
+                foreach ($it as $row) {
+                    $dbRights = (int)$row['rights'];
+                    $hasDb = ($dbRights & $level) === $level;
+                    $hasSess = Session::haveRight($right, $level);
+                    if ($hasSess !== $hasDb) {
+                        error_log("[protocolo] Escola hasRightDB MISMATCH pid=$pid right=$right level=$level db=$dbRights sess=" . json_encode($_SESSION['glpiactive_profile'][$right] ?? 'not_set'));
+                        if (!$hasDb && $hasSess) {
+                            $_SESSION['glpiactive_profile'][$right] = $dbRights;
+                            $_SESSION['glpiactiveprofile'][$right] = $dbRights;
+                        }
+                    }
+                    return $hasDb;
+                }
+                return false;
+            } catch (\Throwable $e) {}
+        }
+        return Session::haveRight($right, $level);
+    }
+
     public static function canView(): bool
     {
-        return Session::haveRight(self::$rightname, READ) || Session::haveRight('plugin_protocolo_pasta', READ);
+        return self::hasRightDB(self::$rightname, READ) || self::hasRightDB('plugin_protocolo_pasta', READ);
     }
 
     public static function canCreate(): bool
     {
-        return Session::haveRight(self::$rightname, CREATE);
+        return self::hasRightDB(self::$rightname, CREATE);
     }
 
     public function canViewItem(): bool
@@ -77,19 +103,19 @@ class Escola extends CommonDBTM
 
     public function canUpdateItem(): bool
     {
-        if (!Session::haveRight(self::$rightname, UPDATE)) return false;
+        if (!self::hasRightDB(self::$rightname, UPDATE)) return false;
         return $this->canViewItem();
     }
 
     public function canDeleteItem(): bool
     {
-        if (!Session::haveRight(self::$rightname, DELETE)) return false;
+        if (!self::hasRightDB(self::$rightname, DELETE)) return false;
         return $this->canViewItem();
     }
 
     public function canPurgeItem(): bool
     {
-        if (!Session::haveRight(self::$rightname, PURGE)) return false;
+        if (!self::hasRightDB(self::$rightname, PURGE)) return false;
         return $this->canViewItem();
     }
 

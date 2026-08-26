@@ -70,19 +70,55 @@ class Pasta extends CommonDBTM
         return $menu;
     }
 
+    private static function hasRightDB(int $level): bool
+    {
+        global $DB;
+        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        // Se tem DB e perfil ativo, consulta DB como fonte da verdade (sessão pode estar stale)
+        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
+            try {
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
+                foreach ($it as $row) {
+                    $dbRights = (int)$row['rights'];
+                    $hasDb = ($dbRights & $level) === $level;
+                    $hasSess = Session::haveRight(self::$rightname, $level);
+                    if ($hasSess !== $hasDb) {
+                        error_log("[protocolo] hasRightDB MISMATCH pid=$pid right=".self::$rightname." level=$level db=$dbRights sess=" . json_encode($_SESSION['glpiactive_profile'][self::$rightname] ?? 'not_set') . " hasSess=" . ($hasSess?'1':'0') . " hasDb=" . ($hasDb?'1':'0'));
+                        // Se sessão diz que tem mas DB diz que não (0), nega e corrige sessão na hora (fail-closed)
+                        if (!$hasDb && $hasSess) {
+                            $_SESSION['glpiactive_profile'][self::$rightname] = $dbRights;
+                            $_SESSION['glpiactiveprofile'][self::$rightname] = $dbRights;
+                        }
+                    }
+                    return $hasDb;
+                }
+                // Sem linha = sem acesso
+                return false;
+            } catch (\Throwable $e) {
+                error_log("[protocolo] hasRightDB erro: " . $e->getMessage());
+            }
+        }
+        return Session::haveRight(self::$rightname, $level);
+    }
+
     public static function canView(): bool
     {
-        return Session::haveRight(self::$rightname, READ);
+        return self::hasRightDB(READ);
     }
 
     public static function canCreate(): bool
     {
-        return Session::haveRight(self::$rightname, CREATE);
+        return self::hasRightDB(CREATE);
+    }
+
+    private function hasRight(int $level): bool
+    {
+        return self::hasRightDB($level);
     }
 
     public function canViewItem(): bool
     {
-        if (!Session::haveRight(self::$rightname, READ)) return false;
+        if (!self::hasRightDB(READ)) return false;
         if ($this->isEntityAssign() && isset($this->fields['entities_id'])) {
             $ent = (int)$this->fields['entities_id'];
             $rec = (int)($this->fields['is_recursive'] ?? 0);
@@ -94,9 +130,9 @@ class Pasta extends CommonDBTM
     }
 
     public function canCreateItem(): bool { return self::canCreate(); }
-    public function canUpdateItem(): bool { return Session::haveRight(self::$rightname, UPDATE); }
-    public function canDeleteItem(): bool { return Session::haveRight(self::$rightname, DELETE); }
-    public function canPurgeItem(): bool { return Session::haveRight(self::$rightname, PURGE); }
+    public function canUpdateItem(): bool { return self::hasRightDB(UPDATE); }
+    public function canDeleteItem(): bool { return self::hasRightDB(DELETE); }
+    public function canPurgeItem(): bool { return self::hasRightDB(PURGE); }
 
     public static function getNameField()
     {
