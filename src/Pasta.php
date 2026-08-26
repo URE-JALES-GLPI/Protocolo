@@ -72,21 +72,16 @@ class Pasta extends CommonDBTM
 
     public static function canView(): bool
     {
-        if (Session::getLoginUserID() > 0) return true;
         return Session::haveRight(self::$rightname, READ);
     }
 
     public static function canCreate(): bool
     {
-        // LAB FIX BRICK: libera geral até destravar permissões (resolve 403 "Ação não permitida" com 127)
-        // Você disse "tá tudo marcado 127 e não vai" - é sessão bricada. Libera direto, sem checar haveRight.
-        if (Session::getLoginUserID() > 0) return true;
         return Session::haveRight(self::$rightname, CREATE);
     }
 
     public function canViewItem(): bool
     {
-        if (Session::getLoginUserID() > 0) return true;
         if (!Session::haveRight(self::$rightname, READ)) return false;
         if ($this->isEntityAssign() && isset($this->fields['entities_id'])) {
             $ent = (int)$this->fields['entities_id'];
@@ -98,10 +93,10 @@ class Pasta extends CommonDBTM
         return true;
     }
 
-    public function canCreateItem(): bool { if (Session::getLoginUserID() > 0) return true; return self::canCreate(); }
-    public function canUpdateItem(): bool { if (Session::getLoginUserID() > 0) return true; return Session::haveRight(self::$rightname, UPDATE); }
-    public function canDeleteItem(): bool { if (Session::getLoginUserID() > 0) return true; return Session::haveRight(self::$rightname, DELETE); }
-    public function canPurgeItem(): bool { if (Session::getLoginUserID() > 0) return true; return Session::haveRight(self::$rightname, PURGE); }
+    public function canCreateItem(): bool { return self::canCreate(); }
+    public function canUpdateItem(): bool { return Session::haveRight(self::$rightname, UPDATE); }
+    public function canDeleteItem(): bool { return Session::haveRight(self::$rightname, DELETE); }
+    public function canPurgeItem(): bool { return Session::haveRight(self::$rightname, PURGE); }
 
     public static function getNameField()
     {
@@ -625,11 +620,9 @@ class Pasta extends CommonDBTM
         // Para novo, não chama showFormHeader ainda porque precisamos custom
 
         $csrf = Session::getNewCSRFToken();
-        // LAB: usa bypass AJAX para URL /plugins (sem /glpi) não cair em 403 CSRF/rights
-        $formUrl = $isNew ? Plugin::getWebDir('protocolo') . '/ajax/bypass.php' : self::getFormURL();
+        $formUrl = self::getFormURL();
         echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form'>";
         echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
-        echo '<input type="hidden" name="_bypass_lab" value="1">';
         if (!$isNew) {
             echo Html::hidden('id', ['value' => $ID]);
         }

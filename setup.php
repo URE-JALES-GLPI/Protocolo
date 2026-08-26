@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '1.4.0');
+define('PLUGIN_PROTOCOLO_VERSION', '1.4.1');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -82,8 +82,8 @@ function plugin_init_protocolo(): void
     Plugin::registerClass(\GlpiPlugin\Protocolo\Profile::class, ['addtabon' => Profile::class]);
     $PLUGIN_HOOKS['change_profile']['protocolo'] = [\GlpiPlugin\Protocolo\Profile::class, 'changeProfile'];
 
-    // CSRF compliance - LAB: false para destravar 403 POST definitivo (era true e bloqueava)
-    $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = false;
+    // CSRF compliance - deve ser true para proteger POST
+    $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = true;
 
     // Menu GLPI 10/11 - sempre registra (GLPI filtra por canView)
     $PLUGIN_HOOKS['menu_toadd']['protocolo'] = [
@@ -137,7 +137,6 @@ function plugin_init_protocolo(): void
     ];
 
     // Migração ENTIDADES - roda apenas uma vez por versão (cache em glpi_configs)
-    // Evita custo em toda requisição (antes era em plugin_init = toda página)
     try {
         if (class_exists(\GlpiPlugin\Protocolo\Install::class) && isset($DB) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
             $migratedVersion = null;
@@ -148,17 +147,6 @@ function plugin_init_protocolo(): void
                 try { \GlpiPlugin\Protocolo\Install::registerCron(); } catch (\Throwable $e2) {}
                 try { \Config::setConfigurationValues('plugin:protocolo', ['migrated_version' => PLUGIN_PROTOCOLO_VERSION]); } catch (\Throwable $e) {}
             }
-            // FIX emergencial 1.3.2: repara direitos insuficientes EM TODA REQUISIÇÃO se perfil ativo não tem CREATE
-            // Baixo custo: só 1 SELECT, corrige imediatamente sem esperar bump de versão
-            try {
-                if (isset($_SESSION['glpiactive_profile']['id']) && isset($DB)) {
-                    $activePid = (int)$_SESSION['glpiactive_profile']['id'];
-                    // só tenta reparar se não tem CREATE (evita overhead para quem já tem 255)
-                    if (!\Session::haveRight('plugin_protocolo_pasta', CREATE)) {
-                        \GlpiPlugin\Protocolo\Install::repairActiveProfile($DB, $activePid);
-                    }
-                }
-            } catch (\Throwable $e) { error_log("[protocolo] repairActiveProfile falhou: " . $e->getMessage()); }
         }
     } catch (\Throwable $e) {
         error_log("[protocolo] migrateEntities auto falhou: " . $e->getMessage());
