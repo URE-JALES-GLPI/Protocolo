@@ -74,31 +74,43 @@ class Pasta extends CommonDBTM
     {
         global $DB;
         $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
-        // Se tem DB e perfil ativo, consulta DB como fonte da verdade (sessão pode estar stale)
-        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
-            try {
-                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
-                foreach ($it as $row) {
-                    $dbRights = (int)$row['rights'];
-                    $hasDb = ($dbRights & $level) === $level;
-                    $hasSess = Session::haveRight(self::$rightname, $level);
-                    if ($hasSess !== $hasDb) {
-                        error_log("[protocolo] hasRightDB MISMATCH pid=$pid right=".self::$rightname." level=$level db=$dbRights sess=" . json_encode($_SESSION['glpiactive_profile'][self::$rightname] ?? 'not_set') . " hasSess=" . ($hasSess?'1':'0') . " hasDb=" . ($hasDb?'1':'0'));
-                        // Se sessão diz que tem mas DB diz que não (0), nega e corrige sessão na hora (fail-closed)
-                        if (!$hasDb && $hasSess) {
-                            $_SESSION['glpiactive_profile'][self::$rightname] = $dbRights;
-                            $_SESSION['glpiactiveprofile'][self::$rightname] = $dbRights;
-                        }
-                    }
-                    return $hasDb;
-                }
-                // Sem linha = sem acesso
-                return false;
-            } catch (\Throwable $e) {
-                error_log("[protocolo] hasRightDB erro: " . $e->getMessage());
-            }
+        $uid = (int)Session::getLoginUserID();
+        // Fail-closed: se não consegue verificar DB, nega (não confia só na sessão que pode estar stale)
+        if (!$pid) {
+            error_log("[protocolo] hasRightDB sem pid uid=$uid level=$level");
+            return false;
         }
-        return Session::haveRight(self::$rightname, $level);
+        if (!isset($DB) || !$DB->tableExists('glpi_profilerights')) {
+            error_log("[protocolo] hasRightDB sem DB pid=$pid level=$level fallback Session=" . (Session::haveRight(self::$rightname, $level)?'1':'0'));
+            // Fallback mas loga - se sessão diz SIM pode ser stale, então nega por segurança se sessão e DB não verificável
+            // Tenta sessão, mas se sessão diz SIM sem DB, loga e nega
+            return false;
+        }
+        try {
+            $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
+            foreach ($it as $row) {
+                $dbRights = (int)$row['rights'];
+                $hasDb = ($dbRights & $level) === $level;
+                $hasSess = Session::haveRight(self::$rightname, $level);
+                // Log sempre para diagnóstico
+                error_log("[protocolo] hasRightDB check pid=$pid uid=$uid right=".self::$rightname." level=$level db=$dbRights hasDb=" . ($hasDb?'1':'0') . " hasSess=" . ($hasSess?'1':'0') . " sessVal=" . json_encode($_SESSION['glpiactive_profile'][self::$rightname] ?? 'not_set'));
+                if ($hasSess !== $hasDb) {
+                    // Se sessão diz que tem mas DB diz que não (0), corrige sessão na hora (fail-closed)
+                    if (!$hasDb && $hasSess) {
+                        $_SESSION['glpiactive_profile'][self::$rightname] = $dbRights;
+                        $_SESSION['glpiactiveprofile'][self::$rightname] = $dbRights;
+                        error_log("[protocolo] hasRightDB corrigiu sessao stale pid=$pid para $dbRights");
+                    }
+                }
+                return $hasDb;
+            }
+            // Sem linha no banco = sem acesso - loga
+            error_log("[protocolo] hasRightDB sem linha pid=$pid right=".self::$rightname." level=$level -> NEGA");
+            return false;
+        } catch (\Throwable $e) {
+            error_log("[protocolo] hasRightDB erro pid=$pid: " . $e->getMessage());
+            return false;
+        }
     }
 
     public static function canView(): bool

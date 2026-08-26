@@ -6,8 +6,10 @@ use GlpiPlugin\Protocolo\Escola;
 use GlpiPlugin\Protocolo\Config;
 
 if (!Pasta::canView()) {
+    error_log("[protocolo] DASHBOARD BLOQUEADO pid=" . ($_SESSION['glpiactive_profile']['id'] ?? 'no_pid') . " uid=" . Session::getLoginUserID() . " rights_db_check FAIL");
     Html::displayRightError();
 }
+error_log("[protocolo] DASHBOARD LIBERADO pid=" . ($_SESSION['glpiactive_profile']['id'] ?? 'no_pid') . " uid=" . Session::getLoginUserID());
 
 Html::header(__('Protocolo - Dashboard', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 
