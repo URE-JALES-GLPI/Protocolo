@@ -75,16 +75,13 @@ class Pasta extends CommonDBTM
         global $DB;
         $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
         $uid = (int)Session::getLoginUserID();
-        // Fail-closed: se não consegue verificar DB, nega (não confia só na sessão que pode estar stale)
         if (!$pid) {
-            error_log("[protocolo] hasRightDB sem pid uid=$uid level=$level");
-            return false;
+            error_log("[protocolo] hasRightDB sem pid uid=$uid level=$level fallback Sess=" . (Session::haveRight(self::$rightname, $level)?'1':'0'));
+            return Session::haveRight(self::$rightname, $level);
         }
         if (!isset($DB) || !$DB->tableExists('glpi_profilerights')) {
             error_log("[protocolo] hasRightDB sem DB pid=$pid level=$level fallback Session=" . (Session::haveRight(self::$rightname, $level)?'1':'0'));
-            // Fallback mas loga - se sessão diz SIM pode ser stale, então nega por segurança se sessão e DB não verificável
-            // Tenta sessão, mas se sessão diz SIM sem DB, loga e nega
-            return false;
+            return Session::haveRight(self::$rightname, $level);
         }
         try {
             $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
