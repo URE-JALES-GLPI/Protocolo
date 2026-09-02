@@ -82,15 +82,14 @@ class Profile extends \CommonDBTM
     {
         if ($rightName === 'plugin_protocolo_admin') {
             return [
-                0  => ['label' => 'Sem acesso', 'desc' => 'Não acessa configurações do Protocolo'],
-                1  => ['label' => 'Admin', 'desc' => 'Acesso total à configuração (prazo alerta, notificações, e-mails por entidade, templates)'],
-                // Mantém compat: valores legados 3,31,255 também são tratados como Admin
+                0  => ['label' => 'Não', 'desc' => 'Sem acesso à configuração'],
+                1  => ['label' => 'Sim', 'desc' => 'Acesso total à configuração (prazo alerta, notificações, e-mails por entidade, templates)'],
             ];
         }
         // plugin_protocolo_use
         return [
-            0  => ['label' => 'Sem acesso', 'desc' => 'Bloqueado — não vê menu Protocolo'],
-            1  => ['label' => 'Usar', 'desc' => 'Pode usar o Protocolo: ver dashboard, listar pastas, registrar entrada/retirada, gerenciar escolas/tipos'],
+            0  => ['label' => 'Não', 'desc' => 'Sem acesso — não vê menu Protocolo'],
+            1  => ['label' => 'Sim', 'desc' => 'Pode usar: dashboard, pastas (entrada/retirada/termos), escolas e tipos'],
         ];
     }
 
@@ -99,11 +98,10 @@ class Profile extends \CommonDBTM
         if (isset($levels[$current])) {
             return $levels[$current]['label'];
         }
-        // Valor legado ou custom: qualquer >0 é considerado Com acesso
         if ($current > 0) {
-            return $current === 1 ? ($levels[1]['label'] ?? 'Com acesso') : "Com acesso ($current)";
+            return 'Sim';
         }
-        return "Sem acesso (0)";
+        return 'Não';
     }
 
     public static function showFormForProfile(GlpiProfile $profile): void
