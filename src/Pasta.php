@@ -654,10 +654,18 @@ class Pasta extends CommonDBTM
 
         $this->initForm($ID, $options);
         // Para novo, não chama showFormHeader ainda porque precisamos custom
+        // Se reexibindo após falha de validação, preserva input
+        $lastInput = $options['input'] ?? [];
+        if (!empty($lastInput) && $isNew) {
+            // Mescla para facilitar pré-preenchimento
+            foreach (['categoria','origem_tipo','origem_outro','origem_entities_id','destino_tipo','destino_outro','destino_entities_id','recebido_de','recebido_documento','recebido_documento_tipo','observacao','data_recebimento'] as $k) {
+                if (isset($lastInput[$k])) $this->fields[$k] = $lastInput[$k];
+            }
+        }
 
         $csrf = Session::getNewCSRFToken();
         $formUrl = self::getFormURL();
-        echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form'>";
+        echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form' novalidate>";
         echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
         if (!$isNew) {
             echo Html::hidden('id', ['value' => $ID]);
@@ -674,17 +682,23 @@ class Pasta extends CommonDBTM
             echo "<small class='text-muted'>Origem: $origemDisp &rarr; Destino: $destinoDisp · " . __('Criada por', 'protocolo') . " " . htmlspecialchars(getUserName($this->fields['users_id'] ?? 0)) . " em " . Html::convDateTime($this->fields['date_creation']) . "</small></th></tr>";
         }
 
+        // Alerta inline (evita F5 e perda de dados)
+        if ($isNew) {
+            echo "<div id='protocoloAlert' class='alert alert-warning d-none mx-2' role='alert' style='border-left:4px solid #ffc107'><i class='ti ti-alert-triangle me-1'></i> <span id='protocoloAlertMsg'></span></div>";
+        }
         // Categoria + Data
-        $catVal = strtolower($this->fields['categoria'] ?? 'pasta');
-        if (!in_array($catVal, ['pasta','malote'])) $catVal = 'pasta';
+        // Para novo, sem pré-seleção (obriga atenção); para edição, mantém valor salvo
+        $catVal = strtolower($this->fields['categoria'] ?? '');
+        if (!$isNew && !in_array($catVal, ['pasta','malote'])) $catVal = 'pasta';
+        if ($isNew && !in_array($catVal, ['pasta','malote'])) $catVal = '';
         echo "<tr class='tab_bg_1'>";
         echo "<td width='15%'><label>" . __('Categoria', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td width='35%'>";
-        echo "<div class='d-flex gap-3'>";
-        echo "<div class='form-check'><input class='form-check-input' type='radio' name='categoria' id='cat_pasta' value='pasta' " . ($catVal==='pasta'?'checked':'') . " required><label class='form-check-label' for='cat_pasta'><i class='ti ti-folder'></i> Pasta</label></div>";
-        echo "<div class='form-check'><input class='form-check-input' type='radio' name='categoria' id='cat_malote' value='malote' " . ($catVal==='malote'?'checked':'') . "><label class='form-check-label' for='cat_malote'><i class='ti ti-mail'></i> Malote</label></div>";
+        echo "<div class='d-flex gap-3' id='categoriaGroup'>";
+        echo "<div class='form-check'><input class='form-check-input' type='radio' name='categoria' id='cat_pasta' value='pasta' " . ($catVal==='pasta'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='cat_pasta'><i class='ti ti-folder'></i> Pasta</label></div>";
+        echo "<div class='form-check'><input class='form-check-input' type='radio' name='categoria' id='cat_malote' value='malote' " . ($catVal==='malote'?'checked':'') . ($isNew?' required':'') . "><label class='form-check-label' for='cat_malote'><i class='ti ti-mail'></i> Malote</label></div>";
         echo "</div>";
-        echo "<small class='text-muted'>Separa gráficos e filtros</small>";
+        echo "<small class='text-muted'>Separa gráficos e filtros — selecione uma</small>";
         echo "</td>";
         echo "<td><label>" . __('Data/hora recebimento', 'protocolo') . "</label></td>";
         $valDt = $this->fields['data_recebimento'] ?? date('Y-m-d\TH:i');
@@ -694,18 +708,22 @@ class Pasta extends CommonDBTM
         echo "</tr>";
 
         // Origem
-        $origemTipo = $this->fields['origem_tipo'] ?? ($isNew ? 'ure' : 'escola');
-        if (!in_array($origemTipo, ['outro','ure','escola'])) $origemTipo = 'ure';
+        $origemTipoRaw = $this->fields['origem_tipo'] ?? '';
+        if ($isNew) {
+            $origemTipo = in_array(strtolower($origemTipoRaw), ['outro','ure','escola']) ? strtolower($origemTipoRaw) : '';
+        } else {
+            $origemTipo = $this->fields['origem_tipo'] ?? 'escola';
+            if (!in_array($origemTipo, ['outro','ure','escola'])) $origemTipo = 'ure';
+            if (empty($this->fields['origem_tipo']) && !empty($this->fields['plugin_protocolo_escolas_id'])) $origemTipo='ure';
+        }
         $origemOutro = $this->fields['origem_outro'] ?? '';
         $origemEnt = (int)($this->fields['origem_entities_id'] ?? 0);
-        // Fallback legacy: se origem vazia e tem plugin_protocolo_escolas_id, assume origem ure
-        if (!$isNew && empty($this->fields['origem_tipo']) && !empty($this->fields['plugin_protocolo_escolas_id'])) $origemTipo='ure';
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Origem', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(de onde vem)</small></label></td>";
         echo "<td colspan='3'>";
-        echo "<div class='d-flex gap-3 mb-2'>";
-        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outro</label></div>";
-        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . "><label class='form-check-label' for='origem_ure'>URE</label></div>";
+        echo "<div class='d-flex gap-3 mb-2' id='origemGroup'>";
+        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='origem_outro'>Outro</label></div>";
+        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . ($isNew?'':'') . "><label class='form-check-label' for='origem_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_escola' value='escola' " . ($origemTipo==='escola'?'checked':'') . "><label class='form-check-label' for='origem_escola'>Escola</label></div>";
         echo "</div>";
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
@@ -731,15 +749,20 @@ class Pasta extends CommonDBTM
         echo "</td></tr>";
 
         // Destino
-        $destinoTipo = $this->fields['destino_tipo'] ?? ($isNew ? 'escola' : 'escola');
-        if (!in_array($destinoTipo, ['outro','ure','escola'])) $destinoTipo = 'escola';
+        $destinoTipoRaw = $this->fields['destino_tipo'] ?? '';
+        if ($isNew) {
+            $destinoTipo = in_array(strtolower($destinoTipoRaw), ['outro','ure','escola']) ? strtolower($destinoTipoRaw) : '';
+        } else {
+            $destinoTipo = $this->fields['destino_tipo'] ?? 'escola';
+            if (!in_array($destinoTipo, ['outro','ure','escola'])) $destinoTipo = 'escola';
+        }
         $destinoOutro = $this->fields['destino_outro'] ?? '';
         $destinoEnt = (int)($this->fields['destino_entities_id'] ?? $this->fields['plugin_protocolo_escolas_id'] ?? 0);
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Destino', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(para onde vai)</small></label></td>";
         echo "<td colspan='3'>";
-        echo "<div class='d-flex gap-3 mb-2'>";
-        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . "><label class='form-check-label' for='destino_outro'>Outro</label></div>";
+        echo "<div class='d-flex gap-3 mb-2' id='destinoGroup'>";
+        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='destino_outro'>Outro</label></div>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_ure' value='ure' " . ($destinoTipo==='ure'?'checked':'') . "><label class='form-check-label' for='destino_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_escola' value='escola' " . ($destinoTipo==='escola'?'checked':'') . "><label class='form-check-label' for='destino_escola'>Escola</label></div>";
         echo "</div>";
@@ -799,10 +822,12 @@ class Pasta extends CommonDBTM
 
         echo "</table></div>";
 
-        // Se for novo: tipos + itens
+        // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
             // Tipos
             $tipos = TipoArquivo::getAllActive();
+            $lastTipos = $lastInput['tipos'] ?? [];
+            $lastTipos = array_map('intval', (array)$lastTipos);
             echo "<div class='spaced'><div class='card border-warning mb-3'><div class='card-header bg-warning bg-opacity-10 d-flex align-items-center justify-content-between flex-wrap gap-2'><div class='d-flex align-items-center gap-2'><span class='fw-bold'><i class='ti ti-tags'></i> " . __('Quais tipos de arquivos', 'protocolo') . " <span class='text-danger'>*</span></span><span class='badge bg-light text-muted border fw-normal'> " . __('marque as caixinhas', 'protocolo') . "</span></div><a href='" . TipoArquivo::getSearchURL() . "' target='_blank' class='btn btn-sm btn-outline-secondary'><i class='ti ti-settings'></i> " . __('Gerenciar tipos', 'protocolo') . "</a></div>";
             echo "<div class='card-body'>";
             if (!$tipos) {
@@ -810,15 +835,29 @@ class Pasta extends CommonDBTM
             } else {
                 echo "<div class='row g-2'>";
                 foreach ($tipos as $t) {
-                    echo "<div class='col-md-4 col-sm-6'><div class='form-check'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . Html::cleanInputText($t['name']) . "'><label class='form-check-label' for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></div></div>";
+                    $checked = in_array((int)$t['id'], $lastTipos) ? 'checked' : '';
+                    echo "<div class='col-md-4 col-sm-6'><div class='form-check'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . Html::cleanInputText($t['name']) . "' $checked><label class='form-check-label' for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></div></div>";
                 }
                 echo "</div>";
                 echo "<div class='form-text mt-2'>" . __('Selecione pelo menos 1. Os itens abaixo são preenchidos automaticamente', 'protocolo') . "</div>";
             }
             echo "</div></div></div>";
 
+            $lastItens = $lastInput['itens'] ?? [];
             echo "<div class='spaced'><div class='d-flex justify-content-between align-items-center mb-2'><h3 class='mb-0'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " *</h3><button type='button' id='btnAddItem' class='btn btn-sm btn-outline-primary'><i class='ti ti-plus'></i> " . __('Adicionar item', 'protocolo') . "</button></div>";
-            echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div></div>";
+            if (!empty($lastItens) && is_array($lastItens)) {
+                echo "<div id='itensWrap'>";
+                foreach ($lastItens as $idx => $it) {
+                    $desc = Html::cleanInputText($it['descricao'] ?? '');
+                    $qtd = max(1, (int)($it['quantidade'] ?? 1));
+                    $obs = Html::cleanInputText($it['observacao'] ?? '');
+                    if ($desc === '' && $qtd === 1 && $obs === '' && $idx !== 0) continue;
+                    echo "<div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[$idx][descricao]' class='form-control' value='$desc' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[$idx][quantidade]' type='number' min='1' value='$qtd' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[$idx][observacao]' class='form-control' value='$obs' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div>";
+                }
+                echo "</div>";
+            } else {
+                echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div></div>";
+            }
             echo "<div class='form-text mb-3'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
         }
 
@@ -985,6 +1024,58 @@ class Pasta extends CommonDBTM
             }
             setupOrigemDestino();
 
+            // Validação sem F5: aviso inline, não perde dados
+            (function(){
+                var form = document.getElementById('plugin_protocolo_pasta_form');
+                var alertBox = document.getElementById('protocoloAlert');
+                var alertMsg = document.getElementById('protocoloAlertMsg');
+                function showAlert(msg, el){
+                    if(!alertBox||!alertMsg) return;
+                    alertMsg.textContent = msg;
+                    alertBox.classList.remove('d-none');
+                    alertBox.scrollIntoView({behavior:'smooth', block:'center'});
+                    if(el){ el.classList.add('is-invalid'); el.focus(); setTimeout(function(){ el.classList.remove('is-invalid'); }, 3000); }
+                }
+                function hideAlert(){ if(alertBox) alertBox.classList.add('d-none'); }
+                if(form){
+                    form.addEventListener('input', hideAlert);
+                    form.addEventListener('change', hideAlert);
+                    form.addEventListener('submit', function(e){
+                        hideAlert();
+                        if(!form.querySelector('input[name="categoria"]:checked')){
+                            e.preventDefault(); showAlert('Selecione a Categoria: Pasta ou Malote.', document.getElementById('cat_pasta')); return;
+                        }
+                        var origemSel = form.querySelector('input[name="origem_tipo"]:checked');
+                        if(!origemSel){ e.preventDefault(); showAlert('Selecione a Origem (Outro, URE ou Escola).', document.getElementById('origem_outro')); return; }
+                        var origemVal = origemSel.value;
+                        if(origemVal==='outro'){
+                            var oOutro = document.getElementById('origem_outro_input');
+                            if(!oOutro || !oOutro.value.trim()){ e.preventDefault(); showAlert('Origem = Outro: preencha "Escreva a origem".', oOutro); return; }
+                        } else if(origemVal==='escola'){
+                            var oSel = document.querySelector('#origem_escola_wrap select');
+                            if(!oSel || !oSel.value){ e.preventDefault(); showAlert('Origem = Escola: selecione a escola.', oSel); return; }
+                        }
+                        var destSel = form.querySelector('input[name="destino_tipo"]:checked');
+                        if(!destSel){ e.preventDefault(); showAlert('Selecione o Destino (Outro, URE ou Escola).', document.getElementById('destino_outro')); return; }
+                        var destVal = destSel.value;
+                        if(destVal==='outro'){
+                            var dOutro = document.getElementById('destino_outro_input');
+                            if(!dOutro || !dOutro.value.trim()){ e.preventDefault(); showAlert('Destino = Outro: preencha "Escreva o destino".', dOutro); return; }
+                        } else if(destVal==='escola'){
+                            var dSel = document.querySelector('#destino_escola_wrap select');
+                            if(!dSel || !dSel.value){ e.preventDefault(); showAlert('Destino = Escola: selecione a escola.', dSel); return; }
+                        }
+                        var recDe = form.querySelector('input[name="recebido_de"]');
+                        if(!recDe || !recDe.value.trim()){ e.preventDefault(); showAlert('Preencha "Recebido de (quem deixou)".', recDe); return; }
+                        var tiposChk = form.querySelectorAll('input[name="tipos[]"]:checked');
+                        if(tiposChk.length===0){ e.preventDefault(); showAlert('Marque pelo menos 1 tipo de arquivo.', document.querySelector('.tipo-check')); return; }
+                        var itensDesc = form.querySelectorAll('input[name*="[descricao]"]');
+                        var hasItem=false; itensDesc.forEach(function(inp){ if(inp.value.trim()) hasItem=true; });
+                        if(!hasItem){ e.preventDefault(); showAlert('Adicione pelo menos 1 item com descrição.', document.querySelector('input[name*="[descricao]"]')); return; }
+                    });
+                }
+            })();
+
             // Tipos -> Itens auto preenchimento (fallback inline caso js/app.js não carregue)
             var tipoChecks = document.querySelectorAll('.tipo-check');
             var wrap = document.getElementById('itensWrap');
@@ -1034,9 +1125,12 @@ class Pasta extends CommonDBTM
 
     public function prepareInputForAdd($input)
     {
-        // Categoria
-        $categoria = strtolower(trim($input['categoria'] ?? 'pasta'));
-        if (!in_array($categoria, ['pasta','malote'])) $categoria = 'pasta';
+        // Categoria (obrigatória - sem padrão, força atenção)
+        $categoria = strtolower(trim($input['categoria'] ?? ''));
+        if (!in_array($categoria, ['pasta','malote'])) {
+            Session::addMessageAfterRedirect(__('Selecione a Categoria: Pasta ou Malote', 'protocolo'), false, ERROR);
+            return false;
+        }
         $input['categoria'] = $categoria;
 
         // Origem (obrigatório)

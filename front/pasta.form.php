@@ -16,7 +16,11 @@ if (isset($_POST['add'])) {
     if ($newID) {
         Html::redirect(Pasta::getFormURLWithID($newID));
     } else {
-        Html::back();
+        // Validação falhou: reexibe form com dados e aviso (não perde tudo com F5)
+        Html::header(Pasta::getTypeName(1), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
+        $pasta->showForm(0, ['input' => $_POST]);
+        Html::footer();
+        exit;
     }
 } elseif (isset($_POST['update'])) {
     if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch update uid=".Session::getLoginUserID());
