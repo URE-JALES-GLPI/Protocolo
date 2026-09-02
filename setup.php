@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '1.5.2');
+define('PLUGIN_PROTOCOLO_VERSION', '1.5.3');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
