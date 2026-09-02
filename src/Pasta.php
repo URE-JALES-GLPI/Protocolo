@@ -1042,36 +1042,36 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
-                        if(!form.querySelector('input[name="categoria"]:checked')){
+                        if(!form.querySelector('input[name=\"categoria\"]:checked')){
                             e.preventDefault(); showAlert('Selecione a Categoria: Pasta ou Malote.', document.getElementById('cat_pasta')); return;
                         }
-                        var origemSel = form.querySelector('input[name="origem_tipo"]:checked');
+                        var origemSel = form.querySelector('input[name=\"origem_tipo\"]:checked');
                         if(!origemSel){ e.preventDefault(); showAlert('Selecione a Origem (Outro, URE ou Escola).', document.getElementById('origem_outro')); return; }
                         var origemVal = origemSel.value;
                         if(origemVal==='outro'){
                             var oOutro = document.getElementById('origem_outro_input');
-                            if(!oOutro || !oOutro.value.trim()){ e.preventDefault(); showAlert('Origem = Outro: preencha "Escreva a origem".', oOutro); return; }
+                            if(!oOutro || !oOutro.value.trim()){ e.preventDefault(); showAlert('Origem = Outro: preencha \"Escreva a origem\".', oOutro); return; }
                         } else if(origemVal==='escola'){
                             var oSel = document.querySelector('#origem_escola_wrap select');
                             if(!oSel || !oSel.value){ e.preventDefault(); showAlert('Origem = Escola: selecione a escola.', oSel); return; }
                         }
-                        var destSel = form.querySelector('input[name="destino_tipo"]:checked');
+                        var destSel = form.querySelector('input[name=\"destino_tipo\"]:checked');
                         if(!destSel){ e.preventDefault(); showAlert('Selecione o Destino (Outro, URE ou Escola).', document.getElementById('destino_outro')); return; }
                         var destVal = destSel.value;
                         if(destVal==='outro'){
                             var dOutro = document.getElementById('destino_outro_input');
-                            if(!dOutro || !dOutro.value.trim()){ e.preventDefault(); showAlert('Destino = Outro: preencha "Escreva o destino".', dOutro); return; }
+                            if(!dOutro || !dOutro.value.trim()){ e.preventDefault(); showAlert('Destino = Outro: preencha \"Escreva o destino\".', dOutro); return; }
                         } else if(destVal==='escola'){
                             var dSel = document.querySelector('#destino_escola_wrap select');
                             if(!dSel || !dSel.value){ e.preventDefault(); showAlert('Destino = Escola: selecione a escola.', dSel); return; }
                         }
-                        var recDe = form.querySelector('input[name="recebido_de"]');
-                        if(!recDe || !recDe.value.trim()){ e.preventDefault(); showAlert('Preencha "Recebido de (quem deixou)".', recDe); return; }
-                        var tiposChk = form.querySelectorAll('input[name="tipos[]"]:checked');
+                        var recDe = form.querySelector('input[name=\"recebido_de\"]');
+                        if(!recDe || !recDe.value.trim()){ e.preventDefault(); showAlert('Preencha \"Recebido de (quem deixou)\".', recDe); return; }
+                        var tiposChk = form.querySelectorAll('input[name=\"tipos[]\"]:checked');
                         if(tiposChk.length===0){ e.preventDefault(); showAlert('Marque pelo menos 1 tipo de arquivo.', document.querySelector('.tipo-check')); return; }
-                        var itensDesc = form.querySelectorAll('input[name*="[descricao]"]');
+                        var itensDesc = form.querySelectorAll('input[name*=\"[descricao]\"]');
                         var hasItem=false; itensDesc.forEach(function(inp){ if(inp.value.trim()) hasItem=true; });
-                        if(!hasItem){ e.preventDefault(); showAlert('Adicione pelo menos 1 item com descrição.', document.querySelector('input[name*="[descricao]"]')); return; }
+                        if(!hasItem){ e.preventDefault(); showAlert('Adicione pelo menos 1 item com descrição.', document.querySelector('input[name*=\"[descricao]\"]')); return; }
                     });
                 }
             })();
