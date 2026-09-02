@@ -132,6 +132,15 @@ class Config
 
     public static function canEdit(): bool
     {
-        return Session::haveRight('config', UPDATE) || Session::haveRight('plugin_protocolo_config', UPDATE);
+        // Novo simplificado: Admin do Protocolo ou super-admin de config
+        if (Session::haveRight('config', UPDATE)) return true;
+        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_admin', READ)) return true;
+        if (Session::haveRight('plugin_protocolo_admin', READ)) return true;
+        if (Session::haveRight('plugin_protocolo_admin', UPDATE)) return true;
+        // Fallback legado
+        if (Session::haveRight('plugin_protocolo_config', UPDATE)) return true;
+        if (Session::haveRight('plugin_protocolo_config', READ)) return true;
+        // Checa DB direto para Admin
+        return \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_admin', READ);
     }
 }

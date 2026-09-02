@@ -130,8 +130,9 @@ body{ background:#eee; }
   <div class="cab">
     <?php
     $logoPath = Plugin::getWebDir('protocolo') . '/assets/img/logo.png';
-    // fallback para logo do GLPI se não existir
+    // fallback para logo do GLPI se não existir - tenta ambos plugins/ e marketplace/
     $logoFile = GLPI_ROOT . '/plugins/protocolo/assets/img/logo.png';
+    if (!file_exists($logoFile)) $logoFile = GLPI_ROOT . '/marketplace/protocolo/assets/img/logo.png';
     if (!file_exists($logoFile)) $logoFile = GLPI_ROOT . '/pics/logo.png';
     ?>
     <img src="<?= Plugin::getWebDir('protocolo') ?>/assets/img/logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
@@ -242,8 +243,8 @@ body{ background:#eee; }
   document.addEventListener('DOMContentLoaded', function(){
     var codigo = "<?= addslashes($termo['codigo']) ?>";
     var hash = "<?= addslashes($termo['hash_verificacao'] ?? '') ?>";
-    var base = window.location.origin + "<?= $CFG_GLPI['root_doc'] ?>";
-    var verifyUrl = base + "/plugins/protocolo/front/verify.php?codigo=" + encodeURIComponent(codigo) + "&hash=" + encodeURIComponent(hash);
+    var base = "<?= Plugin::getWebDir('protocolo') ?>";
+    var verifyUrl = window.location.origin + base + "/front/verify.php?codigo=" + encodeURIComponent(codigo) + "&hash=" + encodeURIComponent(hash);
     var el = document.getElementById('verifyUrlText');
     if (el) el.textContent = verifyUrl;
     var qrel = document.getElementById('qrcode');

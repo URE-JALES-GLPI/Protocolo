@@ -208,8 +208,21 @@ class Notificacao
     public static function buildMensagem(\GlpiPlugin\Protocolo\Pasta $pasta, string $escolaNome, string $codigo, string $evento): string
     {
         global $CFG_GLPI, $DB;
+        // Usa webdir correto (marketplace ou plugins) sem duplicar root_doc
+        $link = \Plugin::getWebDir('protocolo') . "/front/pasta.form.php?id=" . $pasta->getID();
+        // Se webdir não inclui root_doc (GLPI antigo), prepend
         $root = $CFG_GLPI['root_doc'] ?? '';
-        $link = $root . "/plugins/protocolo/front/pasta.form.php?id=" . $pasta->getID();
+        if ($root !== '' && !str_starts_with($link, $root) && str_starts_with($link, '/')) {
+            $link = $root . $link;
+        }
+        // Converte para URL absoluta se necessário (para e-mail)
+        if (!str_starts_with($link, 'http') && !empty($_SERVER['HTTP_HOST'])) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            // $link já contém root_doc se necessário, então só adiciona host
+            // Evita duplicar host se já for absoluto
+            // Mantém como está para e-mail (relativo é ok, mas absoluto é melhor)
+            // Não força absoluto aqui para não quebrar se HTTP_HOST não estiver
+        }
 
         $dataRecRaw = $pasta->fields['data_recebimento'] ?? date('Y-m-d H:i:s');
         $dataRec = Html::convDateTime($dataRecRaw);
@@ -317,9 +330,13 @@ class Notificacao
     public static function getTestVars(string $evento): array
     {
         global $CFG_GLPI;
+        $web = \Plugin::getWebDir('protocolo');
         $root = $CFG_GLPI['root_doc'] ?? '';
-        $link = $root . "/plugins/protocolo/front/pasta.form.php?id=0";
-        if (empty($root)) $link = "/plugins/protocolo/front/pasta.form.php?id=0";
+        $link = $web . "/front/pasta.form.php?id=0";
+        if ($root !== '' && !str_starts_with($link, $root) && str_starts_with($link, '/')) {
+            $link = $root . $link;
+        }
+        if (empty($link)) $link = "/plugins/protocolo/front/pasta.form.php?id=0";
         if (strpos($link, 'http') !== 0 && !empty($_SERVER['HTTP_HOST'])) {
             $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
             $link = $scheme . '://' . $_SERVER['HTTP_HOST'] . $link;

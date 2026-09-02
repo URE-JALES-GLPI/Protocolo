@@ -291,19 +291,17 @@ class Install
     {
         global $DB;
         try {
-            $rights = [
-                'plugin_protocolo_pasta'  => 255,
-                'plugin_protocolo_escola' => 255,
-                'plugin_protocolo_tipo'   => 255,
-                'plugin_protocolo_config' => 255,
+            // Novos direitos simplificados: Usar (operacional) e Admin (config)
+            $newRights = [
+                'plugin_protocolo_use'   => 1, // 1 = Usar
+                'plugin_protocolo_admin' => 1, // 1 = Admin (READ suficiente, mas DB guarda 1)
             ];
             $profiles = $DB->request(['FROM' => 'glpi_profiles']);
             foreach ($profiles as $profile) {
                 $profileId = $profile['id'];
                 $isSuperAdmin = ((int)$profileId === 4);
-                // Perfis padrão GLPI: 1 Super-Admin, 2 Self-Service, 3 Observer, 4 Admin, 5 Hotliner, 6 Technician, 8 Supervisor
                 $isTechnicianLike = in_array((int)$profileId, [4,5,6,8], true);
-                foreach ($rights as $rightName => $value) {
+                foreach ($newRights as $rightName => $value) {
                     try {
                         $existing = $DB->request([
                             'FROM' => 'glpi_profilerights',
@@ -311,27 +309,102 @@ class Install
                         ]);
                         if (count($existing) === 0) {
                             $default = 0;
-                            if ($isSuperAdmin) {
-                                $default = $value; // 255
-                            } elseif (in_array($rightName, ['plugin_protocolo_pasta', 'plugin_protocolo_escola'], true)) {
-                                // Technician/Hotliner/Supervisor já ganham CRUD completo para operar pastas
-                                $default = $isTechnicianLike ? 255 : 1; // READ para demais
-                            } elseif ($rightName === 'plugin_protocolo_tipo') {
-                                $default = $isTechnicianLike ? 255 : 0;
+                            if ($rightName === 'plugin_protocolo_use') {
+                                if ($isSuperAdmin) $default = 1;
+                                elseif ($isTechnicianLike) $default = 1;
+                                else {
+                                    // Herda de legado pasta se existir
+                                    $legacy = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $profileId, 'name' => 'plugin_protocolo_pasta']]);
+                                    foreach ($legacy as $row) {
+                                        if ((int)$row['rights'] > 0) $default = 1;
+                                        break;
+                                    }
+                                    // Se não tem legado, Self-Service/Observer ficam sem
+                                }
+                            } elseif ($rightName === 'plugin_protocolo_admin') {
+                                if ($isSuperAdmin) $default = 1;
+                                else {
+                                    $legacy = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $profileId, 'name' => 'plugin_protocolo_config']]);
+                                    foreach ($legacy as $row) {
+                                        if ((int)$row['rights'] > 0) $default = 1;
+                                        break;
+                                    }
+                                }
                             }
                             $DB->insert('glpi_profilerights', [
                                 'profiles_id' => $profileId,
                                 'name'        => $rightName,
                                 'rights'      => $default
                             ]);
+                            // Sincroniza sessão ativa se for perfil logado
+                            if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $profileId) {
+                                $_SESSION['glpiactive_profile'][$rightName] = $default;
+                                $_SESSION['glpiactiveprofile'][$rightName] = $default;
+                            }
                         }
                     } catch (\Throwable $e) {
                         error_log("[protocolo] initRights $rightName profile $profileId: " . $e->getMessage());
                     }
                 }
+                // Compat: garante que legados ainda existem para fallback (não apaga)
+                // Mas se perfil já tem novos direitos, não precisa criar legados antigos
             }
+            // Migra legados existentes para novos se novos ainda estão 0 mas legado tem acesso
+            self::migrateLegacyRights($DB);
         } catch (\Throwable $e) {
             error_log("[protocolo] initRights geral: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Migra direitos legados (pasta/escola/tipo/config) para novos Usar/Admin
+     */
+    private static function migrateLegacyRights($DB): void
+    {
+        try {
+            $profiles = $DB->request(['FROM' => 'glpi_profiles']);
+            foreach ($profiles as $profile) {
+                $pid = (int)$profile['id'];
+                // Verifica novos
+                $useRights = 0; $adminRights = 0;
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use']]);
+                foreach ($it as $r) $useRights = (int)$r['rights'];
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin']]);
+                foreach ($it as $r) $adminRights = (int)$r['rights'];
+                // Se já tem acesso, não sobrescreve
+                if ($useRights > 0 && $adminRights > 0) continue;
+                // Checa legados
+                $hasPasta = $hasEscola = $hasTipo = $hasConfig = 0;
+                foreach (['plugin_protocolo_pasta' => 'hasPasta', 'plugin_protocolo_escola' => 'hasEscola', 'plugin_protocolo_tipo' => 'hasTipo', 'plugin_protocolo_config' => 'hasConfig'] as $rname => $var) {
+                    $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $rname]]);
+                    foreach ($it as $r) {
+                        if ((int)$r['rights'] > 0) $$var = 1;
+                        break;
+                    }
+                }
+                if ($useRights === 0 && ($hasPasta || $hasEscola || $hasTipo)) {
+                    $DB->update('glpi_profilerights', ['rights' => 1], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use']);
+                    if ($DB->affectedRows() === 0) {
+                        try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use', 'rights' => 1]); } catch (\Throwable $e) {}
+                    }
+                    if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
+                        $_SESSION['glpiactive_profile']['plugin_protocolo_use'] = 1;
+                        $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] = 1;
+                    }
+                }
+                if ($adminRights === 0 && $hasConfig) {
+                    $DB->update('glpi_profilerights', ['rights' => 1], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin']);
+                    if ($DB->affectedRows() === 0) {
+                        try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin', 'rights' => 1]); } catch (\Throwable $e) {}
+                    }
+                    if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
+                        $_SESSION['glpiactive_profile']['plugin_protocolo_admin'] = 1;
+                        $_SESSION['glpiactiveprofile']['plugin_protocolo_admin'] = 1;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("[protocolo] migrateLegacyRights falhou: " . $e->getMessage());
         }
     }
 
@@ -574,16 +647,19 @@ class Install
                 $pid = (int)$prof['id'];
                 self::repairActiveProfile($DB, $pid, false);
             }
+            // Migra legados para novos se necessário
+            self::migrateLegacyRights($DB);
         } catch (\Throwable $e) { error_log("[protocolo] repairZeroRights all: " . $e->getMessage()); }
     }
 
     /**
      * Cria direito faltante para um perfil. Nunca sobrescreve valor existente (respeita 0 = Sem acesso).
+     * Agora foca nos novos Usar/Admin, mantém legados para compat
      */
     public static function repairActiveProfile($DB, int $pid, bool $forceLog = true): void
     {
         try {
-            $rightsToFix = ['plugin_protocolo_pasta', 'plugin_protocolo_escola', 'plugin_protocolo_tipo'];
+            $rightsToFix = ['plugin_protocolo_use', 'plugin_protocolo_admin'];
             foreach ($rightsToFix as $rname) {
                 $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $rname]]);
                 $found = false;
@@ -591,8 +667,21 @@ class Install
                 if (!$found) {
                     // Só cria se não existe - mantém 0 explícito se admin setou Sem acesso
                     $default = 0;
-                    // Super-Admin (id 4) ganha 255 por padrão se faltante
-                    if ($pid === 4) $default = 255;
+                    // Super-Admin (id 4) ganha 1 por padrão se faltante
+                    if ($pid === 4) $default = 1;
+                    else {
+                        // Herda de legado se existir
+                        $legacyMap = [
+                            'plugin_protocolo_use' => ['plugin_protocolo_pasta','plugin_protocolo_escola','plugin_protocolo_tipo'],
+                            'plugin_protocolo_admin' => ['plugin_protocolo_config']
+                        ];
+                        foreach ($legacyMap[$rname] ?? [] as $l) {
+                            $it2 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $l]]);
+                            foreach ($it2 as $row2) {
+                                if ((int)$row2['rights'] > 0) { $default = 1; break 2; }
+                            }
+                        }
+                    }
                     $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => $rname, 'rights' => $default]);
                     if ($forceLog) error_log("[protocolo] repairActiveProfile $rname profile $pid criado $default (faltante)");
                     if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
@@ -601,6 +690,16 @@ class Install
                     }
                 }
                 // NUNCA faz UPDATE em valor existente - 0 é intencional
+            }
+            // Garante legados antigos também existam (fallback) mas não obrigatório
+            $legacyToFix = ['plugin_protocolo_pasta', 'plugin_protocolo_escola', 'plugin_protocolo_tipo', 'plugin_protocolo_config'];
+            foreach ($legacyToFix as $rname) {
+                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $rname]]);
+                $found = false;
+                foreach ($it as $row) { $found = true; break; }
+                if (!$found) {
+                    $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => $rname, 'rights' => 0]);
+                }
             }
         } catch (\Throwable $e) { error_log("[protocolo] repairActiveProfile pid $pid: " . $e->getMessage()); }
     }

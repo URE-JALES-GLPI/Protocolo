@@ -72,42 +72,33 @@ class Pasta extends CommonDBTM
 
     private static function hasRightDB(int $level): bool
     {
+        // Simplificado: verifica novo direito Usar (com fallback legado para transição)
+        // Tenta Profile::haveRightDB que já lida com DB + sessão e fallback legado
+        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level)) {
+            return true;
+        }
+        // Fallback direto legado pasta (para perfis ainda não migrados)
         global $DB;
         $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
         $uid = (int)Session::getLoginUserID();
         if (!$pid) {
-            error_log("[protocolo] hasRightDB sem pid uid=$uid level=$level fallback Sess=" . (Session::haveRight(self::$rightname, $level)?'1':'0'));
-            return Session::haveRight(self::$rightname, $level);
+            return Session::haveRight(self::$rightname, $level) || Session::haveRight('plugin_protocolo_use', $level);
         }
         if (!isset($DB) || !$DB->tableExists('glpi_profilerights')) {
-            error_log("[protocolo] hasRightDB sem DB pid=$pid level=$level fallback Session=" . (Session::haveRight(self::$rightname, $level)?'1':'0'));
-            return Session::haveRight(self::$rightname, $level);
+            return Session::haveRight(self::$rightname, $level) || Session::haveRight('plugin_protocolo_use', $level);
         }
         try {
             $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
             foreach ($it as $row) {
                 $dbRights = (int)$row['rights'];
-                $hasDb = ($dbRights & $level) === $level;
-                $hasSess = Session::haveRight(self::$rightname, $level);
-                // Log sempre para diagnóstico
-                error_log("[protocolo] hasRightDB check pid=$pid uid=$uid right=".self::$rightname." level=$level db=$dbRights hasDb=" . ($hasDb?'1':'0') . " hasSess=" . ($hasSess?'1':'0') . " sessVal=" . json_encode($_SESSION['glpiactive_profile'][self::$rightname] ?? 'not_set'));
-                if ($hasSess !== $hasDb) {
-                    // Se sessão diz que tem mas DB diz que não (0), corrige sessão na hora (fail-closed)
-                    if (!$hasDb && $hasSess) {
-                        $_SESSION['glpiactive_profile'][self::$rightname] = $dbRights;
-                        $_SESSION['glpiactiveprofile'][self::$rightname] = $dbRights;
-                        error_log("[protocolo] hasRightDB corrigiu sessao stale pid=$pid para $dbRights");
-                    }
-                }
-                return $hasDb;
+                // Legado: qualquer valor >0 conta como READ para compat com migração simplificada
+                if ($level === READ && $dbRights > 0) return true;
+                if (($dbRights & $level) === $level) return true;
             }
-            // Sem linha no banco = sem acesso - loga
-            error_log("[protocolo] hasRightDB sem linha pid=$pid right=".self::$rightname." level=$level -> NEGA");
-            return false;
         } catch (\Throwable $e) {
-            error_log("[protocolo] hasRightDB erro pid=$pid: " . $e->getMessage());
-            return false;
+            error_log("[protocolo] hasRightDB legado erro pid=$pid: " . $e->getMessage());
         }
+        return false;
     }
 
     public static function canView(): bool
@@ -1527,16 +1518,48 @@ class Pasta extends CommonDBTM
         return '-';
     }
 
+    /**
+     * Retorna URL web correta sem duplicar root_doc.
+     * Plugin::getWebDir já inclui root_doc em GLPI 11 (ex: /glpi/marketplace/...), então evita /glpi/glpi/...
+     */
+    private static function getProtocoloWebDir(): string
+    {
+        $web = Plugin::getWebDir('protocolo');
+        // Se $web já está vazio por algum motivo, fallback
+        if ($web === '' || $web === null) {
+            $web = '/plugins/protocolo';
+        }
+        return $web;
+    }
+
     public static function getSearchURL($full = true)
     {
-        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
-        return $dir . Plugin::getWebDir('protocolo') . '/front/pasta.php';
+        // Plugin::getWebDir já retorna com root_doc em GLPI 11; não prepend de novo
+        // Para compat com GLPI onde getWebDir retorna sem root_doc, adiciona se necessário
+        $web = self::getProtocoloWebDir();
+        $root = $GLOBALS['CFG_GLPI']['root_doc'] ?? '';
+        if ($full && $root !== '' && !str_starts_with($web, $root) && str_starts_with($web, '/')) {
+            // getWebDir retornou sem root_doc (ex: /plugins/...), então prepend
+            return $root . $web . '/front/pasta.php';
+        }
+        // Se full=false, GLPI menu espera sem root_doc; remove se já tem
+        if (!$full && $root !== '' && str_starts_with($web, $root)) {
+            return substr($web, strlen($root)) . '/front/pasta.php';
+        }
+        return $web . '/front/pasta.php';
     }
 
     public static function getFormURL($full = true)
     {
-        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
-        return $dir . Plugin::getWebDir('protocolo') . '/front/pasta.form.php';
+        $web = self::getProtocoloWebDir();
+        $root = $GLOBALS['CFG_GLPI']['root_doc'] ?? '';
+        if ($full && $root !== '' && !str_starts_with($web, $root) && str_starts_with($web, '/')) {
+            return $root . $web . '/front/pasta.form.php';
+        }
+        if (!$full && $root !== '' && str_starts_with($web, $root)) {
+            return substr($web, strlen($root)) . '/front/pasta.form.php';
+        }
+        return $web . '/front/pasta.form.php';
     }
 
     public static function getFormURLWithID($id = 0, $full = true)

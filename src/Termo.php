@@ -22,6 +22,7 @@ class Termo extends CommonDBTM
 
     private static function hasRightDB(int $level): bool
     {
+        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level)) return true;
         global $DB;
         $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
         if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
@@ -29,12 +30,13 @@ class Termo extends CommonDBTM
                 $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
                 foreach ($it as $row) {
                     $dbRights = (int)$row['rights'];
+                    if ($level === READ && $dbRights > 0) return true;
                     return ($dbRights & $level) === $level;
                 }
                 return false;
             } catch (\Throwable $e) {}
         }
-        return Session::haveRight(self::$rightname, $level);
+        return Session::haveRight(self::$rightname, $level) || \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level);
     }
 
     public static function canView(): bool
@@ -113,8 +115,16 @@ class Termo extends CommonDBTM
 
     public static function getFormURL($full = true)
     {
-        global $CFG_GLPI;
-        $dir = $full ? $CFG_GLPI['root_doc'] : '';
-        return $dir . '/plugins/protocolo/front/termo.form.php';
+        $web = Plugin::getWebDir('protocolo');
+        if ($web === '' || $web === null) $web = '/plugins/protocolo';
+        $root = $GLOBALS['CFG_GLPI']['root_doc'] ?? '';
+        // Se web já contém root, não duplica
+        if ($root !== '' && str_starts_with($web, $root)) {
+            $webPath = $web . '/front/termo.form.php';
+            if (!$full) return substr($webPath, strlen($root));
+            return $webPath;
+        }
+        $dir = $full ? $root : '';
+        return $dir . $web . '/front/termo.form.php';
     }
 }

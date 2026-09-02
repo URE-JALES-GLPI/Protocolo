@@ -157,7 +157,7 @@ echo "<span class='text-muted'>— clique em Ver para fazer upload</span>";
 echo "<span class='ms-auto text-muted'>Ordenado por <b>$sort</b> $order</span>";
 echo "</div>";
 
-$self = Pasta::getSearchURL(false);
+$self = Pasta::getSearchURL();
 echo "<form class='card shadow-sm mb-3' method='get' id='filtroPastas'>";
 echo "<div class='card-body row g-2 align-items-end'>";
 echo "<div class='col-md-3'><label class='form-label small'>Buscar</label><input name='q' value='" . htmlspecialchars($q) . "' class='form-control form-control-sm' placeholder='Código, remetente, escola'></div>";

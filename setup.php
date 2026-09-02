@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '1.4.4');
+define('PLUGIN_PROTOCOLO_VERSION', '1.5.0');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -85,42 +85,49 @@ function plugin_init_protocolo(): void
     // CSRF compliance - deve ser true para proteger POST
     $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = true;
 
-    // Menu GLPI 10/11 - sempre registra (GLPI filtra por canView)
+    // Menu GLPI 10/11 - apenas em Ferramentas (evita duplicar em Plug-ins)
     $PLUGIN_HOOKS['menu_toadd']['protocolo'] = [
-        'tools'   => \GlpiPlugin\Protocolo\Pasta::class,
-        'plugins' => \GlpiPlugin\Protocolo\Pasta::class,
+        'tools' => \GlpiPlugin\Protocolo\Pasta::class,
     ];
     $PLUGIN_HOOKS['menu_entry']['protocolo'] = 'front/dashboard.php';
+    // Usa Plugin::getWebDir para suportar plugins/ ou marketplace/ sem duplicar root_doc
+    $protocolo_webdir = \Plugin::getWebDir('protocolo');
+    // Submenu espera caminho sem root_doc (GLPI prepend root_doc internamente), então remove se já contém
+    $protocolo_webdir_noroot = $protocolo_webdir;
+    if (isset($CFG_GLPI['root_doc']) && $CFG_GLPI['root_doc'] !== '' && str_starts_with($protocolo_webdir, $CFG_GLPI['root_doc'])) {
+        $protocolo_webdir_noroot = substr($protocolo_webdir, strlen($CFG_GLPI['root_doc']));
+        if ($protocolo_webdir_noroot === '' || $protocolo_webdir_noroot[0] !== '/') $protocolo_webdir_noroot = '/' . ltrim($protocolo_webdir_noroot, '/');
+    }
     $PLUGIN_HOOKS['submenu_entry']['protocolo']['dashboard'] = [
         'title' => 'Dashboard',
-        'page'  => '/plugins/protocolo/front/dashboard.php',
+        'page'  => $protocolo_webdir_noroot . '/front/dashboard.php',
         'links' => [
-            'search' => '/plugins/protocolo/front/pasta.php',
-            'add'    => '/plugins/protocolo/front/pasta.form.php',
+            'search' => $protocolo_webdir_noroot . '/front/pasta.php',
+            'add'    => $protocolo_webdir_noroot . '/front/pasta.form.php',
         ]
     ];
     $PLUGIN_HOOKS['submenu_entry']['protocolo']['pastas'] = [
         'title' => 'Pastas',
-        'page'  => '/plugins/protocolo/front/pasta.php',
+        'page'  => $protocolo_webdir_noroot . '/front/pasta.php',
         'links' => [
-            'search' => '/plugins/protocolo/front/pasta.php',
-            'add'    => '/plugins/protocolo/front/pasta.form.php',
+            'search' => $protocolo_webdir_noroot . '/front/pasta.php',
+            'add'    => $protocolo_webdir_noroot . '/front/pasta.form.php',
         ]
     ];
     $PLUGIN_HOOKS['submenu_entry']['protocolo']['escolas'] = [
         'title' => 'Escolas',
-        'page'  => '/plugins/protocolo/front/escola.php',
+        'page'  => $protocolo_webdir_noroot . '/front/escola.php',
         'links' => [
-            'search' => '/plugins/protocolo/front/escola.php',
-            'add'    => '/plugins/protocolo/front/escola.form.php',
+            'search' => $protocolo_webdir_noroot . '/front/escola.php',
+            'add'    => $protocolo_webdir_noroot . '/front/escola.form.php',
         ]
     ];
     $PLUGIN_HOOKS['submenu_entry']['protocolo']['tipos'] = [
         'title' => 'Tipos de Arquivo',
-        'page'  => '/plugins/protocolo/front/tipo.php',
+        'page'  => $protocolo_webdir_noroot . '/front/tipo.php',
         'links' => [
-            'search' => '/plugins/protocolo/front/tipo.php',
-            'add'    => '/plugins/protocolo/front/tipo.form.php',
+            'search' => $protocolo_webdir_noroot . '/front/tipo.php',
+            'add'    => $protocolo_webdir_noroot . '/front/tipo.form.php',
         ]
     ];
     $PLUGIN_HOOKS['config_page']['protocolo'] = 'front/config.php';
@@ -128,12 +135,12 @@ function plugin_init_protocolo(): void
     // Cron
     $PLUGIN_HOOKS['cron']['protocolo'] = 3600;
 
-    // JS/CSS
+    // JS/CSS - usa webdir absoluto para evitar 404 marketplace/plugins e duplicação root_doc
     $PLUGIN_HOOKS['add_javascript']['protocolo'] = [
-        'js/app.js'
+        $protocolo_webdir . '/js/app.js'
     ];
     $PLUGIN_HOOKS['add_css']['protocolo'] = [
-        'css/style.css'
+        $protocolo_webdir . '/css/style.css'
     ];
 
     // Migração ENTIDADES - roda apenas uma vez por versão (cache em glpi_configs)
@@ -143,6 +150,12 @@ function plugin_init_protocolo(): void
             try { $migratedVersion = \Config::getConfigurationValue('plugin:protocolo', 'migrated_version'); } catch (\Throwable $e) {}
             if ($migratedVersion !== PLUGIN_PROTOCOLO_VERSION) {
                 \GlpiPlugin\Protocolo\Install::migrateEntities($DB);
+                // Garante novos direitos Usar/Admin e migração de legados
+                try {
+                    $ref = new \ReflectionMethod(\GlpiPlugin\Protocolo\Install::class, 'initRights');
+                    $ref->setAccessible(true);
+                    $ref->invoke(null);
+                } catch (\Throwable $e2) { error_log("[protocolo] initRights auto falhou: " . $e2->getMessage()); }
                 try { \GlpiPlugin\Protocolo\Config::initDefaults(); } catch (\Throwable $e2) {}
                 try { \GlpiPlugin\Protocolo\Install::registerCron(); } catch (\Throwable $e2) {}
                 try { \Config::setConfigurationValues('plugin:protocolo', ['migrated_version' => PLUGIN_PROTOCOLO_VERSION]); } catch (\Throwable $e) {}

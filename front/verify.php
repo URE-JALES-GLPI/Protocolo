@@ -68,7 +68,7 @@ if ($codigo === '') {
     echo "<tr><th>Hash</th><td><code>" . htmlspecialchars($termo['hash_verificacao']) . "</code></td></tr>";
     echo "<tr><th>Gerado em</th><td>" . Html::convDateTime($termo['date_creation']) . " por " . htmlspecialchars(getUserName($termo['users_id'] ?? 0)) . "</td></tr>";
     if (!empty($termo['arquivo_assinado'])) {
-        $dl = $CFG_GLPI['root_doc'] . "/plugins/protocolo/front/download.php?id=" . (int)$termo['id'];
+        $dl = Plugin::getWebDir('protocolo') . "/front/download.php?id=" . (int)$termo['id'];
         echo "<tr><th>Assinado</th><td><a href='$dl' class='btn btn-sm btn-success'><i class='ti ti-file'></i> Baixar assinado</a> <small class='text-muted'>" . htmlspecialchars($termo['arquivo_assinado']) . "</small></td></tr>";
     } else {
         echo "<tr><th>Assinado</th><td><span class='badge bg-warning text-dark'>Sem arquivo assinado</span></td></tr>";

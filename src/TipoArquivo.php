@@ -28,6 +28,13 @@ class TipoArquivo extends CommonDBTM
 
     private static function hasRightDB(string $right, int $level): bool
     {
+        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level)) {
+            return true;
+        }
+        // Admin também pode gerenciar tipos
+        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_admin', $level)) {
+            return true;
+        }
         global $DB;
         $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
         if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
@@ -35,31 +42,23 @@ class TipoArquivo extends CommonDBTM
                 $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $right]]);
                 foreach ($it as $row) {
                     $dbRights = (int)$row['rights'];
-                    $hasDb = ($dbRights & $level) === $level;
-                    $hasSess = Session::haveRight($right, $level);
-                    if ($hasSess !== $hasDb) {
-                        error_log("[protocolo] Tipo hasRightDB MISMATCH pid=$pid right=$right level=$level db=$dbRights");
-                        if (!$hasDb && $hasSess) {
-                            $_SESSION['glpiactive_profile'][$right] = $dbRights;
-                            $_SESSION['glpiactiveprofile'][$right] = $dbRights;
-                        }
-                    }
-                    return $hasDb;
+                    if ($level === READ && $dbRights > 0) return true;
+                    if (($dbRights & $level) === $level) return true;
                 }
                 return false;
             } catch (\Throwable $e) {}
         }
-        return Session::haveRight($right, $level);
+        return Session::haveRight($right, $level) || Session::haveRight('plugin_protocolo_use', $level);
     }
 
     public static function canView(): bool
     {
-        return self::hasRightDB(self::$rightname, READ) || self::hasRightDB('plugin_protocolo_config', READ);
+        return self::hasRightDB(self::$rightname, READ) || \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', READ) || \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_admin', READ);
     }
 
     public static function canCreate(): bool
     {
-        return self::hasRightDB(self::$rightname, CREATE);
+        return self::hasRightDB(self::$rightname, CREATE) || \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', CREATE);
     }
 
     public function canViewItem(): bool { return self::canView(); }
@@ -111,16 +110,39 @@ class TipoArquivo extends CommonDBTM
         return $input;
     }
 
+    private static function getProtocoloWebDir(): string
+    {
+        $web = Plugin::getWebDir('protocolo');
+        if ($web === '' || $web === null) {
+            $web = '/plugins/protocolo';
+        }
+        return $web;
+    }
+
     public static function getFormURL($full = true)
     {
-        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
-        return $dir . Plugin::getWebDir('protocolo') . '/front/tipo.form.php';
+        $web = self::getProtocoloWebDir();
+        $root = $GLOBALS['CFG_GLPI']['root_doc'] ?? '';
+        if ($full && $root !== '' && !str_starts_with($web, $root) && str_starts_with($web, '/')) {
+            return $root . $web . '/front/tipo.form.php';
+        }
+        if (!$full && $root !== '' && str_starts_with($web, $root)) {
+            return substr($web, strlen($root)) . '/front/tipo.form.php';
+        }
+        return $web . '/front/tipo.form.php';
     }
 
     public static function getSearchURL($full = true)
     {
-        $dir = $full ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') : '';
-        return $dir . Plugin::getWebDir('protocolo') . '/front/tipo.php';
+        $web = self::getProtocoloWebDir();
+        $root = $GLOBALS['CFG_GLPI']['root_doc'] ?? '';
+        if ($full && $root !== '' && !str_starts_with($web, $root) && str_starts_with($web, '/')) {
+            return $root . $web . '/front/tipo.php';
+        }
+        if (!$full && $root !== '' && str_starts_with($web, $root)) {
+            return substr($web, strlen($root)) . '/front/tipo.php';
+        }
+        return $web . '/front/tipo.php';
     }
 
     // Para popular checkboxes em Pasta form
