@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '1.5.1');
+define('PLUGIN_PROTOCOLO_VERSION', '1.5.2');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -135,12 +135,12 @@ function plugin_init_protocolo(): void
     // Cron
     $PLUGIN_HOOKS['cron']['protocolo'] = 3600;
 
-    // JS/CSS - usa webdir absoluto para evitar 404 marketplace/plugins e duplicação root_doc
+    // JS/CSS - relativo deixa GLPI resolver marketplace/plugins corretamente (evita duplicação /glpi/glpi/ ou /plugins//glpi/marketplace)
     $PLUGIN_HOOKS['add_javascript']['protocolo'] = [
-        $protocolo_webdir . '/js/app.js'
+        'js/app.js'
     ];
     $PLUGIN_HOOKS['add_css']['protocolo'] = [
-        $protocolo_webdir . '/css/style.css'
+        'css/style.css'
     ];
 
     // Migração ENTIDADES - roda apenas uma vez por versão (cache em glpi_configs)

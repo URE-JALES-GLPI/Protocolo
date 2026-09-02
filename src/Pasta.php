@@ -1025,8 +1025,9 @@ class Pasta extends CommonDBTM
         });
         </script>";
 
-        // JS para tipos/itens (reusa assets/js/app.js do plugin)
-        echo Html::script(Plugin::getWebDir('protocolo') . '/js/app.js');
+        // JS para tipos/itens (reusa assets/js/app.js) - tag direta evita duplicação root_doc do Html::script
+        $jsUrl = Plugin::getWebDir('protocolo') . '/js/app.js?v=' . PLUGIN_PROTOCOLO_VERSION;
+        echo "<script src=\"" . htmlspecialchars($jsUrl) . "\"></script>";
 
         return true;
     }
