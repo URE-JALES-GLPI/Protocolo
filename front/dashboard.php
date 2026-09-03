@@ -225,7 +225,12 @@ if (Config::canEdit()) {
 echo "</div>";
 echo "</div>";
 
-// Filtro categoria pasta/malote
+echo "<style>.dash-filter-toggle{margin-bottom:12px}.dash-filter-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#fff;border:1.5px solid #dee2e6;border-radius:8px;font-size:.85rem;font-weight:600;color:#495057;cursor:pointer}.dash-filter-btn:hover{background:#f8f9fa;border-color:#adb5bd}.dash-filter-btn.active{background:#e7f1ff;border-color:#b6d4fe;color:#084298}.dash-filter-content.collapsed{display:none}.dash-filter-content.expanded{display:block}</style>";
+echo "<div class='dash-filter-toggle'>";
+echo "<button type='button' id='dash-filter-btn' class='dash-filter-btn' onclick=\"toggleDashFilter()\"><i class='ti ti-filter'></i> Filtros <span id='dash-filter-text'>Expandir</span> <i id='dash-filter-icon' class='ti ti-chevron-down ms-1'></i></button>";
+if ($categoriaFiltro) echo " <span class='badge bg-info text-dark ms-2'>Filtrando: " . htmlspecialchars(ucfirst($categoriaFiltro)) . "</span>";
+echo "</div>";
+echo "<div id='dash-filter-content' class='dash-filter-content collapsed' style='display:none'>";
 echo "<div class='d-flex gap-2 mb-3 flex-wrap align-items-center'>";
 echo "<span class='text-muted small'><i class='ti ti-filter'></i> Categoria:</span>";
 $baseUrl = strtok($_SERVER['REQUEST_URI'], '?');
@@ -243,6 +248,26 @@ foreach ([''=>__('Todos','protocolo'),'pasta'=>'Pasta','malote'=>'Malote'] as $v
 }
 if ($categoriaFiltro) echo "<span class='badge bg-info text-dark ms-2'>Filtrando: " . htmlspecialchars(ucfirst($categoriaFiltro)) . "</span>";
 echo "</div>";
+echo "</div>";
+echo "<script>
+function toggleDashFilter(){
+  var c=document.getElementById('dash-filter-content');
+  var b=document.getElementById('dash-filter-btn');
+  var t=document.getElementById('dash-filter-text');
+  var i=document.getElementById('dash-filter-icon');
+  if(c.style.display==='none' || c.classList.contains('collapsed')){
+    c.style.display='block'; c.classList.remove('collapsed'); c.classList.add('expanded');
+    b.classList.add('active');
+    if(t) t.textContent='Recolher';
+    if(i){ i.classList.remove('ti-chevron-down'); i.classList.add('ti-chevron-up'); }
+  } else {
+    c.style.display='none'; c.classList.add('collapsed'); c.classList.remove('expanded');
+    b.classList.remove('active');
+    if(t) t.textContent='Expandir';
+    if(i){ i.classList.remove('ti-chevron-up'); i.classList.add('ti-chevron-down'); }
+  }
+}
+</script>";
 
 if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<div class='alert alert-danger d-flex justify-content-between align-items-center'><div><i class='ti ti-alert-triangle'></i> <strong>$totalAtrasadas " . __('pasta(s) aguardando há mais de', 'protocolo') . " $prazoAlerta " . __('dias', 'protocolo') . "</strong> — " . __('regularize a retirada ou contate a escola.', 'protocolo') . "</div><a href='#atrasadas' class='btn btn-sm btn-light'>" . __('Ver atrasadas', 'protocolo') . "</a></div>";

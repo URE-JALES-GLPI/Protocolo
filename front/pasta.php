@@ -158,6 +158,24 @@ echo "<span class='ms-auto text-muted'>Ordenado por <b>$sort</b> $order</span>";
 echo "</div>";
 
 $self = Pasta::getSearchURL();
+$hasActiveFilter = ($q !== '' || $escola_filtro > 0 || $status !== '' || $perPage !== 20);
+$activeCount = ($q!==''?1:0) + ($escola_filtro>0?1:0) + ($status!==''?1:0) + ($perPage!==20?1:0);
+echo "<style>
+.pasta-filter-toggle{margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.pasta-filter-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px solid #dee2e6;border-radius:8px;font-size:.85rem;font-weight:600;color:#495057;cursor:pointer;transition:all .15s}
+.pasta-filter-btn:hover{background:#f8f9fa;border-color:#adb5bd;color:#212529}
+.pasta-filter-btn.active{background:#e7f1ff;border-color:#b6d4fe;color:#084298}
+.pasta-filter-content{overflow:hidden;transition:max-height .3s ease,opacity .2s ease}
+.pasta-filter-content.collapsed{display:none}
+.pasta-filter-content.expanded{display:block}
+</style>";
+echo "<div class='pasta-filter-toggle'>";
+echo "<button type='button' id='pasta-filter-toggle-btn' class='pasta-filter-btn' onclick=\"togglePastaFilter()\"><i class='ti ti-filter'></i> Filtros";
+if ($hasActiveFilter) echo " <span class='badge bg-primary ms-1'>$activeCount ativo(s)</span>";
+echo " <span id='pasta-filter-text' class='ms-1'>Expandir</span> <i id='pasta-filter-icon' class='ti ti-chevron-down ms-1'></i></button>";
+if ($hasActiveFilter) echo "<small class='text-muted ms-2'><i class='ti ti-info-circle'></i> Filtros ativos — clique em Expandir para ajustar</small>";
+echo "</div>";
+echo "<div id='pasta-filter-content' class='pasta-filter-content collapsed' style='display:none'>";
 echo "<form class='card shadow-sm mb-3' method='get' id='filtroPastas'>";
 echo "<div class='card-body row g-2 align-items-end'>";
 echo "<div class='col-md-3'><label class='form-label small'>Buscar</label><input name='q' value='" . htmlspecialchars($q) . "' class='form-control form-control-sm' placeholder='Código, remetente, escola'></div>";
@@ -174,6 +192,26 @@ echo "<input type='hidden' name='sort' value='" . htmlspecialchars($sort) . "'><
 echo "<div class='col-md-1'><button class='btn btn-sm btn-primary w-100'><i class='ti ti-search'></i> Filtrar</button></div>";
 echo "<div class='col-md-2'><a href='$self' class='btn btn-sm btn-light w-100'>Limpar</a></div>";
 echo "</div></form>";
+echo "</div>";
+echo "<script>
+function togglePastaFilter(){
+  var content=document.getElementById('pasta-filter-content');
+  var btn=document.getElementById('pasta-filter-toggle-btn');
+  var text=document.getElementById('pasta-filter-text');
+  var icon=document.getElementById('pasta-filter-icon');
+  if(content.style.display==='none' || content.classList.contains('collapsed')){
+    content.style.display='block'; content.classList.remove('collapsed'); content.classList.add('expanded');
+    btn.classList.add('active');
+    if(text) text.textContent='Recolher';
+    if(icon){ icon.classList.remove('ti-chevron-down'); icon.classList.add('ti-chevron-up'); }
+  } else {
+    content.style.display='none'; content.classList.add('collapsed'); content.classList.remove('expanded');
+    btn.classList.remove('active');
+    if(text) text.textContent='Expandir';
+    if(icon){ icon.classList.remove('ti-chevron-up'); icon.classList.add('ti-chevron-down'); }
+  }
+}
+</script>";
 
 echo "<div class='card shadow-sm'><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr>";
 echo "<th>" . sortLink('codigo','Código',$sort,$order) . "</th>";
