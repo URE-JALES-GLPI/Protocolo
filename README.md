@@ -1,107 +1,36 @@
-# Sistema de Protocolo de Pastas - URE (Plugin GLPI 11.x)
+# Protocolo de Pastas — URE
 
-> **NOVO:** Este projeto foi **convertido para plugin GLPI 11.x** em `setup.php:20` / `hook.php:11`. Veja [`README_GLPI.md`](README_GLPI.md) para instalação no GLPI (`glpi/plugins/protocolo`). O sistema standalone original continua disponível abaixo para referência.
+> Sistema de protocolo e rastreabilidade de pastas entre unidades — agora como plugin GLPI.
 
-Sistema web em **PHP + MySQL** para controle de pastas que ficam no setor até retirada pelas escolas. Agora também como **plugin GLPI** (`glpi_plugin_protocolo_*` em `src/Install.php:18`).
+## Sobre
 
-## 📋 Sobre
+O **Protocolo de Pastas** controla o fluxo de pastas físicas que transitam entre o setor central e as unidades vinculadas. Cada pasta recebe um código sequencial, gera termos de recebimento e entrega e mantém o comprovante assinado arquivado — garantindo comprovação, padronização e auditoria.
 
-Sistema para **protocolar, rastrear e comprovar** a movimentação de pastas entre a URE e as escolas, com geração de termos e arquivamento do comprovante assinado.
+Evoluiu de sistema standalone em PHP para plugin nativo do GLPI 11.
 
-**Fluxo resumido:** Registrar Entrada (escola + itens) → imprimir **Termo de Recebimento** → coletar assinatura → fazer **upload do assinado** → Escola retira → Registrar Retirada → imprimir **Termo de Entrega/Retirada** → upload do assinado. Notificação automática (e-mail/WhatsApp) prevista via tabela `notificacoes`.
+## Para que serve
 
-> Stack: PHP + MySQL · Apache (Ubuntu 24.04 LTS - Proxmox) · Login com perfis `admin`/`operador`
+- **Protocolar entradas e retiradas** — Registro com código único, escola vinculada e itens da pasta.
+- **Comprovar movimentações** — Geração de termos em PDF com código de verificação e upload do documento assinado.
+- **Rastrear status** — Acompanhamento de pendências, retiradas e cancelamentos com histórico completo.
+- **Gerenciar cadastros** — Escolas, tipos de arquivo e usuários com perfis e permissões.
+- **Centralizar a operação** — Dashboard com alertas de pendências e visão por período/escola.
 
----
+## Destaques
 
-## ✨ Funcionalidades
+- Fluxo completo: entrada → termo de recebimento → retirada → termo de entrega
+- Arquivamento digital do termo assinado
+- Histórico e logs por pasta
+- Integração com perfis e entidades do GLPI
+- Migração assistida do sistema legado para plugin
 
-* Registro de entrada e retirada de pastas com código sequencial (`PROT-2026-0001`).
-* Geração de Termos em PDF (recebimento/entrega) com código de verificação.
-* Upload do termo assinado (substitui versão sem assinatura).
-* Cadastro de escolas e usuários com perfis e permissões.
-* Dashboard com pendências de upload e alertas.
-* Controle de status: aguardando / retirada / cancelada.
-* Log e histórico completo por pasta.
+## Tecnologias
 
----
+GLPI 11 · PHP 8 · MySQL · GLPI Plugin API
 
-## 🎯 Objetivos
+## Licença
 
-* Centralizar o protocolo de pastas do setor.
-* Padronizar comprovantes e rastreabilidade.
-* Reduzir extravios e facilitar auditorias.
-
----
-
-## 🚀 Benefícios
-
-* Histórico organizado por escola/período.
-* Comprovantes digitalizados e verificáveis.
-* Fluxo simples para operadores e administradores.
+GPL v2+
 
 ---
-
-## 🖥️ Compatibilidade
-
-* PHP 8.x + MySQL 8.x
-* Apache 2.4 (Ubuntu 24.04 LTS)
-* Navegadores modernos
-
----
-
-## ⚙️ Instalação (resumida)
-
-1. **Requisitos:** Apache + PHP (`php-mysql php-mbstring php-xml php-curl php-gd`) + MySQL.
-2. **Banco:** crie o BD `protocolo`, importe `sql/schema.sql` e ajuste credenciais em `config/database.php` (`SUA_SENHA_FORTE_AQUI`).
-3. **Deploy:** copie para `/var/www/protocolo`, ajuste permissões (`chown www-data`, `chmod 775 uploads/termos`) e ative o VirtualHost (`apache/protocolo.conf` + `a2enmod rewrite` + `a2ensite protocolo`).
-4. **Acesso:** `http://SEU_IP` ou `http://protocolo.local` (configure `hosts` se usar nome). Ou use o script automático: `bash install.sh`.
-
-**Primeiro acesso:** usuário `admin` (senha definida em `sql/schema.sql` - troque imediatamente em **Usuários**). Personalize brasão/nome em `gerar_termo.php` e `includes/header.php`.
-
-> Detalhes completos de LAMP/VirtualHost/hosts estão em `install.sh` e `apache/protocolo.conf`.
-
----
-
-## 📁 Estrutura
-
-```
-# Standalone (legado)
-config/database.php   -> credenciais PDO (src/Install.php:183 no plugin usa $DB)
-includes/auth.php     -> sessão/login/CSRF (plugin usa Session::haveRight)
-sql/schema.sql        -> DDL + admin padrão (plugin usa install/mysql/plugin_protocolo_empty.sql:1)
-uploads/termos/       -> PDFs/JPGs assinados (plugin usa GLPI_PLUGIN_DOC_DIR/protocolo/termos em src/Pasta.php:651)
-apache/protocolo.conf -> VirtualHost
-
-# Plugin GLPI 11.x (NOVO) - ver README_GLPI.md
-setup.php             -> plugin_version/init (menu, direitos, CSS/JS)
-hook.php              -> install/uninstall
-src/Install.php       -> cria glpi_plugin_protocolo_* + direitos
-src/Pasta.php         -> CommonDBTM pastas (PROT-YYYY-...), retirada, upload
-src/Escola.php        -> CommonDBTM escolas
-src/TipoArquivo.php   -> CommonDBTM tipos
-src/Termo.php         -> helper termos
-src/Profile.php       -> aba Perfil + direitos plugin_protocolo_*
-front/dashboard.php   -> dashboard GLPI
-front/pasta.php|pasta.form.php -> Search + form
-front/termo.php       -> termo A4 imprimível
-tools/migrate_standalone.php -> migra BD antigo para plugin
-```
-
----
-
-## 🤝 Contribuições
-
-Contribuições são bem-vindas. Abra uma **Issue** ou envie um **Pull Request**.
-
----
-
-## 📄 Licença
-
-Este projeto é distribuído sob a licença **GPL v2+**.
-
----
-
-## 👨‍💻 Autor
-
-Desenvolvido por **Leonardo Poiatti Fação**.
+*Plugin mantido pela equipe de TI.*
