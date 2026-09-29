@@ -650,6 +650,8 @@ class Pasta extends CommonDBTM
     public function showForm($ID, array $options = [])
     {
         $isNew = ((int)$ID === 0);
+        // modal=true: renderiza só o formulário (para dentro da janela flutuante), sem wrapper pt-page
+        $isModal = !empty($options['modal']);
         if ($isNew) {
             if (!self::canCreate() && !self::canView()) { return false; }
         } else {
@@ -669,8 +671,13 @@ class Pasta extends CommonDBTM
 
         $csrf = Session::getNewCSRFToken();
         $formUrl = self::getFormURL();
-        // Wrapper pt-page: aplica identidade visual moderna (compat com tab_cadre_fixe/cards/btn)
-        echo "<div class='pt-page' style='max-width:none;padding:4px 4px 24px;'>";
+        // Wrapper pt-page: aplica identidade visual moderna (compat com tab_cadre_fixe/cards/btn);
+        // no modal usa padding zerado (o pt-modal-body já tem respiro)
+        if ($isModal) {
+            echo "<div class='pt-page' style='max-width:none;padding:0;'>";
+        } else {
+            echo "<div class='pt-page' style='max-width:none;padding:4px 4px 24px;'>";
+        }
         echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form' novalidate>";
         echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
         if (!$isNew) {
@@ -871,7 +878,11 @@ class Pasta extends CommonDBTM
         echo "<div class='card-body d-flex gap-2 justify-content-center' style='padding:16px;'>";
         if ($isNew) {
             echo "<button type='submit' name='add' value='1' class='pt-btn pt-btn-primary'><i class='ti ti-check'></i> " . __('Registrar pasta', 'protocolo') . "</button>";
-            echo "<a href='" . self::getSearchURL() . "' class='pt-btn pt-btn-secondary'>" . __('Cancelar') . "</a>";
+            if ($isModal) {
+                echo "<button type='button' class='pt-btn pt-btn-secondary' onclick='ptCloseRegisterModal()'>" . __('Fechar') . "</button>";
+            } else {
+                echo "<a href='" . self::getSearchURL() . "' class='pt-btn pt-btn-secondary'>" . __('Cancelar') . "</a>";
+            }
         } else {
             // Botões atualizar / retirada / cancelar dentro do form principal só atualiza dados básicos
             if (Session::haveRight(self::$rightname, UPDATE)) {
@@ -1122,9 +1133,8 @@ class Pasta extends CommonDBTM
         });
         </script>";
 
-        // JS para tipos/itens (reusa public/js/app.js) - tag direta evita duplicação root_doc do Html::script
-        $jsUrl = Plugin::getWebDir('protocolo') . '/public/js/app.js?v=' . PLUGIN_PROTOCOLO_VERSION;
-        echo "<script src=\"" . htmlspecialchars($jsUrl) . "\"></script>";
+        // NOTA: public/js/app.js já é carregado via hook add_javascript em todas as páginas;
+        // tag inline aqui duplicaria a execução (handlers duplos), então não incluir.
         echo "</div>"; // fecha .pt-page
 
         return true;

@@ -189,6 +189,27 @@ window.ptToggleFilter = function(contentId, btnId, textId, iconId) {
   }
 };
 
+// ---- Janela flutuante Registrar Entrada (estilo modal de transferência) ----
+window.ptOpenRegisterModal = function(ev) {
+  var m = document.getElementById('pt-register-overlay');
+  if (!m) return true; // sem modal na página: segue o link normalmente
+  if (ev) ev.preventDefault();
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  return false;
+};
+window.ptCloseRegisterModal = function(ev) {
+  // fecha no ESC, no botão X/Fechar ou clicando no fundo escuro
+  if (ev && ev.target && ev.target.id !== 'pt-register-overlay' && !(ev.target.closest && ev.target.closest('.pt-modal-close'))) return;
+  var m = document.getElementById('pt-register-overlay');
+  if (m) m.classList.remove('open');
+  document.body.style.overflow = '';
+  return false;
+};
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') window.ptCloseRegisterModal();
+});
+
 // ---- Abas Resumo/Dashboards sem reload (transição fluida, sem piscar) ----
 window.ptDashTab = function(ev, tab) {
   if (ev) ev.preventDefault();

@@ -145,7 +145,7 @@ echo "<div class='pt-page-header'>";
 echo "<div class='pt-page-title'><i class='ti ti-folder'></i><h2>" . Pasta::getTypeName(2) . " <small>$total registros</small></h2></div>";
 echo "<div class='pt-page-actions'>";
 if (Pasta::canCreate()) {
-    echo "<a href='" . Pasta::getFormURL() . "' class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> Nova</a>";
+    echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> Nova</a>";
 }
 $csvUrl = buildUrl(['export'=>'csv']);
 echo "<a href='$csvUrl' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-download'></i> CSV</a>";
@@ -256,5 +256,18 @@ if ($totalPages > 1) {
 }
 echo "</div>";
 echo "</div>";
+
+// Janela flutuante Nova pasta (mesmo formulário da tela cheia, sem trocar de página)
+if (Pasta::canCreate()) {
+    echo "<div id='pt-register-overlay' class='pt-modal-overlay' onclick='ptCloseRegisterModal(event)'>";
+    echo "<div class='pt-modal pt-modal-lg' onclick='event.stopPropagation()' role='dialog' aria-modal='true' aria-label='Nova pasta'>";
+    echo "<div class='pt-modal-header'><div class='pt-modal-title'><i class='ti ti-folder-plus'></i><span>Nova pasta</span></div><button type='button' class='pt-modal-close' onclick='ptCloseRegisterModal()' aria-label='Fechar'><i class='ti ti-x'></i></button></div>";
+    echo "<div class='pt-modal-body'>";
+    $pastaModal = new Pasta();
+    $pastaModal->showForm(0, ['modal' => true]);
+    echo "</div>";
+    echo "</div>";
+    echo "</div>";
+}
 
 Html::footer();

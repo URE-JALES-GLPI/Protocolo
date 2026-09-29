@@ -217,7 +217,7 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<a href='#atrasadas' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</a>";
 }
 if (Pasta::canCreate()) {
-    echo "<a href='" . Pasta::getFormURL() . "' class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
+    echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
 }
 if (Config::canEdit()) {
     echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/config.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-settings'></i> Config</a>";
@@ -365,6 +365,19 @@ echo "</div>"; // fim tab-dashboards
 echo "</div>"; // fim tab-content
 
 echo "</div>"; // fim container-fluid
+
+// Janela flutuante Registrar Entrada (mesmo formulário da tela cheia, sem trocar de página)
+if (Pasta::canCreate()) {
+    echo "<div id='pt-register-overlay' class='pt-modal-overlay' onclick='ptCloseRegisterModal(event)'>";
+    echo "<div class='pt-modal pt-modal-lg' onclick='event.stopPropagation()' role='dialog' aria-modal='true' aria-label='" . __('Registrar Entrada', 'protocolo') . "'>";
+    echo "<div class='pt-modal-header'><div class='pt-modal-title'><i class='ti ti-folder-plus'></i><span>" . __('Registrar Entrada', 'protocolo') . "</span></div><button type='button' class='pt-modal-close' onclick='ptCloseRegisterModal()' aria-label='Fechar'><i class='ti ti-x'></i></button></div>";
+    echo "<div class='pt-modal-body'>";
+    $pastaModal = new Pasta();
+    $pastaModal->showForm(0, ['modal' => true]);
+    echo "</div>";
+    echo "</div>";
+    echo "</div>";
+}
 
 // Charts JS
 if ($graficosAtivo) {
