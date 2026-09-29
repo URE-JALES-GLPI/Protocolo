@@ -151,7 +151,9 @@ class Install
             "CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_pastas` (
               `id` INT AUTO_INCREMENT PRIMARY KEY,
               `codigo` VARCHAR(30) NOT NULL UNIQUE,
-              `categoria` ENUM('pasta','malote') NOT NULL DEFAULT 'pasta',
+              `categoria` ENUM('pasta','malote','envelope','caixa','outro') NOT NULL DEFAULT 'pasta',
+              `especie_outro` VARCHAR(150) DEFAULT NULL,
+              `assunto` VARCHAR(255) DEFAULT NULL,
               `origem_tipo` ENUM('outro','ure','escola') NOT NULL DEFAULT 'escola',
               `origem_outro` VARCHAR(150) DEFAULT NULL,
               `origem_entities_id` INT DEFAULT NULL,
@@ -497,6 +499,19 @@ class Install
                         if ($res) while ($row = $DB->fetchAssoc($res)) { $exists = true; break; }
                         if (!$exists) $DB->doQuery($sql);
                     } catch (\Throwable $e) {}
+                }
+                // --- 1.8.0: Espécie (expande categoria: +envelope/caixa/outro) + assunto ---
+                if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'assunto')) {
+                    try {
+                        $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` MODIFY COLUMN `categoria` ENUM('pasta','malote','envelope','caixa','outro') NOT NULL DEFAULT 'pasta'");
+                    } catch (\Throwable $e) { error_log("[protocolo] migrateEntities: expansao categoria falhou: " . $e->getMessage()); }
+                    try {
+                        if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', 'especie_outro')) {
+                            $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `especie_outro` VARCHAR(150) DEFAULT NULL AFTER `categoria`");
+                        }
+                        $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `assunto` VARCHAR(255) DEFAULT NULL AFTER `especie_outro`");
+                        error_log("[protocolo] migrateEntities: especie/assunto adicionados (1.8.0)");
+                    } catch (\Throwable $e) { error_log("[protocolo] migrateEntities: especie/assunto falhou: " . $e->getMessage()); }
                 }
             }
             if ($DB->tableExists('glpi_plugin_protocolo_itens')) {

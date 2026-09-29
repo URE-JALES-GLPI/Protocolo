@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_tipos` (
 CREATE TABLE IF NOT EXISTS `glpi_plugin_protocolo_pastas` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `codigo` VARCHAR(30) NOT NULL UNIQUE,
-  `categoria` ENUM('pasta','malote') NOT NULL DEFAULT 'pasta',
+  `categoria` ENUM('pasta','malote','envelope','caixa','outro') NOT NULL DEFAULT 'pasta',
+  `especie_outro` VARCHAR(150) DEFAULT NULL,
+  `assunto` VARCHAR(255) DEFAULT NULL,
   `origem_tipo` ENUM('outro','ure','escola') NOT NULL DEFAULT 'escola',
   `origem_outro` VARCHAR(150) DEFAULT NULL,
   `origem_entities_id` INT DEFAULT NULL,

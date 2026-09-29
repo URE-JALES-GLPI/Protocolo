@@ -56,7 +56,9 @@ $termo = Termo::getOrCreate($id, $tipo);
 // Se já existe arquivo assinado, mantemos imprimível
 
 $categoria = strtolower($pasta->fields['categoria'] ?? 'pasta');
-$catLabel = $categoria === 'malote' ? 'MALOTE' : 'PASTA';
+$especieLabel = Pasta::getEspecieLabel($categoria, $pasta->fields['especie_outro'] ?? null);
+$especieArtigo = Pasta::getEspecieArtigo($categoria);
+$catLabel = mb_strtoupper($especieLabel);
 $titulo = $tipo === 'recebimento' ? "TERMO DE RECEBIMENTO DE $catLabel" : "TERMO DE ENTREGA / RETIRADA DE $catLabel";
 $subtitulo = $tipo === 'recebimento' ? 'Comprovante de recebimento e guarda temporária' : 'Comprovante de entrega à escola / retirada';
 $dataRef = $tipo === 'recebimento' ? $pasta->fields['data_recebimento'] : ($pasta->fields['data_retirada'] ?? date('Y-m-d H:i:s'));
@@ -145,8 +147,9 @@ body{ background:#eee; }
   </div>
 
   <table class="table table-bordered meta">
-    <tr><td style="width:50%"><strong><?= __('Categoria', 'protocolo') ?>:</strong><br><?= $categoria === 'malote' ? 'Malote' : 'Pasta' ?> (<?= htmlspecialchars($pasta->fields['codigo']) ?>)</td>
+    <tr><td style="width:50%"><strong><?= __('Espécie', 'protocolo') ?>:</strong><br><?= htmlspecialchars($especieLabel) ?> (<?= htmlspecialchars($pasta->fields['codigo']) ?>)</td>
         <td><strong><?= __('Data/hora', 'protocolo') ?>:</strong><br><?= date('d/m/Y \à\s H:i', strtotime($dataRef)) ?></td></tr>
+    <?php if (!empty($pasta->fields['assunto'])): ?><tr><td colspan="2"><strong><?= __('Assunto', 'protocolo') ?>:</strong> <?= htmlspecialchars($pasta->fields['assunto']) ?></td></tr><?php endif; ?>
     <tr><td><strong><?= __('Origem', 'protocolo') ?>:</strong><br><?= htmlspecialchars($origemNome) ?></td>
         <td><strong><?= __('Destino', 'protocolo') ?> / <?= __('Destinatário', 'protocolo') ?>:</strong><br><?= htmlspecialchars($destinoNome) ?></td></tr>
     <tr><td><strong><?= $tipo === 'recebimento' ? __('Recebido de:', 'protocolo') : __('Retirado por:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td>
@@ -155,9 +158,9 @@ body{ background:#eee; }
   </table>
 
   <?php if ($tipo === 'recebimento'): ?>
-    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('recebi nesta data', 'protocolo') ?></strong> <?= __('no setor de protocolo', 'protocolo') ?> <?= $categoria==='malote' ? 'o malote' : 'a pasta' ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('entregue por', 'protocolo') ?> <strong><?= htmlspecialchars($pasta->fields['recebido_de']) ?></strong><?= $pasta->fields['recebido_documento'] ? ' (doc. ' . htmlspecialchars($pasta->fields['recebido_documento']) . ')' : '' ?>, <?= __('contendo os seguintes itens/documentos:', 'protocolo') ?></p>
+    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('recebi nesta data', 'protocolo') ?></strong> <?= __('no setor de protocolo', 'protocolo') ?> <?= $especieArtigo ?> <?= htmlspecialchars(mb_strtolower($especieLabel)) ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('entregue por', 'protocolo') ?> <strong><?= htmlspecialchars($pasta->fields['recebido_de']) ?></strong><?= $pasta->fields['recebido_documento'] ? ' (doc. ' . htmlspecialchars($pasta->fields['recebido_documento']) . ')' : '' ?>, <?= __('contendo os seguintes itens/documentos:', 'protocolo') ?></p>
   <?php else: ?>
-    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('retirei nesta data', 'protocolo') ?></strong> <?= __('junto ao setor de protocolo', 'protocolo') ?> <?= $categoria==='malote' ? 'o malote' : 'a pasta' ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('contendo os seguintes itens/documentos, assumindo a responsabilidade pelo transporte e entrega:', 'protocolo') ?></p>
+    <p><?= __('Declaro para os devidos fins que', 'protocolo') ?> <strong><?= __('retirei nesta data', 'protocolo') ?></strong> <?= __('junto ao setor de protocolo', 'protocolo') ?> <?= $especieArtigo ?> <?= htmlspecialchars(mb_strtolower($especieLabel)) ?> <?= __('identificado acima, com origem em', 'protocolo') ?> <strong><?= htmlspecialchars($origemNome) ?></strong> <?= __('e destino à', 'protocolo') ?> <strong><?= htmlspecialchars($destinoNome) ?></strong>, <?= __('contendo os seguintes itens/documentos, assumindo a responsabilidade pelo transporte e entrega:', 'protocolo') ?></p>
   <?php endif; ?>
 
   <table class="itens">

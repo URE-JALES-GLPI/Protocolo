@@ -44,9 +44,10 @@ if ($entityWhereSqlPasta === $entityWhereSql) {
     }
 }
 
-// Filtro categoria pasta/malote
+// Filtro espécie (substitui categoria pasta/malote)
+$especieKeys = array_keys(Pasta::getEspecieOptions());
 $categoriaFiltro = $_GET['categoria'] ?? '';
-if (!in_array($categoriaFiltro, ['pasta','malote'])) $categoriaFiltro = '';
+if (!in_array($categoriaFiltro, $especieKeys)) $categoriaFiltro = '';
 $categoriaWhereSql = '';
 $categoriaWhereSqlPasta = '';
 $hasCategoriaCol = false;
@@ -62,13 +63,14 @@ if ($categoriaFiltro && $hasCategoriaCol) {
 $totalAguardando = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'aguardando', 'is_deleted' => 0], $entityFilter));
 $totalRetiradas  = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'retirada', 'is_deleted' => 0], $entityFilter));
 $totalCanceladas = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'cancelada', 'is_deleted' => 0], $entityFilter));
-// Breakdown por categoria (para cards quando sem filtro)
-$totalPasta = $totalMalote = 0;
+// Breakdown por espécie (para cards quando sem filtro)
+$especieCounts = [];
 if ($hasCategoriaCol && !$categoriaFiltro) {
-    try {
-        $totalPasta = countElementsInTable(Pasta::getTable(), array_merge(['categoria'=>'pasta','is_deleted'=>0], $entityFilterBase));
-        $totalMalote = countElementsInTable(Pasta::getTable(), array_merge(['categoria'=>'malote','is_deleted'=>0], $entityFilterBase));
-    } catch (\Throwable $e) {}
+    foreach ($especieKeys as $esp) {
+        try {
+            $especieCounts[$esp] = countElementsInTable(Pasta::getTable(), array_merge(['categoria'=>$esp,'is_deleted'=>0], $entityFilterBase));
+        } catch (\Throwable $e) { $especieCounts[$esp] = 0; }
+    }
 }
 $totalMes        = 0;
 try {
@@ -228,10 +230,10 @@ echo "</div>";
 
 echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
 echo "<button type='button' id='dash-filter-btn' class='pt-filter-toggle-btn' onclick=\"ptToggleFilter('dash-filter-content','dash-filter-btn','dash-filter-text','dash-filter-icon')\"><i class='ti ti-filter'></i> Filtros <span id='dash-filter-text'>Expandir</span> <i id='dash-filter-icon' class='ti ti-chevron-down ms-1'></i></button>";
-if ($categoriaFiltro) echo " <span class='pt-badge pt-badge-pasta ms-2'>Filtrando: " . htmlspecialchars(ucfirst($categoriaFiltro)) . "</span>";
+if ($categoriaFiltro) echo " <span class='pt-badge pt-badge-pasta ms-2'>Filtrando: " . htmlspecialchars(Pasta::getEspecieLabel($categoriaFiltro)) . "</span>";
 echo "<div id='dash-filter-content' class='collapsed' style='display:none;margin-top:12px;'>";
 echo "<div class='d-flex gap-2 flex-wrap align-items-center'>";
-echo "<span class='text-muted small'><i class='ti ti-filter'></i> Categoria:</span>";
+echo "<span class='text-muted small'><i class='ti ti-filter'></i> Espécie:</span>";
 $baseUrl = strtok($_SERVER['REQUEST_URI'], '?');
 $qBase = $_GET; unset($qBase['categoria']);
 $buildUrl = function($cat) use ($baseUrl, $qBase) {
@@ -239,15 +241,17 @@ $buildUrl = function($cat) use ($baseUrl, $qBase) {
     if ($cat) $q['categoria']=$cat;
     return $baseUrl . ($q ? '?'.http_build_query($q) : '');
 };
+$especieIcons = ['pasta'=>'ti ti-folder','malote'=>'ti ti-mail','envelope'=>'ti ti-envelope','caixa'=>'ti ti-box','outro'=>'ti ti-dots'];
 echo "<div class='pt-tabs'>";
-foreach ([''=>__('Todos','protocolo'),'pasta'=>'Pasta','malote'=>'Malote'] as $val=>$label) {
-    $active = $categoriaFiltro===$val || ($categoriaFiltro==='' && $val==='');
+echo "<a href='" . htmlspecialchars($buildUrl('')) . "' class='pt-tab" . ($categoriaFiltro===''?' active':'') . "'><i class='ti ti-apps'></i> " . __('Todos','protocolo') . "</a>";
+foreach (Pasta::getEspecieOptions() as $val=>$label) {
+    $active = $categoriaFiltro===$val;
     $cls = $active ? 'pt-tab active' : 'pt-tab';
-    $icon = $val==='malote' ? 'ti ti-mail' : ($val==='pasta' ? 'ti ti-folder' : 'ti ti-apps');
-    echo "<a href='" . htmlspecialchars($buildUrl($val)) . "' class='$cls'><i class='$icon'></i> $label</a>";
+    $icon = $especieIcons[$val] ?? 'ti ti-tag';
+    echo "<a href='" . htmlspecialchars($buildUrl($val)) . "' class='$cls'><i class='$icon'></i> " . htmlspecialchars($label) . "</a>";
 }
 echo "</div>";
-if ($categoriaFiltro) echo "<span class='pt-badge pt-badge-pasta ms-2'>Filtrando: " . htmlspecialchars(ucfirst($categoriaFiltro)) . "</span>";
+if ($categoriaFiltro) echo "<span class='pt-badge pt-badge-pasta ms-2'>Filtrando: " . htmlspecialchars(Pasta::getEspecieLabel($categoriaFiltro)) . "</span>";
 echo "</div>";
 echo "</div>";
 echo "</div>";
@@ -265,8 +269,11 @@ if ($alertaAtivo) {
 }
 echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span class='pt-badge pt-badge-retirada'>" . __('Retiradas', 'protocolo') . "</span></div><div class='pt-dash-number'>$totalRetiradas</div><div class='pt-dash-label'>pastas</div><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=retirada' class='pt-dash-link'>Ver lista &rarr;</a></div>";
 if ($hasCategoriaCol && !$categoriaFiltro) {
-    echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span class='pt-badge pt-badge-pasta'><i class='ti ti-folder'></i> Pastas</span></div><div class='pt-dash-number'>$totalPasta</div><div class='pt-dash-label'>pastas</div><a href='?categoria=pasta' class='pt-dash-link'>Filtrar Pasta &rarr;</a></div>";
-    echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span class='pt-badge pt-badge-malote'><i class='ti ti-mail'></i> Malotes</span></div><div class='pt-dash-number'>$totalMalote</div><div class='pt-dash-label'>malotes</div><a href='?categoria=malote' class='pt-dash-link'>Filtrar Malote &rarr;</a></div>";
+    foreach (Pasta::getEspecieOptions() as $espVal => $espLabel) {
+        $espTotal = $especieCounts[$espVal] ?? 0;
+        $espIcon = $especieIcons[$espVal] ?? 'ti ti-tag';
+        echo "<div class='pt-dash-card'><div class='pt-dash-card-top'>" . Pasta::getCategoriaBadge($espVal) . "</div><div class='pt-dash-number'>$espTotal</div><div class='pt-dash-label'>" . htmlspecialchars(mb_strtolower($espLabel)) . "</div><a href='?categoria=$espVal' class='pt-dash-link'>Filtrar &rarr;</a></div>";
+    }
 }
 echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span style='font-size:.8rem;font-weight:700;color:#4f46e5;'><i class='ti ti-calendar-plus'></i> " . __('Entradas no mês', 'protocolo') . "</span></div><div class='pt-dash-number'>$totalMes</div><div class='pt-dash-label'>este mês</div></div>";
 echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span style='font-size:.8rem;font-weight:700;color:#d97706;'><i class='ti ti-circle-filled'></i> Pend. Termo Entrega</span></div><div class='pt-dash-number' style='color:#d97706;'>$totalPendRec</div><div class='pt-dash-label'>termos</div><a href='#pendencias' class='pt-dash-link'>Ver abaixo &rarr;</a></div>";
@@ -296,7 +303,7 @@ if ($lastRows) {
         $isAtencao = $alertaAtivo && !$isAtrasada && $dias >= max(1, $prazoAlerta - 5);
         $rowCls = $isAtrasada ? "table-danger" : ($isAtencao ? "table-warning" : "");
         $badgeDias = $isAtrasada ? "<span class='pt-badge pt-badge-warn'><i class='ti ti-alert-triangle'></i> $dias d</span>" : ($isAtencao ? "<span class='pt-badge pt-badge-aguardando'>$dias d</span>" : "<span class='pt-badge pt-badge-cancelada'>$dias d</span>");
-        $catBadge = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta');
+        $catBadge = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta', $r['especie_outro'] ?? null);
         // origem -> destino display
         $origem = Pasta::getOrigemDestinoDisplay($r, 'origem');
         $destino = Pasta::getOrigemDestinoDisplay($r, 'destino');
@@ -313,7 +320,7 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<div id='atrasadas' class='pt-card' style='border-color:#fecaca;'><div class='pt-card-header' style='background:#fef2f2;border-color:#fecaca;'><strong style='color:#991b1b;'><i class='ti ti-alarm' style='color:#dc2626;'></i> " . __('Pastas atrasadas', 'protocolo') . " — " . __('aguardando há mais de', 'protocolo') . " $prazoAlerta " . __('dias', 'protocolo') . " ($totalAtrasadas)</strong><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=aguardando' class='pt-btn pt-btn-secondary pt-btn-sm'>" . __('Ver todas aguardando', 'protocolo') . "</a></div><div style='overflow-x:auto;'><table class='pt-list-table'><thead><tr><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>" . __('Data') . "</th><th>" . __('Dias', 'protocolo') . "</th><th></th></tr></thead><tbody>";
     foreach ($atrasadasRows as $r) {
         $dias = (int)($r['dias_parada'] ?? 0);
-        $catBadge = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta');
+        $catBadge = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta', $r['especie_outro'] ?? null);
         $origem = isset($r['origem_tipo']) ? Pasta::getOrigemDestinoDisplay($r, 'origem') . " <i class='ti ti-arrow-right'></i> " . Pasta::getOrigemDestinoDisplay($r, 'destino') : htmlspecialchars($r['escola_nome']);
         echo "<tr class='pt-list-row table-danger'><td><span class='pt-row-title'>" . htmlspecialchars($r['codigo']) . "</span></td><td>$catBadge</td><td class='small'>$origem</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='pt-badge pt-badge-warn'>$dias d</span></td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> Regularizar</a></td></tr>";
     }
