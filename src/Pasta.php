@@ -1122,8 +1122,8 @@ class Pasta extends CommonDBTM
         });
         </script>";
 
-        // JS para tipos/itens (reusa assets/js/app.js) - tag direta evita duplicação root_doc do Html::script
-        $jsUrl = Plugin::getWebDir('protocolo') . '/js/app.js?v=' . PLUGIN_PROTOCOLO_VERSION;
+        // JS para tipos/itens (reusa public/js/app.js) - tag direta evita duplicação root_doc do Html::script
+        $jsUrl = Plugin::getWebDir('protocolo') . '/public/js/app.js?v=' . PLUGIN_PROTOCOLO_VERSION;
         echo "<script src=\"" . htmlspecialchars($jsUrl) . "\"></script>";
         echo "</div>"; // fecha .pt-page
 

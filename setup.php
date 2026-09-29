@@ -137,14 +137,14 @@ function plugin_init_protocolo(): void
 
     // JS/CSS - relativo deixa GLPI resolver marketplace/plugins corretamente (evita duplicação /glpi/glpi/ ou /plugins//glpi/marketplace)
     // Design system moderno (protocolo-modern.css) padronizado com assetmgrstatus — prefixo pt-*
-    $ptCssVer = @filemtime(__DIR__ . '/css/protocolo-modern.css') ?: time();
-    $ptJsVer  = @filemtime(__DIR__ . '/js/app.js') ?: time();
+    // NOTA: sem ?v= manual — o GLPI já anexa ?v=<versão do plugin> sozinho (Html::css/script);
+    // query manual gerava URL malformada (?v=X?v=Y) e quebrava o carregamento.
     $PLUGIN_HOOKS['add_javascript']['protocolo'] = [
-        'js/app.js?v=' . $ptJsVer
+        'public/js/app.js'
     ];
     $PLUGIN_HOOKS['add_css']['protocolo'] = [
-        'css/style.css',
-        'css/protocolo-modern.css?v=' . $ptCssVer
+        'public/css/style.css',
+        'public/css/protocolo-modern.css'
     ];
 
     // Migração ENTIDADES - roda apenas uma vez por versão (cache em glpi_configs)

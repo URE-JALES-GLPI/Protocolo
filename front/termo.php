@@ -88,7 +88,7 @@ if (empty($criadorNome) || $criadorNome === 'N/A') $criadorNome = $_SESSION['glp
 <title><?= htmlspecialchars($titulo) ?> - <?= htmlspecialchars($pasta->fields['codigo']) ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="<?= $CFG_GLPI['root_doc'] ?>/public/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-<link href="<?= Plugin::getWebDir('protocolo') ?>/css/protocolo-modern.css" rel="stylesheet">
+<link href="<?= Plugin::getWebDir('protocolo') ?>/public/css/protocolo-modern.css" rel="stylesheet">
 <style>
 body{ background:#eee; }
 .termo{ background:white; max-width:800px; margin:20px auto; padding:28px 30px; box-shadow:0 0 15px rgba(0,0,0,.1); font-family:"Times New Roman", serif; color:#111; display:flex; flex-direction:column; }
