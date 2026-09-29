@@ -92,6 +92,11 @@ a.pt-dash-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.12);border-color:#c7d
 .pt-bar{background:linear-gradient(180deg,#4f46e5,#7c3aed);border-radius:6px 6px 0 0;width:100%;min-height:4px}
 .pt-bar-label{font-size:.7rem;color:#9ca3af;font-weight:600;white-space:nowrap}
 
+/* ---- Abas Resumo/Dashboards: transição suave sem reload ---- */
+#protocoloDashTabs .nav-link{cursor:pointer}
+.tab-pane.fade{transition:opacity .18s ease}
+@media (prefers-reduced-motion:reduce){.tab-pane.fade{transition:none}}
+
 /* ---- Tabela lista (mesmo linguagem do am-list-table) ---- */
 .pt-list-wrap{margin-bottom:24px;overflow:visible}
 .pt-list-table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1.5px solid #e8eaf0;border-radius:12px;overflow:hidden}

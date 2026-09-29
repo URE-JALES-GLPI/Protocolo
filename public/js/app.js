@@ -188,3 +188,40 @@ window.ptToggleFilter = function(contentId, btnId, textId, iconId) {
     if (ic) { ic.classList.remove('ti-chevron-up'); ic.classList.add('ti-chevron-down'); }
   }
 };
+
+// ---- Abas Resumo/Dashboards sem reload (transição fluida, sem piscar) ----
+window.ptDashTab = function(ev, tab) {
+  if (ev) ev.preventDefault();
+  var panes = {resumo: 'tab-resumo', dashboards: 'tab-dashboards'};
+  if (!panes[tab]) return false;
+  Object.keys(panes).forEach(function(k){
+    var p = document.getElementById(panes[k]);
+    if (p) p.classList.remove('show', 'active');
+  });
+  document.querySelectorAll('#protocoloDashTabs .nav-link').forEach(function(a){
+    a.classList.remove('active');
+    a.removeAttribute('aria-selected');
+  });
+  var pane = document.getElementById(panes[tab]);
+  if (pane) {
+    pane.classList.add('active');
+    // adiciona .show no próximo frame para a transição de fade acontecer
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ pane.classList.add('show'); });
+    });
+  }
+  var link = document.querySelector('#protocoloDashTabs .nav-link[data-pt-tab="' + tab + '"]');
+  if (link) { link.classList.add('active'); link.setAttribute('aria-selected', 'true'); }
+  try {
+    var u = new URL(window.location.href);
+    u.searchParams.set('tab', tab);
+    history.replaceState(null, '', u.toString());
+  } catch (e) {}
+  if (tab === 'dashboards') {
+    // cria/redimensiona os gráficos após o pane ficar visível
+    setTimeout(function(){
+      if (typeof window.ptInitProtocoloCharts === 'function') window.ptInitProtocoloCharts();
+    }, 60);
+  }
+  return false;
+};

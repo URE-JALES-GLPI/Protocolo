@@ -277,8 +277,8 @@ echo "</div>";
 $activeTab = $_GET['tab'] ?? 'resumo';
 if (!in_array($activeTab, ['resumo', 'dashboards'])) $activeTab = 'resumo';
 echo "<ul class='nav nav-tabs mb-3' id='protocoloDashTabs' role='tablist'>";
-echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='resumo'?'active':'') . "' href='?tab=resumo'><i class='ti ti-list'></i> " . __('Resumo', 'protocolo') . "</a></li>";
-echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='dashboards'?'active':'') . "' href='?tab=dashboards'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a></li>";
+echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='resumo'?'active':'') . "' data-pt-tab='resumo' href='#tab-resumo' role='tab' onclick=\"return ptDashTab(event,'resumo')\"><i class='ti ti-list'></i> " . __('Resumo', 'protocolo') . "</a></li>";
+echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='dashboards'?'active':'') . "' data-pt-tab='dashboards' href='#tab-dashboards' role='tab' onclick=\"return ptDashTab(event,'dashboards')\"><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a></li>";
 echo "</ul>";
 
 // Tab content
@@ -382,44 +382,37 @@ if ($graficosAtivo) {
 <script src="$chartJsCdn" onerror="this.onerror=null;this.src='$chartJsLocal'"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  if (typeof Chart === 'undefined') return;
-  Chart.defaults.font.family = "Inter, system-ui, sans-serif";
-  Chart.defaults.color = "#6c757d";
-
-  function initCharts(){
-    const c1 = document.getElementById('chartEntradas');
-    if (c1 && !c1.dataset.inited) {
-      c1.dataset.inited = '1';
-      new Chart(c1, {
-        type: 'bar',
-        data: { labels: $jsonEntradasLabels, datasets: [{ label: 'Entradas', data: $jsonEntradasValues, backgroundColor: '#4f46e5', hoverBackgroundColor: '#7c3aed', borderRadius: 6 }] },
-        options: { responsive: true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' pasta(s)' } } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
-      });
+  window._ptCharts = window._ptCharts || [];
+  // Cria os gráficos quando visíveis e reajusta ao trocar de aba (sem reload)
+  window.ptInitProtocoloCharts = function(){
+    if (typeof Chart === 'undefined') return;
+    Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+    Chart.defaults.color = "#6c757d";
+    function mk(id, cfg){
+      var c = document.getElementById(id);
+      if (!c || c.dataset.inited) return;
+      if (c.offsetParent === null) return; // aba oculta: adia a criação
+      c.dataset.inited = '1';
+      window._ptCharts.push(new Chart(c, cfg));
     }
-    const c2 = document.getElementById('chartStatus');
-    if (c2 && !c2.dataset.inited) {
-      c2.dataset.inited = '1';
-      new Chart(c2, {
-        type: 'doughnut',
-        data: { labels: $jsonStatusLabels, datasets: [{ data: $jsonStatusValues, backgroundColor:['#f59e0b','#10b981','#9ca3af'], borderWidth:0 }] },
-        options: { responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'58%' }
-      });
-    }
-    const c3 = document.getElementById('chartTempo');
-    if (c3 && !c3.dataset.inited) {
-      c3.dataset.inited = '1';
-      new Chart(c3, {
-        type: 'line',
-        data: { labels: $jsonTempoLabels, datasets: [{ label:'Dias médios', data: $jsonTempoValues, borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.12)', tension:0.35, fill:true, pointRadius:3, pointBackgroundColor:'#4f46e5' }] },
-        options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, title:{ display:true, text:'dias' } } } }
-      });
-    }
-  }
-  initCharts();
-  document.querySelectorAll('a[href=\"?tab=dashboards\"], button[data-bs-target=\"#tab-dashboards\"]').forEach(el => el.addEventListener('click', () => setTimeout(initCharts, 300)));
-  const obs = new MutationObserver(initCharts);
-  const pane = document.getElementById('tab-dashboards');
-  if (pane) obs.observe(pane, {attributes:true, attributeFilter:['class']});
+    mk('chartEntradas', {
+      type: 'bar',
+      data: { labels: $jsonEntradasLabels, datasets: [{ label: 'Entradas', data: $jsonEntradasValues, backgroundColor: '#4f46e5', hoverBackgroundColor: '#7c3aed', borderRadius: 6 }] },
+      options: { responsive: true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' pasta(s)' } } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+    });
+    mk('chartStatus', {
+      type: 'doughnut',
+      data: { labels: $jsonStatusLabels, datasets: [{ data: $jsonStatusValues, backgroundColor:['#f59e0b','#10b981','#9ca3af'], borderWidth:0 }] },
+      options: { responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'58%' }
+    });
+    mk('chartTempo', {
+      type: 'line',
+      data: { labels: $jsonTempoLabels, datasets: [{ label:'Dias médios', data: $jsonTempoValues, borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.12)', tension:0.35, fill:true, pointRadius:3, pointBackgroundColor:'#4f46e5' }] },
+      options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, title:{ display:true, text:'dias' } } } }
+    });
+    window._ptCharts.forEach(function(ch){ try { ch.resize(); } catch(e){} });
+  };
+  window.ptInitProtocoloCharts();
 });
 </script>
 HTML;
