@@ -155,8 +155,8 @@ a.pt-dash-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.12);border-color:#c7d
 .pt-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px}
 
 /* ---- Janela flutuante (modal) — mesmo padrão do assetmgrstatus ---- */
-.pt-modal-overlay{display:none;position:fixed;inset:0;background:rgba(17,24,39,.6);backdrop-filter:blur(4px);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
-.pt-modal-overlay.open{display:flex}
+.pt-modal-overlay{display:flex;position:fixed;inset:0;background:rgba(17,24,39,.6);backdrop-filter:blur(4px);z-index:9999;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .18s ease,visibility 0s linear .2s}
+.pt-modal-overlay.open{visibility:visible;opacity:1;pointer-events:auto;transition:opacity .18s ease}
 .pt-modal{background:#fff;border-radius:20px;width:100%;max-width:700px;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,.25);animation:ptModalIn .25s cubic-bezier(.4,0,.2,1);margin:auto}
 .pt-modal-lg{max-width:960px}
 @keyframes ptModalIn{from{opacity:0;transform:translateY(-20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -170,7 +170,11 @@ a.pt-dash-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.12);border-color:#c7d
 /* ---- Modal Registrar Entrada: cabe sem rolagem em telas normais ---- */
 #pt-register-overlay{padding:20px}
 #pt-register-overlay .pt-modal-lg{max-width:1020px}
-#pt-register-overlay .pt-modal-body{max-height:86vh;padding:16px 20px}
+#pt-register-overlay .pt-modal-body{max-height:none;overflow:visible;padding:16px 20px}
+/* Dropdowns (Select2) do GLPI dentro da janela: sem corte e acima do overlay */
+#pt-register-overlay .select2-container{width:100%!important}
+body>.select2-container--open{z-index:10060!important}
+.select2-container--open .select2-dropdown{z-index:10060!important}
 #pt-register-overlay table.tab_cadre_fixe td{padding:6px 10px}
 #pt-register-overlay table.tab_cadre_fixe th{padding:10px 14px}
 #pt-register-overlay .card-body{padding:10px 12px}
@@ -183,7 +187,7 @@ a.pt-dash-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.12);border-color:#c7d
   .pt-modal{max-width:100%;max-height:92vh;border-radius:18px 18px 0 0;animation:ptModalSlideUp .25s ease}
   .pt-modal-header{border-radius:18px 18px 0 0;padding:16px 18px}
   .pt-modal-body{padding:16px 18px;max-height:70vh}
-  #pt-register-overlay .pt-modal-body{max-height:72vh;padding:12px 14px}
+  #pt-register-overlay .pt-modal-body{max-height:70vh;padding:12px 14px;overflow-y:auto}
   @keyframes ptModalSlideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 }
 body.pt-dark-mode .pt-modal{background:#1e2333}
