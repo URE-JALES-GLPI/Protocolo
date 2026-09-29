@@ -41,33 +41,9 @@ class Escola extends CommonDBTM
 
     private static function hasRightDB(string $right, int $level): bool
     {
-        // Simplificado: Usar cobre Escola/Tipo também (fallback legado mantido)
-        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level)) {
-            return true;
-        }
-        global $DB;
-        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
-        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
-            try {
-                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $right]]);
-                foreach ($it as $row) {
-                    $dbRights = (int)$row['rights'];
-                    if ($level === READ && $dbRights > 0) return true;
-                    if (($dbRights & $level) === $level) return true;
-                }
-                // fallback legado pasta também
-                if ($right !== 'plugin_protocolo_pasta') {
-                    $it2 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_pasta']]);
-                    foreach ($it2 as $row) {
-                        $dbRights = (int)$row['rights'];
-                        if ($level === READ && $dbRights > 0) return true;
-                        if (($dbRights & $level) === $level) return true;
-                    }
-                }
-                return false;
-            } catch (\Throwable $e) {}
-        }
-        return Session::haveRight($right, $level) || Session::haveRight('plugin_protocolo_use', $level) || Session::haveRight('plugin_protocolo_pasta', $level);
+        // Modelo 2.0: avaliador único (linhas novas plugin_protocolo_use).
+        // O parâmetro $right legado é ignorado de propósito.
+        return \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level);
     }
 
     public static function canView(): bool

@@ -28,27 +28,10 @@ class TipoArquivo extends CommonDBTM
 
     private static function hasRightDB(string $right, int $level): bool
     {
-        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level)) {
-            return true;
-        }
-        // Admin também pode gerenciar tipos
-        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_admin', $level)) {
-            return true;
-        }
-        global $DB;
-        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
-        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
-            try {
-                $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $right]]);
-                foreach ($it as $row) {
-                    $dbRights = (int)$row['rights'];
-                    if ($level === READ && $dbRights > 0) return true;
-                    if (($dbRights & $level) === $level) return true;
-                }
-                return false;
-            } catch (\Throwable $e) {}
-        }
-        return Session::haveRight($right, $level) || Session::haveRight('plugin_protocolo_use', $level);
+        // Modelo 2.0: avaliador único (Usar ou Admin gerenciam tipos).
+        // O parâmetro $right legado é ignorado de propósito.
+        return \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level)
+            || \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_admin', $level);
     }
 
     public static function canView(): bool

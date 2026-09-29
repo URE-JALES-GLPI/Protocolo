@@ -72,33 +72,8 @@ class Pasta extends CommonDBTM
 
     private static function hasRightDB(int $level): bool
     {
-        // Simplificado: verifica novo direito Usar (com fallback legado para transição)
-        // Tenta Profile::haveRightDB que já lida com DB + sessão e fallback legado
-        if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level)) {
-            return true;
-        }
-        // Fallback direto legado pasta (para perfis ainda não migrados)
-        global $DB;
-        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
-        $uid = (int)Session::getLoginUserID();
-        if (!$pid) {
-            return Session::haveRight(self::$rightname, $level) || Session::haveRight('plugin_protocolo_use', $level);
-        }
-        if (!isset($DB) || !$DB->tableExists('glpi_profilerights')) {
-            return Session::haveRight(self::$rightname, $level) || Session::haveRight('plugin_protocolo_use', $level);
-        }
-        try {
-            $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => self::$rightname]]);
-            foreach ($it as $row) {
-                $dbRights = (int)$row['rights'];
-                // Legado: qualquer valor >0 conta como READ para compat com migração simplificada
-                if ($level === READ && $dbRights > 0) return true;
-                if (($dbRights & $level) === $level) return true;
-            }
-        } catch (\Throwable $e) {
-            error_log("[protocolo] hasRightDB legado erro pid=$pid: " . $e->getMessage());
-        }
-        return false;
+        // Modelo 2.0: avaliador único (linhas novas plugin_protocolo_use).
+        return \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', $level);
     }
 
     public static function canView(): bool

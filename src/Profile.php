@@ -173,6 +173,10 @@ class Profile extends \CommonDBTM
             // Se custom legado >0, mostra desc de Com acesso
             if ($current > 0 && !isset($levels[$current])) $desc = $levels[1]['desc'];
             echo "<div class='mt-1'><small class='text-muted' id='desc_$rightName'>" . htmlspecialchars($desc) . "</small></div>";
+            // Acesso EFETIVO deste perfil (lido do banco — é isto que as telas obedecem)
+            $eff = self::hasEffectiveRight($id, $rightName);
+            $effBadge = $eff ? "<span class='badge bg-success'>Efetivo: PODE</span>" : "<span class='badge bg-secondary'>Efetivo: NÃO PODE</span>";
+            echo "<div class='mt-1'>$effBadge</div>";
             echo "</td>";
             echo "<td class='small text-muted' style='max-width:320px'>";
             if ($rightName === 'plugin_protocolo_use') {
@@ -195,109 +199,85 @@ class Profile extends \CommonDBTM
     }
 
     /**
-     * Helper para checar direito curto - suporta novos e legados
-     * Para direitos simplificados (Usar/Admin), qualquer valor >0 equivale a acesso total
+     * Modelo 2.0 — UMA fonte da verdade (sem adivinhação via legados).
+     * - Avalia SOMENTE as linhas novas (plugin_protocolo_use/admin).
+     * - Legados (pasta/escola/tipo/config) NÃO entram aqui: a migration
+     *   (migrateLegacyRights) copia legado>0 para as linhas novas, uma vez.
+     * - Qualquer valor >0 equivale a acesso total (bits ignorados).
      */
+    private static function isNewRight(string $right): bool
+    {
+        return in_array($right, ['plugin_protocolo_use', 'plugin_protocolo_admin'], true);
+    }
+
+    /** Checagem via sessão (o GLPI carrega as linhas no login). */
     public static function haveRight(string $right, int $level = 1): bool
     {
-        $simplified = ['plugin_protocolo_use','plugin_protocolo_admin'];
-        if (in_array($right, $simplified, true)) {
-            $sessVal = $_SESSION['glpiactive_profile'][$right] ?? $_SESSION['glpiactiveprofile'][$right] ?? null;
-            if ($sessVal !== null && (int)$sessVal > 0) return true;
-            // Checa Session::haveRight como fallback (pode ter bit específico)
-            if (Session::haveRight($right, $level)) return true;
-            // Legacy fallback
-            if ($right === 'plugin_protocolo_use') {
-                foreach (['plugin_protocolo_pasta','plugin_protocolo_escola','plugin_protocolo_tipo'] as $lr) {
-                    $v = $_SESSION['glpiactive_profile'][$lr] ?? $_SESSION['glpiactiveprofile'][$lr] ?? null;
-                    if ($v !== null && (int)$v > 0) return true;
-                    if (Session::haveRight($lr, $level)) return true;
-                }
-            }
-            if ($right === 'plugin_protocolo_admin') {
-                $v = $_SESSION['glpiactive_profile']['plugin_protocolo_config'] ?? $_SESSION['glpiactiveprofile']['plugin_protocolo_config'] ?? null;
-                if ($v !== null && (int)$v > 0) return true;
-                if (Session::haveRight('plugin_protocolo_config', $level)) return true;
-                if (Session::haveRight('config', UPDATE)) return true;
-            }
-            return false;
+        if (!self::isNewRight($right)) {
+            return Session::haveRight($right, $level);
         }
-        // Direito legado normal
-        if (Session::haveRight($right, $level)) return true;
-        if ($right === 'plugin_protocolo_use') {
-            if (Session::haveRight('plugin_protocolo_pasta', $level)) return true;
-            if (Session::haveRight('plugin_protocolo_escola', $level)) return true;
-            if (Session::haveRight('plugin_protocolo_tipo', $level)) return true;
+        $v = $_SESSION['glpiactive_profile'][$right] ?? $_SESSION['glpiactiveprofile'][$right] ?? null;
+        if ($v !== null) {
+            return (int)$v > 0;
         }
-        if ($right === 'plugin_protocolo_admin') {
-            if (Session::haveRight('plugin_protocolo_config', $level)) return true;
-            if (Session::haveRight('config', UPDATE)) return true;
+        if ($right === 'plugin_protocolo_admin' && Session::haveRight('config', UPDATE)) {
+            return true;
         }
-        return false;
+        return (bool)Session::haveRight($right, READ);
     }
 
     /**
-     * Checa se tem direito novo OU legado no DB (para casos onde sessão ainda não refletiu)
+     * Checagem via banco primeiro (reflete na hora, sem precisar relogar),
+     * com fallback para a sessão.
      */
     public static function haveRightDB(string $right, int $level = 1): bool
     {
         global $DB;
-        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
-        $checkRights = [$right];
-        // Fallbacks legados
-        if ($right === 'plugin_protocolo_use') {
-            $checkRights = ['plugin_protocolo_use','plugin_protocolo_pasta','plugin_protocolo_escola','plugin_protocolo_tipo'];
-        } elseif ($right === 'plugin_protocolo_admin') {
-            $checkRights = ['plugin_protocolo_admin','plugin_protocolo_config'];
+        if (!self::isNewRight($right)) {
+            return Session::haveRight($right, $level);
         }
-        $simplified = ['plugin_protocolo_use','plugin_protocolo_admin'];
-        if ($pid && isset($DB) && $DB->tableExists('glpi_profilerights')) {
+        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        if ($pid > 0 && isset($DB)) {
             try {
-                foreach ($checkRights as $rname) {
-                    $it = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $rname]]);
+                if ($DB->tableExists('glpi_profilerights')) {
+                    $it = $DB->request([
+                        'SELECT' => ['rights'],
+                        'FROM' => 'glpi_profilerights',
+                        'WHERE' => ['profiles_id' => $pid, 'name' => $right],
+                        'LIMIT' => 1,
+                    ]);
                     foreach ($it as $row) {
-                        $dbRights = (int)$row['rights'];
-                        $isSimplified = in_array($rname, $simplified, true);
-                        if ($isSimplified) {
-                            // Novo modelo simplificado: qualquer valor >0 = tem acesso (equivale a todos os bits)
-                            if ($dbRights > 0) return true;
-                        } else {
-                            // Legado: verifica bits, mas também qualquer >0 conta como READ para compat migração
-                            if ($level === READ && $dbRights > 0) return true;
-                            if (($dbRights & $level) === $level) return true;
-                        }
-                        // Se tem registro mas valor 0, continua para próximo fallback
+                        return (int)$row['rights'] > 0;
                     }
                 }
             } catch (\Throwable $e) {}
         }
-        // fallback para Session
-        foreach ($checkRights as $rname) {
-            $isSimplified = in_array($rname, $simplified, true);
-            if ($isSimplified) {
-                $sessVal = $_SESSION['glpiactive_profile'][$rname] ?? $_SESSION['glpiactiveprofile'][$rname] ?? null;
-                if ($sessVal !== null && (int)$sessVal > 0) return true;
-                // Também checa legados via Session para migração suave
-                if ($rname === 'plugin_protocolo_use') {
-                    foreach (['plugin_protocolo_pasta','plugin_protocolo_escola','plugin_protocolo_tipo'] as $lr) {
-                        $v = $_SESSION['glpiactive_profile'][$lr] ?? $_SESSION['glpiactiveprofile'][$lr] ?? null;
-                        if ($v !== null && (int)$v > 0) return true;
-                        if (Session::haveRight($lr, $level)) return true;
-                    }
-                }
-                if ($rname === 'plugin_protocolo_admin') {
-                    $v = $_SESSION['glpiactive_profile']['plugin_protocolo_config'] ?? $_SESSION['glpiactiveprofile']['plugin_protocolo_config'] ?? null;
-                    if ($v !== null && (int)$v > 0) return true;
-                    if (Session::haveRight('plugin_protocolo_config', $level)) return true;
-                }
-            } else {
-                if (Session::haveRight($rname, $level)) return true;
-                if ($level === READ) {
-                    $sessVal = $_SESSION['glpiactive_profile'][$rname] ?? $_SESSION['glpiactiveprofile'][$rname] ?? null;
-                    if ($sessVal !== null && (int)$sessVal > 0) return true;
+        return self::haveRight($right, $level);
+    }
+
+    /**
+     * Acesso efetivo de um perfil QUALQUER (para exibir na aba Perfis).
+     * Leitura pura do banco, sem depender da sessão ativa.
+     */
+    public static function hasEffectiveRight(int $profiles_id, string $right): bool
+    {
+        global $DB;
+        if (!self::isNewRight($right)) {
+            return false;
+        }
+        try {
+            if ($profiles_id > 0 && isset($DB) && $DB->tableExists('glpi_profilerights')) {
+                $it = $DB->request([
+                    'SELECT' => ['rights'],
+                    'FROM' => 'glpi_profilerights',
+                    'WHERE' => ['profiles_id' => $profiles_id, 'name' => $right],
+                    'LIMIT' => 1,
+                ]);
+                foreach ($it as $row) {
+                    return (int)$row['rights'] > 0;
                 }
             }
-        }
+        } catch (\Throwable $e) {}
         return false;
     }
 

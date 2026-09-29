@@ -190,12 +190,33 @@ window.ptToggleFilter = function(contentId, btnId, textId, iconId) {
 };
 
 // ---- Janela flutuante Registrar Entrada (estilo modal de transferência) ----
+function ptPluginBase() {
+  var m = window.location.pathname.match(/^(.*\/(?:plugins|marketplace)\/protocolo)/);
+  return m ? m[1] : '/plugins/protocolo';
+}
+function ptDoOpenRegisterModal() {
+  var m = document.getElementById('pt-register-overlay');
+  if (!m) return;
+  m.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
 window.ptOpenRegisterModal = function(ev) {
   var m = document.getElementById('pt-register-overlay');
   if (!m) return true; // sem modal na página: segue o link normalmente
   if (ev) ev.preventDefault();
-  m.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  // Pre-checagem: valida a permissão da SESSÃO ATUAL antes de abrir,
+  // para nunca preencher o form à toa e morrer com 403 no envio.
+  try {
+    fetch(ptPluginBase() + '/ajax/can.php', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d && d.canCreate) { ptDoOpenRegisterModal(); return; }
+        var who = d ? (' (usuário ' + d.uid + ", perfil '" + d.pname + "' #" + d.pid + ')') : '';
+        ptShowMsgPopup('error', 'Sem permissão',
+          'Sua sessão atual não tem direito de Registrar Entrada' + who + '.\n\nRecarregue a página (F5) e tente de novo. Se persistir, confira em Administração > Perfis > esse perfil > aba Protocolo > Usar = Sim (e entre de novo no GLPI).');
+      })
+      .catch(function(){ ptDoOpenRegisterModal(); }); // sem resposta: abre e deixa o envio decidir
+  } catch (e) { ptDoOpenRegisterModal(); }
   return false;
 };
 window.ptCloseRegisterModal = function(ev) {
