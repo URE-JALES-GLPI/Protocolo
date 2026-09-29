@@ -67,15 +67,20 @@
 .pt-filter-toggle-btn:hover{background:#fafbff;border-color:#c7d2fe}
 .pt-filter-toggle-btn.active{background:#eef2ff;border-color:#4f46e5;color:#4f46e5}
 
-/* ---- Dashboard cards ---- */
-.pt-dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px}
-.pt-dash-card{background:#fff;border:1.5px solid #e8eaf0;border-radius:14px;padding:18px 16px;text-align:center;transition:box-shadow .18s;text-decoration:none;color:inherit;display:block}
+/* ---- Dashboard cards — 8 cards em linha reta única (scroll horizontal se estreitar) ---- */
+.pt-dash-grid{display:flex;gap:10px;margin-bottom:24px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:4px 4px 10px;scrollbar-width:thin;scrollbar-color:#a5b4fc #f5f3ff;-webkit-overflow-scrolling:touch}
+.pt-dash-grid::-webkit-scrollbar{height:6px}
+.pt-dash-grid::-webkit-scrollbar-track{background:#f5f3ff;border-radius:3px}
+.pt-dash-grid::-webkit-scrollbar-thumb{background:#a5b4fc;border-radius:3px}
+.pt-dash-card{background:#fff;border:1.5px solid #e8eaf0;border-radius:14px;padding:12px 10px;text-align:center;transition:box-shadow .18s;text-decoration:none;color:inherit;display:block;flex:1 1 0;min-width:132px}
 a.pt-dash-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.12);border-color:#c7d2fe;transform:translateY(-2px)}
 .pt-dash-card-alert{border-color:#fecaca;background:#fef2f2}
-.pt-dash-card-top{margin-bottom:10px}
-.pt-dash-number{font-size:2.2rem;font-weight:800;color:#1e1b4b;line-height:1;margin-bottom:4px}
-.pt-dash-label{font-size:.75rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
-.pt-dash-link{font-size:.78rem;color:#4f46e5;font-weight:600;margin-top:8px;display:inline-block;text-decoration:none}
+.pt-dash-card-top{margin-bottom:6px}
+.pt-dash-card .pt-badge{font-size:.62rem;padding:3px 8px;white-space:normal;line-height:1.35}
+.pt-dash-card-top span[style]{font-size:.72rem!important}
+.pt-dash-number{font-size:1.7rem;font-weight:800;color:#1e1b4b;line-height:1;margin-bottom:2px}
+.pt-dash-label{font-size:.68rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.pt-dash-link{font-size:.72rem;color:#4f46e5;font-weight:600;margin-top:6px;display:inline-block;text-decoration:none}
 .pt-dash-section{background:#fff;border:1.5px solid #e8eaf0;border-radius:14px;padding:20px;margin-bottom:20px}
 .pt-section-title{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .pt-section-title h3,.pt-section-title h5{margin:0;font-size:1.1rem;font-weight:700;color:#111827}
@@ -178,6 +183,8 @@ body.pt-dark-mode .pt-page-header{border-color:#2d3550}
 body.pt-dark-mode .pt-filters-bar,body.pt-dark-mode .pt-dash-card,body.pt-dark-mode .pt-dash-section,body.pt-dark-mode .pt-card{box-shadow:none;background:#1e2333;border-color:#2d3550}
 body.pt-dark-mode .pt-dash-number{color:#f1f5f9}
 body.pt-dark-mode .pt-dash-label{color:#64748b}
+body.pt-dark-mode .pt-dash-grid::-webkit-scrollbar-track{background:#1e2333}
+body.pt-dark-mode .pt-dash-grid::-webkit-scrollbar-thumb{background:#4f46e5}
 body.pt-dark-mode .pt-tabs{background:#151929}
 body.pt-dark-mode .pt-tab{color:#94a3b8}
 body.pt-dark-mode .pt-tab:hover,.pt-tab.active{background:#1e2333;color:#818cf8}
@@ -214,9 +221,9 @@ body.pt-dark-mode .pt-page table.tab_cadre_fixe td{color:#cbd5e1;border-color:#2
   .pt-page-title h2,.pt-page-title h4{font-size:1.1rem}
   .pt-page-actions{width:100%}
   .pt-page-actions .pt-btn{flex:1 1 calc(50% - 8px);min-width:130px;justify-content:center}
-  .pt-dash-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}
-  .pt-dash-card{padding:14px!important}
-  .pt-dash-number{font-size:1.6rem!important}
+  .pt-dash-grid{gap:8px}
+  .pt-dash-card{flex:0 0 140px!important;min-width:140px!important;max-width:140px;padding:10px 8px!important}
+  .pt-dash-number{font-size:1.4rem!important}
   .pt-filter-row{flex-direction:column;align-items:stretch}
   .pt-filter-search{width:100%}
   .pt-tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
@@ -225,7 +232,7 @@ body.pt-dark-mode .pt-page table.tab_cadre_fixe td{color:#cbd5e1;border-color:#2
   .pt-pagination{flex-direction:column;align-items:stretch}
 }
 @media (max-width:480px){
-  .pt-dash-grid{grid-template-columns:1fr!important}
+  .pt-dash-card{flex:0 0 130px!important;min-width:130px!important;max-width:130px}
   .pt-page-actions .pt-btn{font-size:.78rem;padding:8px 10px}
 }
 @media (hover:none) and (pointer:coarse){
