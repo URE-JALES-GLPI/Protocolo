@@ -274,12 +274,18 @@ window.ptSubmitRegisterAjax = function(form) {
       return resp.text().then(function(text){ return {resp: resp, text: text}; });
     })
     .then(function(out){
-      // 403 = a sessão/perfil mudou depois que a tela foi aberta (ou expirou).
-      // Orienta recarregar em vez de mostrar o texto genérico do GLPI.
+      // 403: primeiro tenta mostrar o motivo real vindo no corpo da resposta;
+      // se o corpo não disser nada, orienta recarregar (sessão/perfil).
       if (out.resp.status === 403) {
         restore();
-        ptShowMsgPopup('error', 'Sessão desatualizada',
-          'O servidor recusou o envio (erro 403).\n\nIsso acontece quando a sessão expirou ou o perfil/entidade mudou depois que esta tela foi aberta.\n\nRecarregue a página (F5) e tente novamente. Se persistir, confira em Administração > Perfis > (seu perfil) > aba Protocolo > Usar = Sim (e entre de novo no GLPI).');
+        var bodyTxt = '';
+        try { bodyTxt = ptExtractServerErrors(out.text); } catch (e) { bodyTxt = ''; }
+        if (bodyTxt && bodyTxt !== 'Verifique os campos e tente novamente.') {
+          ptShowMsgPopup('error', 'Não foi possível registrar', bodyTxt + '\n\nCódigo: HTTP_403');
+        } else {
+          ptShowMsgPopup('error', 'Sessão desatualizada',
+            'O servidor recusou o envio (erro 403) sem detalhar o motivo.\n\nIsso acontece quando a sessão expirou ou o perfil/entidade mudou depois que esta tela foi aberta.\n\nRecarregue a página (F5) e tente novamente. Se persistir, confira em Administração > Perfis > (seu perfil) > aba Protocolo > Usar = Sim (e entre de novo no GLPI).');
+        }
         return;
       }
       var data = null;
