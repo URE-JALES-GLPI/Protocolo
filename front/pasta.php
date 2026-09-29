@@ -135,24 +135,26 @@ function sortLink(string $field, string $label, string $currentSort, string $cur
     $newOrder = ($currentSort === $field && $currentOrder === 'ASC') ? 'DESC' : 'ASC';
     $icon = $currentSort === $field ? ($currentOrder === 'ASC' ? ' ↑' : ' ↓') : '';
     $url = buildUrl(['sort'=>$field,'order'=>$newOrder,'page'=>1]);
-    return "<a href='$url' class='text-decoration-none text-dark'>$label$icon</a>";
+    $style = $currentSort === $field ? " style='color:#4f46e5;'" : "";
+    return "<a href='$url' style='text-decoration:none;' $style>$label$icon</a>";
 }
 
-// Render
-echo "<div class='container-fluid'>";
-echo "<div class='d-flex justify-content-between align-items-center mb-3'>";
-echo "<h4 class='mb-0'><i class='ti ti-folder'></i> " . Pasta::getTypeName(2) . " <small class='text-muted fw-normal'>$total registros</small></h4>";
-echo "<div class='d-flex gap-2'>";
+// Render — identidade visual padronizada com assetmgrstatus (pt-*)
+echo "<div class='container-fluid pt-page'>";
+echo "<div class='pt-page-header'>";
+echo "<div class='pt-page-title'><i class='ti ti-folder'></i><h2>" . Pasta::getTypeName(2) . " <small>$total registros</small></h2></div>";
+echo "<div class='pt-page-actions'>";
 if (Pasta::canCreate()) {
-    echo "<a href='" . Pasta::getFormURL() . "' class='btn btn-primary btn-sm'><i class='ti ti-folder-plus'></i> Nova</a>";
+    echo "<a href='" . Pasta::getFormURL() . "' class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> Nova</a>";
 }
 $csvUrl = buildUrl(['export'=>'csv']);
-echo "<a href='$csvUrl' class='btn btn-outline-secondary btn-sm'><i class='ti ti-download'></i> CSV</a>";
+echo "<a href='$csvUrl' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-download'></i> CSV</a>";
+echo "<button id='pt-theme-btn' onclick='ptToggleTheme()' class='pt-btn pt-btn-secondary pt-btn-sm' title='Alternar tema claro/escuro'><i class='ti ti-moon'></i></button>";
 echo "</div></div>";
 
-echo "<div class='d-flex gap-3 mb-2 small flex-wrap'>";
-echo "<span><i class='ti ti-circle-filled text-warning'></i> Sem upload Termo Entrega/Recebimento</span>";
-echo "<span><i class='ti ti-circle-filled text-danger'></i> Sem upload Termo Retirada</span>";
+echo "<div class='pt-legend'>";
+echo "<span><span class='pt-dot' style='background:#d97706;'></span> Sem upload Termo Entrega/Recebimento</span>";
+echo "<span><span class='pt-dot' style='background:#dc2626;'></span> Sem upload Termo Retirada</span>";
 echo "<span class='text-muted'>— clique em Ver para fazer upload</span>";
 echo "<span class='ms-auto text-muted'>Ordenado por <b>$sort</b> $order</span>";
 echo "</div>";
@@ -160,60 +162,34 @@ echo "</div>";
 $self = Pasta::getSearchURL();
 $hasActiveFilter = ($q !== '' || $escola_filtro > 0 || $status !== '' || $perPage !== 20);
 $activeCount = ($q!==''?1:0) + ($escola_filtro>0?1:0) + ($status!==''?1:0) + ($perPage!==20?1:0);
-echo "<style>
-.pasta-filter-toggle{margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.pasta-filter-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1.5px solid #dee2e6;border-radius:8px;font-size:.85rem;font-weight:600;color:#495057;cursor:pointer;transition:all .15s}
-.pasta-filter-btn:hover{background:#f8f9fa;border-color:#adb5bd;color:#212529}
-.pasta-filter-btn.active{background:#e7f1ff;border-color:#b6d4fe;color:#084298}
-.pasta-filter-content{overflow:hidden;transition:max-height .3s ease,opacity .2s ease}
-.pasta-filter-content.collapsed{display:none}
-.pasta-filter-content.expanded{display:block}
-</style>";
-echo "<div class='pasta-filter-toggle'>";
-echo "<button type='button' id='pasta-filter-toggle-btn' class='pasta-filter-btn' onclick=\"togglePastaFilter()\"><i class='ti ti-filter'></i> Filtros";
-if ($hasActiveFilter) echo " <span class='badge bg-primary ms-1'>$activeCount ativo(s)</span>";
+echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
+echo "<div style='display:flex;align-items:center;gap:8px;'>";
+echo "<button type='button' id='pasta-filter-toggle-btn' class='pt-filter-toggle-btn' onclick=\"ptToggleFilter('pasta-filter-content','pasta-filter-toggle-btn','pasta-filter-text','pasta-filter-icon')\"><i class='ti ti-filter'></i> Filtros";
+if ($hasActiveFilter) echo " <span class='pt-tab-count ms-1'>$activeCount ativo(s)</span>";
 echo " <span id='pasta-filter-text' class='ms-1'>Expandir</span> <i id='pasta-filter-icon' class='ti ti-chevron-down ms-1'></i></button>";
 if ($hasActiveFilter) echo "<small class='text-muted ms-2'><i class='ti ti-info-circle'></i> Filtros ativos — clique em Expandir para ajustar</small>";
 echo "</div>";
-echo "<div id='pasta-filter-content' class='pasta-filter-content collapsed' style='display:none'>";
-echo "<form class='card shadow-sm mb-3' method='get' id='filtroPastas'>";
-echo "<div class='card-body row g-2 align-items-end'>";
-echo "<div class='col-md-3'><label class='form-label small'>Buscar</label><input name='q' value='" . htmlspecialchars($q) . "' class='form-control form-control-sm' placeholder='Código, remetente, escola'></div>";
-echo "<div class='col-md-3'><label class='form-label small'>Escola</label><select name='escola' class='form-select form-select-sm'><option value=''>Todas</option>";
+echo "<div id='pasta-filter-content' class='collapsed' style='display:none;margin-top:12px;'>";
+echo "<form method='get' id='filtroPastas'>";
+echo "<div class='pt-filter-row'>";
+echo "<div class='pt-filter-group' style='flex:2;min-width:200px;'><label>Buscar</label><div class='pt-filter-search'><input name='q' value='" . htmlspecialchars($q) . "' placeholder='Código, remetente, escola'></div></div>";
+echo "<div class='pt-filter-group'><label>Escola</label><select name='escola' class='pt-select'><option value=''>Todas</option>";
 foreach ($escolas as $e) {
     $sel = $escola_filtro === (int)$e['id'] ? 'selected' : '';
     echo "<option value='" . (int)$e['id'] . "' $sel>" . htmlspecialchars($e['name']) . "</option>";
 }
 echo "</select></div>";
-echo "<div class='col-md-2'><label class='form-label small'>Status</label><select name='status' class='form-select form-select-sm'><option value=''>Todos</option><option value='aguardando' " . ($status==='aguardando'?'selected':'') . ">Aguardando</option><option value='retirada' " . ($status==='retirada'?'selected':'') . ">Retirada</option><option value='cancelada' " . ($status==='cancelada'?'selected':'') . ">Cancelada</option></select></div>";
-echo "<div class='col-md-1'><label class='form-label small'>Por página</label><select name='per_page' class='form-select form-select-sm'><option " . ($perPage==10?'selected':'') . ">10</option><option " . ($perPage==20?'selected':'') . ">20</option><option " . ($perPage==50?'selected':'') . ">50</option><option " . ($perPage==100?'selected':'') . ">100</option></select></div>";
+echo "<div class='pt-filter-group'><label>Status</label><select name='status' class='pt-select'><option value=''>Todos</option><option value='aguardando' " . ($status==='aguardando'?'selected':'') . ">Aguardando</option><option value='retirada' " . ($status==='retirada'?'selected':'') . ">Retirada</option><option value='cancelada' " . ($status==='cancelada'?'selected':'') . ">Cancelada</option></select></div>";
+echo "<div class='pt-filter-group'><label>Por página</label><select name='per_page' class='pt-select'><option " . ($perPage==10?'selected':'') . ">10</option><option " . ($perPage==20?'selected':'') . ">20</option><option " . ($perPage==50?'selected':'') . ">50</option><option " . ($perPage==100?'selected':'') . ">100</option></select></div>";
 // preserva sort/order ao filtrar
 echo "<input type='hidden' name='sort' value='" . htmlspecialchars($sort) . "'><input type='hidden' name='order' value='" . htmlspecialchars($order) . "'>";
-echo "<div class='col-md-1'><button class='btn btn-sm btn-primary w-100'><i class='ti ti-search'></i> Filtrar</button></div>";
-echo "<div class='col-md-2'><a href='$self' class='btn btn-sm btn-light w-100'>Limpar</a></div>";
+echo "<div class='pt-filter-group'><label>&nbsp;</label><div style='display:flex;gap:8px;'><button class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-search'></i> Filtrar</button>";
+echo "<a href='$self' class='pt-btn pt-btn-secondary pt-btn-sm'>Limpar</a></div></div>";
 echo "</div></form>";
 echo "</div>";
-echo "<script>
-function togglePastaFilter(){
-  var content=document.getElementById('pasta-filter-content');
-  var btn=document.getElementById('pasta-filter-toggle-btn');
-  var text=document.getElementById('pasta-filter-text');
-  var icon=document.getElementById('pasta-filter-icon');
-  if(content.style.display==='none' || content.classList.contains('collapsed')){
-    content.style.display='block'; content.classList.remove('collapsed'); content.classList.add('expanded');
-    btn.classList.add('active');
-    if(text) text.textContent='Recolher';
-    if(icon){ icon.classList.remove('ti-chevron-down'); icon.classList.add('ti-chevron-up'); }
-  } else {
-    content.style.display='none'; content.classList.add('collapsed'); content.classList.remove('expanded');
-    btn.classList.remove('active');
-    if(text) text.textContent='Expandir';
-    if(icon){ icon.classList.remove('ti-chevron-up'); icon.classList.add('ti-chevron-down'); }
-  }
-}
-</script>";
+echo "</div>";
 
-echo "<div class='card shadow-sm'><div class='table-responsive'><table class='table table-hover align-middle mb-0'><thead><tr>";
+echo "<div class='pt-card'><div style='overflow-x:auto;'><table class='pt-list-table'><thead><tr>";
 echo "<th>" . sortLink('codigo','Código',$sort,$order) . "</th>";
 echo "<th>" . sortLink('escola','Escola',$sort,$order) . "</th>";
 echo "<th>" . sortLink('recebido','Recebido de',$sort,$order) . "</th>";
@@ -228,55 +204,55 @@ if ($lista) {
         $recebidoDe = htmlspecialchars($r['recebido_de']);
         $criador = htmlspecialchars($r['criador'] ?? '-');
         $recebimento = Html::convDateTime($r['data_recebimento']);
-        $retirada = !empty($r['data_retirada']) ? Html::convDateTime($r['data_retirada']) . "<br><small>" . htmlspecialchars($r['retirado_por'] ?? '') . "</small>" : '-';
+        $retirada = !empty($r['data_retirada']) ? Html::convDateTime($r['data_retirada']) . "<br><small class='pt-row-sub'>" . htmlspecialchars($r['retirado_por'] ?? '') . "</small>" : '<span class="pt-row-sub">—</span>';
         $statusBadge = Pasta::getStatusBadge($r['status']);
         $amarelo = empty($r['rec_assinado']);
         $vermelho = !empty($r['ret_existe']) && empty($r['ret_assinado']);
         if ($r['status'] === 'retirada' && empty($r['ret_existe'])) $vermelho = true;
         $termosHtml = '';
-        $termosHtml .= $amarelo ? "<i class='ti ti-circle-filled text-warning' title='Pendente upload Termo de Entrega/Recebimento'></i> " : "<i class='ti ti-circle-filled text-success' style='opacity:.25' title='Termo Entrega OK'></i> ";
-        if ($vermelho) $termosHtml .= "<i class='ti ti-circle-filled text-danger' title='Pendente upload Termo de Retirada'></i>";
+        $termosHtml .= $amarelo ? "<i class='ti ti-circle-filled' style='color:#d97706;' title='Pendente upload Termo de Entrega/Recebimento'></i> " : "<i class='ti ti-circle-filled text-success' style='opacity:.25' title='Termo Entrega OK'></i> ";
+        if ($vermelho) $termosHtml .= "<i class='ti ti-circle-filled' style='color:#dc2626;' title='Pendente upload Termo de Retirada'></i>";
         else {
             if ($r['status'] === 'retirada') $termosHtml .= "<i class='ti ti-circle-filled text-success' style='opacity:.25' title='Termo Retirada OK'></i>";
             else $termosHtml .= "<i class='ti ti-circle-filled' style='color:#ddd' title='Aguardando retirada'></i>";
         }
         $viewUrl = Pasta::getFormURLWithID($r['id']);
-        echo "<tr>";
-        echo "<td><a href='$viewUrl' class='fw-bold text-decoration-none'>$codigo</a><br><small class='text-muted'>por $criador</small></td>";
-        echo "<td>$escolaNome<br><small class='text-muted'>$escolaCod</small></td>";
+        echo "<tr class='pt-list-row'>";
+        echo "<td><a href='$viewUrl' class='pt-row-title' style='color:#4f46e5;text-decoration:none;'>$codigo</a><br><small class='pt-row-sub'>por $criador</small></td>";
+        echo "<td>$escolaNome<br><small class='pt-row-sub'>$escolaCod</small></td>";
         echo "<td>$recebidoDe</td>";
         echo "<td>$recebimento</td>";
         echo "<td>$retirada</td>";
         echo "<td>$statusBadge</td>";
         echo "<td class='text-center' style='white-space:nowrap'>$termosHtml</td>";
-        echo "<td class='text-end'><a href='$viewUrl' class='btn btn-sm btn-outline-primary'><i class='ti ti-eye'></i> Ver</a></td>";
+        echo "<td class='text-end'><a href='$viewUrl' class='pt-btn pt-btn-outline pt-btn-sm'><i class='ti ti-eye'></i> Ver</a></td>";
         echo "</tr>";
     }
 } else {
-    echo "<tr><td colspan='8' class='text-center text-muted py-4'>Nenhum resultado. <a href='" . Pasta::getFormURL() . "'>Registrar a primeira pasta</a>?<br><small class='text-muted'>Filtros: q=" . htmlspecialchars($q) . " escola=$escola_filtro status=$status</small></td></tr>";
+    echo "<tr class='pt-list-row'><td colspan='8'><div class='pt-empty-state pt-empty-small'><i class='ti ti-folder-off'></i><p>Nenhum resultado. <a href='" . Pasta::getFormURL() . "'>Registrar a primeira pasta</a>?</p><small class='pt-row-sub'>Filtros: q=" . htmlspecialchars($q) . " escola=$escola_filtro status=$status</small></div></td></tr>";
 }
 echo "</tbody></table></div>";
 
 // Paginação
 if ($totalPages > 1) {
-    echo "<div class='card-footer d-flex justify-content-between align-items-center'>";
-    echo "<small class='text-muted'>Página $page de $totalPages — $total pastas</small>";
-    echo "<nav><ul class='pagination pagination-sm mb-0'>";
+    echo "<div class='pt-pagination'>";
+    echo "<span class='pt-pagination-info'>Página $page de $totalPages — $total pastas</span>";
+    echo "<div class='pt-pagination-pages'>";
     $prev = max(1, $page-1);
     $next = min($totalPages, $page+1);
     $prevDis = $page==1 ? 'disabled' : '';
     $nextDis = $page==$totalPages ? 'disabled' : '';
-    echo "<li class='page-item $prevDis'><a class='page-link' href='" . buildUrl(['page'=>$prev]) . "'>« Anterior</a></li>";
+    echo "<a class='pt-page-link $prevDis' href='" . buildUrl(['page'=>$prev]) . "'>« Anterior</a>";
     $start = max(1, $page-2);
     $end = min($totalPages, $page+2);
     for ($i=$start;$i<=$end;$i++) {
         $active = $i==$page ? 'active' : '';
-        echo "<li class='page-item $active'><a class='page-link' href='" . buildUrl(['page'=>$i]) . "'>$i</a></li>";
+        echo "<a class='pt-page-link $active' href='" . buildUrl(['page'=>$i]) . "'>$i</a>";
     }
-    echo "<li class='page-item $nextDis'><a class='page-link' href='" . buildUrl(['page'=>$next]) . "'>Próxima »</a></li>";
-    echo "</ul></nav></div>";
+    echo "<a class='pt-page-link $nextDis' href='" . buildUrl(['page'=>$next]) . "'>Próxima »</a>";
+    echo "</div></div>";
 } else {
-    echo "<div class='card-footer small text-muted text-center'>$total pastas • ordenado por $sort $order</div>";
+    echo "<div class='pt-pagination' style='justify-content:center;'><span class='pt-pagination-info'>$total pastas • ordenado por $sort $order</span></div>";
 }
 echo "</div>";
 echo "</div>";

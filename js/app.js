@@ -130,3 +130,61 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// ---- Toggle Tema Claro/Escuro (padronizado com assetmgrstatus: amToggleTheme) ----
+var _ptThemeKey = 'pt_theme';
+var _ptIsDark = false;
+
+function _ptApplyTheme(dark) {
+  _ptIsDark = dark;
+  var body = document.body;
+  if (!body) return;
+  if (dark) {
+    body.classList.add('pt-dark-mode');
+  } else {
+    body.classList.remove('pt-dark-mode');
+  }
+  var btn = document.getElementById('pt-theme-btn');
+  if (btn) btn.innerHTML = dark ? '<i class="ti ti-sun"></i>' : '<i class="ti ti-moon"></i>';
+}
+
+function _ptInitTheme() {
+  try {
+    var saved = localStorage.getItem(_ptThemeKey);
+    // Padrão sempre claro — dark só se explicitamente escolhido (igual assetmgrstatus)
+    _ptApplyTheme(saved === 'dark');
+  } catch (e) { _ptApplyTheme(false); }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _ptInitTheme);
+} else {
+  _ptInitTheme();
+}
+
+window.ptToggleTheme = function() {
+  var newDark = !_ptIsDark;
+  try { localStorage.setItem(_ptThemeKey, newDark ? 'dark' : 'light'); } catch (e) {}
+  _ptApplyTheme(newDark);
+};
+
+// ---- Helper genérico para blocos de filtro colapsáveis (dashboard/pasta) ----
+window.ptToggleFilter = function(contentId, btnId, textId, iconId) {
+  var c = document.getElementById(contentId);
+  var b = btnId ? document.getElementById(btnId) : null;
+  var t = textId ? document.getElementById(textId) : null;
+  var ic = iconId ? document.getElementById(iconId) : null;
+  if (!c) return;
+  var isHidden = c.style.display === 'none' || c.classList.contains('collapsed');
+  if (isHidden) {
+    c.style.display = 'block'; c.classList.remove('collapsed'); c.classList.add('expanded');
+    if (b) b.classList.add('active');
+    if (t) t.textContent = 'Recolher';
+    if (ic) { ic.classList.remove('ti-chevron-down'); ic.classList.add('ti-chevron-up'); }
+  } else {
+    c.style.display = 'none'; c.classList.add('collapsed'); c.classList.remove('expanded');
+    if (b) b.classList.remove('active');
+    if (t) t.textContent = 'Expandir';
+    if (ic) { ic.classList.remove('ti-chevron-up'); ic.classList.add('ti-chevron-down'); }
+  }
+};

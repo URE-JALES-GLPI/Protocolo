@@ -88,6 +88,7 @@ if (empty($criadorNome) || $criadorNome === 'N/A') $criadorNome = $_SESSION['glp
 <title><?= htmlspecialchars($titulo) ?> - <?= htmlspecialchars($pasta->fields['codigo']) ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="<?= $CFG_GLPI['root_doc'] ?>/public/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="<?= Plugin::getWebDir('protocolo') ?>/css/protocolo-modern.css" rel="stylesheet">
 <style>
 body{ background:#eee; }
 .termo{ background:white; max-width:800px; margin:20px auto; padding:28px 30px; box-shadow:0 0 15px rgba(0,0,0,.1); font-family:"Times New Roman", serif; color:#111; display:flex; flex-direction:column; }
@@ -122,8 +123,8 @@ body{ background:#eee; }
 </head>
 <body>
 <div class="text-center no-print py-3 bg-white shadow-sm border-bottom">
-  <button onclick="window.print()" class="btn btn-primary"><i class="ti ti-printer me-1"></i> <?= __('Imprimir / Salvar PDF', 'protocolo') ?></button>
-  <a href="<?= Pasta::getFormURLWithID($id) ?>" class="btn btn-outline-secondary ms-2"><?= __('Voltar') ?></a>
+  <button onclick="window.print()" class="pt-btn pt-btn-primary pt-btn-sm"><i class="ti ti-printer me-1"></i> <?= __('Imprimir / Salvar PDF', 'protocolo') ?></button>
+  <a href="<?= Pasta::getFormURLWithID($id) ?>" class="pt-btn pt-btn-secondary pt-btn-sm ms-2"><?= __('Voltar') ?></a>
 </div>
 
 <div class="termo" id="termo">

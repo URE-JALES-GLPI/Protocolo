@@ -139,8 +139,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
 Html::header(__('Configuração - Protocolo', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 
-echo "<div class='container-fluid'>";
-echo "<h3><i class='ti ti-settings'></i> " . __('Configuração do Plugin Protocolo', 'protocolo') . "</h3>";
+echo "<div class='container-fluid pt-page'>";
+echo "<div class='pt-page-header'>";
+echo "<div class='pt-page-title'><i class='ti ti-settings'></i><h2>" . __('Configuração do Plugin Protocolo', 'protocolo') . "</h2></div>";
+echo "<div class='pt-page-actions'>";
+echo "<button id='pt-theme-btn' onclick='ptToggleTheme()' class='pt-btn pt-btn-secondary pt-btn-sm' title='Alternar tema claro/escuro'><i class='ti ti-moon'></i></button>";
+echo "</div>";
+echo "</div>";
 
 echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php'>";
 echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';

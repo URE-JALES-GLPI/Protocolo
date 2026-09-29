@@ -350,7 +350,10 @@ class Pasta extends CommonDBTM
 
     public static function getCategoriaBadge(string $cat): string
     {
-        return strtolower($cat) === 'malote' ? '<span class="badge bg-primary">Malote</span>' : '<span class="badge bg-info text-dark">Pasta</span>';
+        // Identidade visual padronizada com assetmgrstatus (pt-badge-*)
+        return strtolower($cat) === 'malote'
+            ? '<span class="pt-badge pt-badge-malote">Malote</span>'
+            : '<span class="pt-badge pt-badge-pasta">Pasta</span>';
     }
 
     public static function getOrigemDestinoDisplay(array $fields, string $prefix): string
@@ -359,14 +362,14 @@ class Pasta extends CommonDBTM
         $outro = $fields[$prefix . '_outro'] ?? '';
         $entId = (int)($fields[$prefix . '_entities_id'] ?? 0);
         if ($tipo === 'outro') {
-            return htmlspecialchars($outro ?: 'Outro') . " <span class='badge bg-secondary'>Outro</span>";
+            return htmlspecialchars($outro ?: 'Outro') . " <span class='pt-badge pt-badge-outro'>Outro</span>";
         }
         if ($tipo === 'ure') {
-            return "URE <span class='badge bg-warning text-dark'>URE</span>";
+            return "URE <span class='pt-badge pt-badge-ure'>URE</span>";
         }
         // escola
         $name = $entId ? self::getEscolaName($entId) : '—';
-        return htmlspecialchars($name) . " <span class='badge bg-success'>Escola</span>";
+        return htmlspecialchars($name) . " <span class='pt-badge pt-badge-escola'>Escola</span>";
     }
 
     public static function getSpecificValueToSelect($field, $name = '', $values = '', array $options = [])
@@ -414,10 +417,11 @@ class Pasta extends CommonDBTM
 
     public static function getStatusBadge(string $status): string
     {
+        // Identidade visual padronizada com assetmgrstatus (pt-badge-*)
         $map = [
-            'aguardando' => '<span class="badge bg-warning text-dark">' . __('Aguardando retirada', 'protocolo') . '</span>',
-            'retirada'   => '<span class="badge bg-success">' . __('Retirada', 'protocolo') . '</span>',
-            'cancelada'  => '<span class="badge bg-secondary">' . __('Cancelada', 'protocolo') . '</span>',
+            'aguardando' => '<span class="pt-badge pt-badge-aguardando">' . __('Aguardando retirada', 'protocolo') . '</span>',
+            'retirada'   => '<span class="pt-badge pt-badge-retirada">' . __('Retirada', 'protocolo') . '</span>',
+            'cancelada'  => '<span class="pt-badge pt-badge-cancelada">' . __('Cancelada', 'protocolo') . '</span>',
         ];
         return $map[$status] ?? htmlspecialchars($status);
     }
@@ -665,6 +669,8 @@ class Pasta extends CommonDBTM
 
         $csrf = Session::getNewCSRFToken();
         $formUrl = self::getFormURL();
+        // Wrapper pt-page: aplica identidade visual moderna (compat com tab_cadre_fixe/cards/btn)
+        echo "<div class='pt-page' style='max-width:none;padding:4px 4px 24px;'>";
         echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form' novalidate>";
         echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
         if (!$isNew) {
@@ -861,15 +867,15 @@ class Pasta extends CommonDBTM
             echo "<div class='form-text mb-3'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
         }
 
-        // Botões GLPI
-        echo "<div class='card-body d-flex gap-2 justify-content-center'>";
+        // Botões GLPI — identidade pt-*
+        echo "<div class='card-body d-flex gap-2 justify-content-center' style='padding:16px;'>";
         if ($isNew) {
-            echo "<button type='submit' name='add' value='1' class='btn btn-primary'><i class='ti ti-check'></i> " . __('Registrar pasta', 'protocolo') . "</button>";
-            echo "<a href='" . self::getSearchURL() . "' class='btn btn-secondary'>" . __('Cancelar') . "</a>";
+            echo "<button type='submit' name='add' value='1' class='pt-btn pt-btn-primary'><i class='ti ti-check'></i> " . __('Registrar pasta', 'protocolo') . "</button>";
+            echo "<a href='" . self::getSearchURL() . "' class='pt-btn pt-btn-secondary'>" . __('Cancelar') . "</a>";
         } else {
             // Botões atualizar / retirada / cancelar dentro do form principal só atualiza dados básicos
             if (Session::haveRight(self::$rightname, UPDATE)) {
-                echo "<button type='submit' name='update' value='1' class='btn btn-primary'><i class='ti ti-device-floppy'></i> " . _x('button', 'Save') . "</button>";
+                echo "<button type='submit' name='update' value='1' class='pt-btn pt-btn-primary'><i class='ti ti-device-floppy'></i> " . _x('button', 'Save') . "</button>";
             }
             // Ações específicas: retirada/cancelar/reabrir ficam em forms separados abaixo
         }
@@ -884,7 +890,7 @@ class Pasta extends CommonDBTM
             // Coluna esquerda já tem tabs com itens/termos; aqui mostramos ações rápidas na lateral
             echo "<div class='col-lg-8'>";
             // O conteúdo de itens/termos já está na tab, mas para vista form sem tabs, duplicamos link para termo
-            echo "<div class='card shadow-sm'><div class='card-header bg-white'><strong><i class='ti ti-printer'></i> " . __('Ações rápidas', 'protocolo') . "</strong></div><div class='list-group list-group-flush'>";
+            echo "<div class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-printer'></i> " . __('Ações rápidas', 'protocolo') . "</strong></div><div class='list-group list-group-flush'>";
             echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/termo.php?id=$ID&tipo=recebimento' target='_blank' class='list-group-item list-group-item-action'><i class='ti ti-printer'></i> " . __('Imprimir Termo de Recebimento', 'protocolo') . "</a>";
             if ($this->fields['status'] === 'retirada') {
                 echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/termo.php?id=$ID&tipo=retirada' target='_blank' class='list-group-item list-group-item-action'><i class='ti ti-printer'></i> " . __('Imprimir Termo de Retirada', 'protocolo') . "</a>";
@@ -895,7 +901,7 @@ class Pasta extends CommonDBTM
 
             echo "<div class='col-lg-4'>";
             if ($this->fields['status'] === 'aguardando') {
-                echo "<div class='card shadow-sm border-success mb-3'><div class='card-header bg-success text-white'><strong><i class='ti ti-logout'></i> " . __('Registrar retirada', 'protocolo') . "</strong></div><div class='card-body'>";
+                echo "<div class='pt-card mb-3' style='border-color:#bbf7d0;'><div class='pt-card-header' style='background:#f0fdf4;border-color:#bbf7d0;'><strong style='color:#065f46;'><i class='ti ti-logout' style='color:#10b981;'></i> " . __('Registrar retirada', 'protocolo') . "</strong></div><div class='pt-card-body'>";
                 echo "<p class='small text-muted'>" . __('Quando a escola vier buscar, preencha e gere o Termo de Retirada.', 'protocolo') . "</p>";
                 echo "<form method='post' action='" . self::getFormURL() . "'>";
                 echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
@@ -905,22 +911,22 @@ class Pasta extends CommonDBTM
                 echo "<div class='mb-2'><label class='form-label'>" . __('Documento', 'protocolo') . "</label><div class='input-group'><select name='retirado_documento_tipo' id='retirado_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'>CPF</option><option value='rg'>RG</option></select><input name='retirado_documento' id='retirado_documento' class='form-control' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='retirado_doc_hint'>CPF: 11 dígitos | RG: 7-9 dígitos</small></div>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Data/hora retirada', 'protocolo') . "</label><input type='datetime-local' name='data_retirada' id='data_retirada_field' class='form-control' value='" . date('Y-m-d\TH:i') . "'></div>";
                 echo "<div class='mb-3'><label class='form-label'>" . __('Observação', 'protocolo') . "</label><textarea name='observacao_retirada' class='form-control' rows='2'></textarea></div>";
-                echo "<button class='btn btn-success w-100'><i class='ti ti-check'></i> " . __('Confirmar retirada', 'protocolo') . "</button>";
+                echo "<button class='pt-btn pt-btn-green w-100'><i class='ti ti-check'></i> " . __('Confirmar retirada', 'protocolo') . "</button>";
                 echo "</form>";
 
                 echo "<form method='post' action='" . self::getFormURL() . "' class='mt-2' onsubmit=\"return confirm('" . __('Cancelar esta pasta?', 'protocolo') . "')\">";
                 echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='cancelar'>";
-                echo "<button class='btn btn-outline-danger btn-sm w-100'>" . __('Cancelar pasta', 'protocolo') . "</button>";
+                echo "<button class='pt-btn pt-btn-danger pt-btn-sm w-100'>" . __('Cancelar pasta', 'protocolo') . "</button>";
                 echo "</form></div></div>";
             } else {
-                echo "<div class='card shadow-sm mb-3'><div class='card-body text-center'><p class='mb-2'>" . __('Status', 'protocolo') . ": " . self::getStatusBadge($this->fields['status']) . "</p>";
+                echo "<div class='pt-card mb-3'><div class='pt-card-body text-center'><p class='mb-2'>" . __('Status', 'protocolo') . ": " . self::getStatusBadge($this->fields['status']) . "</p>";
                 echo "<form method='post' action='" . self::getFormURL() . "' onsubmit=\"return confirm('" . __('Reabrir pasta?', 'protocolo') . "')\">";
                 echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='reabrir'>";
-                echo "<button class='btn btn-sm btn-outline-secondary'>" . __('Reabrir para aguardando', 'protocolo') . "</button>";
+                echo "<button class='pt-btn pt-btn-secondary pt-btn-sm'>" . __('Reabrir para aguardando', 'protocolo') . "</button>";
                 echo "</form></div></div>";
             }
             echo "</div>"; // col
@@ -1119,6 +1125,7 @@ class Pasta extends CommonDBTM
         // JS para tipos/itens (reusa assets/js/app.js) - tag direta evita duplicação root_doc do Html::script
         $jsUrl = Plugin::getWebDir('protocolo') . '/js/app.js?v=' . PLUGIN_PROTOCOLO_VERSION;
         echo "<script src=\"" . htmlspecialchars($jsUrl) . "\"></script>";
+        echo "</div>"; // fecha .pt-page
 
         return true;
     }

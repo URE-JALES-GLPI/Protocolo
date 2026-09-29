@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '1.5.6');
+define('PLUGIN_PROTOCOLO_VERSION', '1.6.0');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -136,11 +136,15 @@ function plugin_init_protocolo(): void
     $PLUGIN_HOOKS['cron']['protocolo'] = 3600;
 
     // JS/CSS - relativo deixa GLPI resolver marketplace/plugins corretamente (evita duplicação /glpi/glpi/ ou /plugins//glpi/marketplace)
+    // Design system moderno (protocolo-modern.css) padronizado com assetmgrstatus — prefixo pt-*
+    $ptCssVer = @filemtime(__DIR__ . '/css/protocolo-modern.css') ?: time();
+    $ptJsVer  = @filemtime(__DIR__ . '/js/app.js') ?: time();
     $PLUGIN_HOOKS['add_javascript']['protocolo'] = [
-        'js/app.js'
+        'js/app.js?v=' . $ptJsVer
     ];
     $PLUGIN_HOOKS['add_css']['protocolo'] = [
-        'css/style.css'
+        'css/style.css',
+        'css/protocolo-modern.css?v=' . $ptCssVer
     ];
 
     // Migração ENTIDADES - roda apenas uma vez por versão (cache em glpi_configs)
