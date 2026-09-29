@@ -201,22 +201,30 @@ function ptDoOpenRegisterModal() {
   document.body.style.overflow = 'hidden';
 }
 window.ptOpenRegisterModal = function(ev) {
-  var m = document.getElementById('pt-register-overlay');
-  if (!m) return true; // sem modal na página: segue o link normalmente
+  // Pre-checagem SEMPRE (com ou sem modal na página): valida a permissão da
+  // SESSÃO ATUAL antes de qualquer coisa. Sem direito, explica em popup em
+  // vez de deixar navegar para um 403 feio ou preencher o form à toa.
   if (ev) ev.preventDefault();
-  // Pre-checagem: valida a permissão da SESSÃO ATUAL antes de abrir,
-  // para nunca preencher o form à toa e morrer com 403 no envio.
+  var linkHref = (ev && ev.currentTarget && ev.currentTarget.href) ? ev.currentTarget.href : null;
+  function goFallback() {
+    var m = document.getElementById('pt-register-overlay');
+    if (m) { ptDoOpenRegisterModal(); return; }
+    if (linkHref) window.location.href = linkHref;
+  }
+  function noPerm(d) {
+    var who = d ? (' (usuário ' + d.uid + ", perfil ativo '" + d.pname + "' #" + d.pid + ')') : '';
+    ptShowMsgPopup('error', 'Sem permissão',
+      'Sua sessão atual não tem direito de Registrar Entrada' + who + '.\n\nSe a aba Perfis mostra Usar = Sim para outro perfil, é esse o problema: vale o perfil ATIVO (barra de cima).\n\nRecarregue a página (F5). Se persistir, confira em Administração > Perfis > esse perfil > aba Protocolo > Efetivo precisa dizer PODE (e entre de novo no GLPI).');
+  }
   try {
     fetch(ptPluginBase() + '/ajax/can.php', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
       .then(function(r){ return r.json(); })
       .then(function(d){
-        if (d && d.canCreate) { ptDoOpenRegisterModal(); return; }
-        var who = d ? (' (usuário ' + d.uid + ", perfil '" + d.pname + "' #" + d.pid + ')') : '';
-        ptShowMsgPopup('error', 'Sem permissão',
-          'Sua sessão atual não tem direito de Registrar Entrada' + who + '.\n\nRecarregue a página (F5) e tente de novo. Se persistir, confira em Administração > Perfis > esse perfil > aba Protocolo > Usar = Sim (e entre de novo no GLPI).');
+        if (d && d.canCreate) { goFallback(); return; }
+        noPerm(d);
       })
-      .catch(function(){ ptDoOpenRegisterModal(); }); // sem resposta: abre e deixa o envio decidir
-  } catch (e) { ptDoOpenRegisterModal(); }
+      .catch(function(){ goFallback(); }); // sem resposta: segue o fluxo antigo e deixa o envio decidir
+  } catch (e) { goFallback(); }
   return false;
 };
 window.ptCloseRegisterModal = function(ev) {
