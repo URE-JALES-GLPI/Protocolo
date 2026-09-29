@@ -728,7 +728,8 @@ class Pasta extends CommonDBTM
         } else {
             echo "<div class='pt-page' style='max-width:none;padding:4px 4px 24px;'>";
         }
-        echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form' novalidate>";
+        // Ficha existente abre em modo visualização (edição só via botão Editar)
+        echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form' novalidate" . ($isNew ? '' : " data-viewonly='1'") . ">";
         echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
         if (!$isNew) {
             echo Html::hidden('id', ['value' => $ID]);
@@ -790,7 +791,7 @@ class Pasta extends CommonDBTM
         // Origem/Interessado (Escola ou Outros; URE só aparece em registros antigos)
         $origemTipoRaw = $this->fields['origem_tipo'] ?? '';
         if ($isNew) {
-            $origemTipo = in_array(strtolower($origemTipoRaw), ['outro','escola']) ? strtolower($origemTipoRaw) : '';
+            $origemTipo = in_array(strtolower($origemTipoRaw), ['outro','ure','escola']) ? strtolower($origemTipoRaw) : '';
         } else {
             $origemTipo = $this->fields['origem_tipo'] ?? 'escola';
             if (!in_array($origemTipo, ['outro','ure','escola'])) $origemTipo = 'escola';
@@ -798,21 +799,16 @@ class Pasta extends CommonDBTM
         }
         $origemOutro = $this->fields['origem_outro'] ?? '';
         $origemEnt = (int)($this->fields['origem_entities_id'] ?? 0);
-        $origemLegacyUre = (!$isNew && $origemTipo === 'ure');
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Origem/Interessado', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(de onde vem)</small></label></td>";
         echo "<td colspan='3'>";
         echo "<div class='d-flex gap-3 mb-2' id='origemGroup'>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_escola' value='escola' " . ($origemTipo==='escola'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='origem_escola'>Escola</label></div>";
-        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . ($isNew?'':'') . "><label class='form-check-label' for='origem_outro'>Outros</label></div>";
-        if ($origemLegacyUre) {
-            echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' checked><label class='form-check-label' for='origem_ure'>URE</label></div>";
-        }
+        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . "><label class='form-check-label' for='origem_ure'>URE</label></div>";
+        echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outros</label></div>";
         echo "</div>";
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
-        if ($origemLegacyUre) {
-            echo "<div id='origem_ure_wrap' style='display:block'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
-        }
+        echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
         try {
             \Entity::dropdown([
@@ -956,9 +952,11 @@ class Pasta extends CommonDBTM
                 echo "<a href='" . self::getSearchURL() . "' class='pt-btn pt-btn-secondary'>" . __('Cancelar') . "</a>";
             }
         } else {
-            // Botões atualizar / retirada / cancelar dentro do form principal só atualiza dados básicos
+            // Ficha existente: abre em visualização; edição liberada via botão Editar
             if (Session::haveRight(self::$rightname, UPDATE)) {
-                echo "<button type='submit' name='update' value='1' class='pt-btn pt-btn-primary'><i class='ti ti-device-floppy'></i> " . _x('button', 'Save') . "</button>";
+                echo "<button type='button' id='pt-pasta-edit-btn' class='pt-btn pt-btn-secondary' onclick='ptTogglePastaEdit(true)'><i class='ti ti-pencil'></i> " . __('Editar', 'protocolo') . "</button>";
+                echo "<button type='submit' name='update' value='1' id='pt-pasta-save-btn' class='pt-btn pt-btn-primary' style='display:none;'><i class='ti ti-device-floppy'></i> " . _x('button', 'Save') . "</button>";
+                echo "<button type='button' id='pt-pasta-canceledit-btn' class='pt-btn pt-btn-secondary' style='display:none;' onclick='location.reload()'>" . __('Cancelar', 'protocolo') . "</button>";
             }
             // Ações específicas: retirada/cancelar/reabrir ficam em forms separados abaixo
         }
@@ -1151,7 +1149,7 @@ class Pasta extends CommonDBTM
                         var assunto = document.getElementById('assunto_field');
                         if(!assunto || !assunto.value.trim()){ e.preventDefault(); showAlert('Preencha o Assunto.', assunto); return; }
                         var origemSel = form.querySelector('input[name=\"origem_tipo\"]:checked');
-                        if(!origemSel){ e.preventDefault(); showAlert('Selecione a Origem/Interessado (Escola ou Outros).', document.getElementById('origem_escola')); return; }
+                        if(!origemSel){ e.preventDefault(); showAlert('Selecione a Origem/Interessado (Escola, URE ou Outros).', document.getElementById('origem_escola')); return; }
                         var origemVal = origemSel.value;
                         if(origemVal==='outro'){
                             var oOutro = document.getElementById('origem_outro_input');
@@ -1177,6 +1175,12 @@ class Pasta extends CommonDBTM
                         var itensDesc = form.querySelectorAll('input[name*=\"[descricao]\"]');
                         var hasItem=false; itensDesc.forEach(function(inp){ if(inp.value.trim()) hasItem=true; });
                         if(!hasItem){ e.preventDefault(); showAlert('Adicione pelo menos 1 item com descrição.', document.querySelector('input[name*=\"[descricao]\"]')); return; }
+                        // Dentro da janela flutuante: envia via AJAX (fica na tela; erro vira popup)
+                        if (form.closest && form.closest('#pt-register-overlay') && typeof window.ptSubmitRegisterAjax === 'function') {
+                            e.preventDefault();
+                            window.ptSubmitRegisterAjax(form);
+                            return;
+                        }
                     });
                 }
             })();

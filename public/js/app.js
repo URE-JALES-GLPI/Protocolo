@@ -207,8 +207,101 @@ window.ptCloseRegisterModal = function(ev) {
   return false;
 };
 document.addEventListener('keydown', function(e){
-  if (e.key === 'Escape') window.ptCloseRegisterModal();
+  if (e.key === 'Escape') {
+    var msg = document.getElementById('pt-msg-overlay');
+    if (msg) { msg.remove(); return; }
+    window.ptCloseRegisterModal();
+  }
 });
+
+// ---- Envio do Registrar Entrada via AJAX (fica na tela; erro vira popup) ----
+window.ptSubmitRegisterAjax = function(form) {
+  var btn = form.querySelector('button[type="submit"][name="add"]');
+  var origHtml = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando...'; }
+  function restore(){ if (btn) { btn.disabled = false; btn.innerHTML = origHtml; } }
+  fetch(form.action, {method: 'POST', body: new FormData(form), credentials: 'same-origin'})
+    .then(function(resp){
+      return resp.text().then(function(html){ return {resp: resp, html: html}; });
+    })
+    .then(function(out){
+      var url = out.resp.url || '';
+      if (out.resp.redirected || /pasta\.form\.php[^?]*\?id=\d+/.test(url)) {
+        window.location.href = url; // sucesso: abre a ficha nova
+        return;
+      }
+      restore();
+      ptShowMsgPopup('error', 'Não foi possível registrar', ptExtractServerErrors(out.html));
+    })
+    .catch(function(){
+      restore();
+      ptShowMsgPopup('error', 'Falha de conexão', 'Não foi possível falar com o servidor. Tente novamente.');
+    });
+  return false;
+};
+
+function ptExtractServerErrors(html) {
+  try {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var found = [];
+    doc.querySelectorAll('.alert-danger, .toast-error, .toast.bg-danger, div[role="alert"].alert-danger').forEach(function(el){
+      var t = ((el.innerText || el.textContent) || '').trim().replace(/\s+/g, ' ');
+      if (t && found.indexOf(t) === -1) found.push(t);
+    });
+    if (!found.length) {
+      var h = doc.querySelector('.error, .ui-error, .messages.error');
+      if (h) {
+        var t2 = (h.textContent || '').trim().replace(/\s+/g, ' ');
+        if (t2) found.push(t2);
+      }
+    }
+    if (!found.length) found.push('Verifique os campos e tente novamente.');
+    return found.join('\n');
+  } catch (e) { return 'Verifique os campos e tente novamente.'; }
+}
+
+// ---- Ficha da pasta: visualização travada, edição via botão Editar ----
+function ptSetPastaViewOnly(disabled) {
+  var form = document.getElementById('plugin_protocolo_pasta_form');
+  if (!form || !form.hasAttribute('data-viewonly')) return;
+  var els = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea');
+  // via jQuery o Select2 (dropdowns de escola) trava/destrava o widget junto
+  if (window.jQuery) { window.jQuery(els).prop('disabled', disabled); }
+  else { els.forEach(function(el){ el.disabled = disabled; }); }
+}
+window.ptTogglePastaEdit = function(on) {
+  ptSetPastaViewOnly(!on);
+  var editBtn = document.getElementById('pt-pasta-edit-btn');
+  var saveBtn = document.getElementById('pt-pasta-save-btn');
+  var cancelBtn = document.getElementById('pt-pasta-canceledit-btn');
+  if (editBtn) editBtn.style.display = on ? 'none' : '';
+  if (saveBtn) saveBtn.style.display = on ? '' : 'none';
+  if (cancelBtn) cancelBtn.style.display = on ? '' : 'none';
+};
+document.addEventListener('DOMContentLoaded', function(){ ptSetPastaViewOnly(true); });
+
+// ---- Popup genérico de mensagem (erro/sucesso) sobre a tela atual ----
+window.ptShowMsgPopup = function(type, title, msg) {
+  var old = document.getElementById('pt-msg-overlay');
+  if (old) old.remove();
+  var isErr = type !== 'success';
+  var ov = document.createElement('div');
+  ov.id = 'pt-msg-overlay';
+  ov.className = 'pt-modal-overlay open';
+  ov.innerHTML = '<div class="pt-modal" style="max-width:440px;" onclick="event.stopPropagation()" role="alertdialog" aria-modal="true">'
+    + '<div class="pt-modal-header"' + (isErr ? ' style="background:linear-gradient(135deg,#dc2626,#991b1b);"' : '') + '>'
+    + '<div class="pt-modal-title"><i class="ti ' + (isErr ? 'ti-alert-triangle' : 'ti-check') + '"></i><span></span></div>'
+    + '<button type="button" class="pt-modal-close" aria-label="Fechar"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pt-modal-body"><p style="white-space:pre-line;margin:0;font-size:.9rem;"></p></div>'
+    + '<div style="padding:12px 24px;border-top:1px solid #f0f2f8;display:flex;justify-content:flex-end;background:#fafbff;border-radius:0 0 20px 20px;"><button type="button" class="pt-btn pt-btn-primary pt-btn-sm">Entendi</button></div></div>';
+  ov.querySelector('.pt-modal-title span').textContent = title;
+  ov.querySelector('.pt-modal-body p').textContent = msg;
+  function close(){ ov.remove(); }
+  ov.addEventListener('click', close);
+  ov.querySelector('.pt-modal-close').addEventListener('click', close);
+  ov.querySelector('.pt-btn').addEventListener('click', close);
+  document.body.appendChild(ov);
+};
 
 // ---- Abas Resumo/Dashboards sem reload (transição fluida, sem piscar) ----
 window.ptDashTab = function(ev, tab) {
