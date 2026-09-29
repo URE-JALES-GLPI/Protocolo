@@ -257,9 +257,19 @@ window.ptSubmitRegisterAjax = function(form) {
   var origHtml = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando...'; }
   function restore(){ if (btn) { btn.disabled = false; btn.innerHTML = origHtml; } }
+  function sessionDead() {
+    restore();
+    ptShowMsgPopup('error', 'Sessão expirada',
+      'Sua sessão expirou (ou o perfil mudou) enquanto você preenchia.\n\nNÃO FECHE esta janela: abra o GLPI em outra aba, entre de novo, volte aqui e clique em Registrar novamente — os dados continuam preenchidos.');
+  }
+  // Revalida a sessão/permissão na hora do envio (o form pode ficar aberto por muito tempo)
   var fd = new FormData(form);
   if (!fd.has('add')) fd.append('add', '1'); // FormData não inclui o botão de submit
-  fetch(form.action, {method: 'POST', body: fd, credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+  fetch(ptPluginBase() + '/ajax/can.php', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d || !d.canCreate) { sessionDead(); return; }
+      fetch(form.action, {method: 'POST', body: fd, credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
     .then(function(resp){
       return resp.text().then(function(text){ return {resp: resp, text: text}; });
     })
@@ -297,6 +307,8 @@ window.ptSubmitRegisterAjax = function(form) {
       restore();
       ptShowMsgPopup('error', 'Falha de conexão', 'Não foi possível falar com o servidor. Tente novamente.');
     });
+    })
+    .catch(function(){ sessionDead(); });
   return false;
 };
 

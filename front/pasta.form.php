@@ -52,6 +52,8 @@ if (isset($_POST['add'])) {
     $isAjax = (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest');
     $canCreate = Pasta::canCreate();
     $canView = Pasta::canView();
+    $csrfOk = Session::validateCSRF($_POST) ? '1' : '0';
+    error_log("[protocolo] ADD attempt: uid=" . Session::getLoginUserID() . " pid=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " canCreate=" . ($canCreate ? '1' : '0') . " canView=" . ($canView ? '1' : '0') . " csrf=$csrfOk ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
     if (!$canCreate) {
         $dbgUid = (int)Session::getLoginUserID();
         $dbgPid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
