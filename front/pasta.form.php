@@ -38,6 +38,10 @@ function protocolo_collect_ajax_errors(): array
 
 function protocolo_ajax_answer(array $data): void
 {
+    // Limpa buffers (avisos PHP no output corromperiam o JSON)
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;

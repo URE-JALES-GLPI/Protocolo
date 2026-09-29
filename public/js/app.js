@@ -244,7 +244,12 @@ window.ptSubmitRegisterAjax = function(form) {
         return;
       }
       var data = null;
-      try { data = JSON.parse(out.text); } catch (e) { data = null; }
+      try {
+        var raw = (out.text || '').replace(/^\s+/, '');
+        var s = raw.indexOf('{');
+        if (s > 0) raw = raw.substring(s); // descarta BOM/avisos PHP antes do JSON
+        data = JSON.parse(raw);
+      } catch (e) { data = null; }
       if (data && typeof data.ok !== 'undefined') {
         if (data.ok) { window.location.href = data.url; return; } // sucesso: abre a ficha nova
         restore();
@@ -270,7 +275,7 @@ function ptExtractServerErrors(html) {
   try {
     var doc = new DOMParser().parseFromString(html, 'text/html');
     var found = [];
-    doc.querySelectorAll('.alert-danger, .toast-error, .toast.bg-danger, div[role="alert"].alert-danger').forEach(function(el){
+    doc.querySelectorAll('.alert-danger, .text-bg-danger, .toast-error, .toast.bg-danger, div[role="alert"].alert-danger').forEach(function(el){
       var t = ((el.innerText || el.textContent) || '').trim().replace(/\s+/g, ' ');
       if (t && found.indexOf(t) === -1) found.push(t);
     });
