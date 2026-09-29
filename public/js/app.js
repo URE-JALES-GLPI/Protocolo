@@ -214,6 +214,14 @@ document.addEventListener('keydown', function(e){
   }
 });
 
+// Recarrega se a página voltar do cache do navegador (botão Voltar):
+// evita tela velha com sessão/perfil trocados (só nas telas do Protocolo)
+window.addEventListener('pageshow', function(e){
+  if (e.persisted && (document.getElementById('pt-register-overlay') || document.getElementById('plugin_protocolo_pasta_form'))) {
+    window.location.reload();
+  }
+});
+
 // ---- Envio do Registrar Entrada via AJAX (fica na tela; erro vira popup) ----
 window.ptSubmitRegisterAjax = function(form) {
   var btn = form.querySelector('button[type="submit"][name="add"]');
@@ -227,6 +235,14 @@ window.ptSubmitRegisterAjax = function(form) {
       return resp.text().then(function(text){ return {resp: resp, text: text}; });
     })
     .then(function(out){
+      // 403 = a sessão/perfil mudou depois que a tela foi aberta (ou expirou).
+      // Orienta recarregar em vez de mostrar o texto genérico do GLPI.
+      if (out.resp.status === 403) {
+        restore();
+        ptShowMsgPopup('error', 'Sessão desatualizada',
+          'O servidor recusou o envio (erro 403).\n\nIsso acontece quando a sessão expirou ou o perfil/entidade mudou depois que esta tela foi aberta.\n\nRecarregue a página (F5) e tente novamente. Se persistir, confira em Administração > Perfis > (seu perfil) > aba Protocolo > Usar = Sim (e entre de novo no GLPI).');
+        return;
+      }
       var data = null;
       try { data = JSON.parse(out.text); } catch (e) { data = null; }
       if (data && typeof data.ok !== 'undefined') {
