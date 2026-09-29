@@ -220,18 +220,27 @@ window.ptSubmitRegisterAjax = function(form) {
   var origHtml = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando...'; }
   function restore(){ if (btn) { btn.disabled = false; btn.innerHTML = origHtml; } }
-  fetch(form.action, {method: 'POST', body: new FormData(form), credentials: 'same-origin'})
+  var fd = new FormData(form);
+  if (!fd.has('add')) fd.append('add', '1'); // FormData não inclui o botão de submit
+  fetch(form.action, {method: 'POST', body: fd, credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
     .then(function(resp){
-      return resp.text().then(function(html){ return {resp: resp, html: html}; });
+      return resp.text().then(function(text){ return {resp: resp, text: text}; });
     })
     .then(function(out){
-      var url = out.resp.url || '';
-      if (out.resp.redirected || /pasta\.form\.php[^?]*\?id=\d+/.test(url)) {
-        window.location.href = url; // sucesso: abre a ficha nova
+      var data = null;
+      try { data = JSON.parse(out.text); } catch (e) { data = null; }
+      if (data && typeof data.ok !== 'undefined') {
+        if (data.ok) { window.location.href = data.url; return; } // sucesso: abre a ficha nova
+        restore();
+        var errs = (data.errors && data.errors.length) ? data.errors.join('\n') : 'Verifique os campos e tente novamente.';
+        ptShowMsgPopup('error', 'Não foi possível registrar', errs);
         return;
       }
+      // fallback legado (resposta HTML em vez de JSON)
+      var url = out.resp.url || '';
+      if (out.resp.redirected || /pasta\.form\.php[^?]*\?id=\d+/.test(url)) { window.location.href = url; return; }
       restore();
-      ptShowMsgPopup('error', 'Não foi possível registrar', ptExtractServerErrors(out.html));
+      ptShowMsgPopup('error', 'Não foi possível registrar', ptExtractServerErrors(out.text));
     })
     .catch(function(){
       restore();
