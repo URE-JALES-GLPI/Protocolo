@@ -53,9 +53,18 @@ if (isset($_POST['add'])) {
     $canCreate = Pasta::canCreate();
     $canView = Pasta::canView();
     if (!$canCreate) {
-        error_log("[protocolo] ADD negado: uid=" . Session::getLoginUserID() . " pid=" . ($_SESSION['glpiactive_profile']['id'] ?? '?') . " canCreate=0 canView=" . ($canView ? '1' : '0') . " ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
+        $dbgUid = (int)Session::getLoginUserID();
+        $dbgPid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        $dbgPname = '';
+        try {
+            if ($dbgPid > 0 && isset($DB) && $DB->tableExists('glpi_profiles')) {
+                $it = $DB->request(['SELECT' => ['name'], 'FROM' => 'glpi_profiles', 'WHERE' => ['id' => $dbgPid], 'LIMIT' => 1]);
+                foreach ($it as $r) { $dbgPname = (string)($r['name'] ?? ''); break; }
+            }
+        } catch (\Throwable $e) {}
+        error_log("[protocolo] ADD negado: uid=$dbgUid pid=$dbgPid pname='$dbgPname' canCreate=0 canView=" . ($canView ? '1' : '0') . " ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
         if ($isAjax) {
-            protocolo_ajax_answer(['ok' => false, 'code' => 'NO_CREATE_RIGHT', 'errors' => ['Sem permissão para Registrar Entrada. Verifique em Administração > Perfis > (seu perfil) > aba Protocolo > Usar = Sim (depois saia e entre de novo no GLPI).']]);
+            protocolo_ajax_answer(['ok' => false, 'code' => 'NO_CREATE_RIGHT', 'errors' => ["Sem permissão para Registrar Entrada (usuário $dbgUid, perfil ativo '$dbgPname' #$dbgPid). Verifique em Administração > Perfis > esse perfil > aba Protocolo > Usar = Sim (depois saia e entre de novo no GLPI)."]]);
         }
         Html::displayRightError();
     }
