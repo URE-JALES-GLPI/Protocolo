@@ -46,21 +46,25 @@ function protocolo_ajax_answer(array $data): void
 if (isset($_POST['add'])) {
     if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch add uid=".Session::getLoginUserID()." token=".($_POST['_glpi_csrf_token']??'none'));
     $isAjax = (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest');
-    if (!Pasta::canCreate()) {
+    $canCreate = Pasta::canCreate();
+    $canView = Pasta::canView();
+    if (!$canCreate) {
+        error_log("[protocolo] ADD negado: uid=" . Session::getLoginUserID() . " pid=" . ($_SESSION['glpiactive_profile']['id'] ?? '?') . " canCreate=0 canView=" . ($canView ? '1' : '0') . " ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
         if ($isAjax) {
-            protocolo_ajax_answer(['ok' => false, 'errors' => ['Sem permissão para Registrar Entrada. Verifique em Administração > Perfis > (seu perfil) > aba Protocolo > Usar.']]);
+            protocolo_ajax_answer(['ok' => false, 'code' => 'NO_CREATE_RIGHT', 'errors' => ['Sem permissão para Registrar Entrada. Verifique em Administração > Perfis > (seu perfil) > aba Protocolo > Usar = Sim (depois saia e entre de novo no GLPI).']]);
         }
         Html::displayRightError();
     }
     $newID = $pasta->add($_POST);
     if ($newID) {
         if ($isAjax) {
-            protocolo_ajax_answer(['ok' => true, 'id' => $newID, 'url' => Pasta::getFormURLWithID($newID)]);
+            protocolo_ajax_answer(['ok' => true, 'code' => 'OK', 'id' => $newID, 'url' => Pasta::getFormURLWithID($newID)]);
         }
         Html::redirect(Pasta::getFormURLWithID($newID));
     } else {
+        error_log("[protocolo] ADD falhou validacao: uid=" . Session::getLoginUserID() . " postkeys=" . implode(',', array_keys($_POST)));
         if ($isAjax) {
-            protocolo_ajax_answer(['ok' => false, 'errors' => protocolo_collect_ajax_errors()]);
+            protocolo_ajax_answer(['ok' => false, 'code' => 'VALIDATION_FAIL', 'errors' => protocolo_collect_ajax_errors()]);
         }
         // Validação falhou: reexibe form com dados e aviso (não perde tudo com F5)
         Html::header(Pasta::getTypeName(1), $_SERVER['PHP_SELF'], 'tools', Pasta::class);

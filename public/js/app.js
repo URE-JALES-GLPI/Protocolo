@@ -233,6 +233,7 @@ window.ptSubmitRegisterAjax = function(form) {
         if (data.ok) { window.location.href = data.url; return; } // sucesso: abre a ficha nova
         restore();
         var errs = (data.errors && data.errors.length) ? data.errors.join('\n') : 'Verifique os campos e tente novamente.';
+        if (data.code) errs += '\n\nCódigo: ' + data.code;
         ptShowMsgPopup('error', 'Não foi possível registrar', errs);
         return;
       }
