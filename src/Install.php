@@ -294,9 +294,12 @@ class Install
         global $DB;
         try {
             // Novos direitos simplificados: Usar (operacional) e Admin (config)
+            // 31 = todos os bits (READ+UPDATE+CREATE+DELETE+PURGE) para que o
+            // núcleo do GLPI (Session::haveRight) também passe em check(-1, CREATE).
+            $full = \GlpiPlugin\Protocolo\Profile::RIGHT_YES;
             $newRights = [
-                'plugin_protocolo_use'   => 1, // 1 = Usar
-                'plugin_protocolo_admin' => 1, // 1 = Admin (READ suficiente, mas DB guarda 1)
+                'plugin_protocolo_use'   => $full,
+                'plugin_protocolo_admin' => $full,
             ];
             $profiles = $DB->request(['FROM' => 'glpi_profiles']);
             foreach ($profiles as $profile) {
@@ -312,23 +315,23 @@ class Install
                         if (count($existing) === 0) {
                             $default = 0;
                             if ($rightName === 'plugin_protocolo_use') {
-                                if ($isSuperAdmin) $default = 1;
-                                elseif ($isTechnicianLike) $default = 1;
+                                if ($isSuperAdmin) $default = $full;
+                                elseif ($isTechnicianLike) $default = $full;
                                 else {
                                     // Herda de legado pasta se existir
                                     $legacy = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $profileId, 'name' => 'plugin_protocolo_pasta']]);
                                     foreach ($legacy as $row) {
-                                        if ((int)$row['rights'] > 0) $default = 1;
+                                        if ((int)$row['rights'] > 0) $default = $full;
                                         break;
                                     }
                                     // Se não tem legado, Self-Service/Observer ficam sem
                                 }
                             } elseif ($rightName === 'plugin_protocolo_admin') {
-                                if ($isSuperAdmin) $default = 1;
+                                if ($isSuperAdmin) $default = $full;
                                 else {
                                     $legacy = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $profileId, 'name' => 'plugin_protocolo_config']]);
                                     foreach ($legacy as $row) {
-                                        if ((int)$row['rights'] > 0) $default = 1;
+                                        if ((int)$row['rights'] > 0) $default = $full;
                                         break;
                                     }
                                 }
@@ -385,26 +388,30 @@ class Install
                     }
                 }
                 if ($useRights === 0 && ($hasPasta || $hasEscola || $hasTipo)) {
-                    $DB->update('glpi_profilerights', ['rights' => 1], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use']);
+                    $full = \GlpiPlugin\Protocolo\Profile::RIGHT_YES;
+                    $DB->update('glpi_profilerights', ['rights' => $full], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use']);
                     if ($DB->affectedRows() === 0) {
-                        try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use', 'rights' => 1]); } catch (\Throwable $e) {}
+                        try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use', 'rights' => $full]); } catch (\Throwable $e) {}
                     }
                     if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
-                        $_SESSION['glpiactive_profile']['plugin_protocolo_use'] = 1;
-                        $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] = 1;
+                        $_SESSION['glpiactive_profile']['plugin_protocolo_use'] = $full;
+                        $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] = $full;
                     }
                 }
                 if ($adminRights === 0 && $hasConfig) {
-                    $DB->update('glpi_profilerights', ['rights' => 1], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin']);
+                    $full = \GlpiPlugin\Protocolo\Profile::RIGHT_YES;
+                    $DB->update('glpi_profilerights', ['rights' => $full], ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin']);
                     if ($DB->affectedRows() === 0) {
-                        try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin', 'rights' => 1]); } catch (\Throwable $e) {}
+                        try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin', 'rights' => $full]); } catch (\Throwable $e) {}
                     }
                     if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
-                        $_SESSION['glpiactive_profile']['plugin_protocolo_admin'] = 1;
-                        $_SESSION['glpiactiveprofile']['plugin_protocolo_admin'] = 1;
+                        $_SESSION['glpiactive_profile']['plugin_protocolo_admin'] = $full;
+                        $_SESSION['glpiactiveprofile']['plugin_protocolo_admin'] = $full;
                     }
                 }
             }
+            // Normaliza legados 1 → 31 (bits completos) para o núcleo do GLPI
+            try { \GlpiPlugin\Protocolo\Profile::ensureFullRights(); } catch (\Throwable $e) {}
         } catch (\Throwable $e) {
             error_log("[protocolo] migrateLegacyRights falhou: " . $e->getMessage());
         }
@@ -682,8 +689,9 @@ class Install
                 if (!$found) {
                     // Só cria se não existe - mantém 0 explícito se admin setou Sem acesso
                     $default = 0;
-                    // Super-Admin (id 4) ganha 1 por padrão se faltante
-                    if ($pid === 4) $default = 1;
+                    $full = \GlpiPlugin\Protocolo\Profile::RIGHT_YES;
+                    // Super-Admin (id 4) ganha acesso total por padrão se faltante
+                    if ($pid === 4) $default = $full;
                     else {
                         // Herda de legado se existir
                         $legacyMap = [
@@ -693,7 +701,7 @@ class Install
                         foreach ($legacyMap[$rname] ?? [] as $l) {
                             $it2 = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $pid, 'name' => $l]]);
                             foreach ($it2 as $row2) {
-                                if ((int)$row2['rights'] > 0) { $default = 1; break 2; }
+                                if ((int)$row2['rights'] > 0) { $default = $full; break 2; }
                             }
                         }
                     }

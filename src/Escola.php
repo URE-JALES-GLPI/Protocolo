@@ -12,7 +12,7 @@ use Plugin;
 
 class Escola extends CommonDBTM
 {
-    public static $rightname = 'plugin_protocolo_escola';
+    public static $rightname = 'plugin_protocolo_use';
 
     public function isEntityAssign()
     {
@@ -54,6 +54,21 @@ class Escola extends CommonDBTM
     public static function canCreate(): bool
     {
         return self::hasRightDB(self::$rightname, CREATE) || \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', CREATE);
+    }
+
+    public static function canUpdate(): bool
+    {
+        return \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', UPDATE);
+    }
+
+    public static function canDelete(): bool
+    {
+        return \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', DELETE);
+    }
+
+    public static function canPurge(): bool
+    {
+        return \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', PURGE);
     }
 
     public function canViewItem(): bool

@@ -75,21 +75,27 @@ class Profile extends \CommonDBTM
 
     /**
      * Níveis simplificados: apenas Sem acesso vs Com acesso
-     * Usar = 31 (READ+UPDATE+CREATE+DELETE+PURGE) cobre todo uso
-     * Admin = 23? ou 31? Usa 1+2=3 (READ+UPDATE) para config, mas setamos 31 para garantir UPDATE
+     * Usar/Admin = 31 (READ 1 + UPDATE 2 + CREATE 4 + DELETE 8 + PURGE 16).
+     * Usa 31 (e não 1) para que Session::haveRight($right, CREATE/UPDATE/...)
+     * do núcleo do GLPI também passe — 1 seria só READ e quebraria
+     * check(-1, CREATE) / botões de edição em alguns fluxos.
+     * haveRightDB aceita qualquer >0 (compat com instalações antigas que têm 1).
      */
+    public const RIGHT_NO  = 0;
+    public const RIGHT_YES = 31;
+
     private static function getLevelsForRight(string $rightName): array
     {
         if ($rightName === 'plugin_protocolo_admin') {
             return [
                 0  => ['label' => 'Não', 'desc' => 'Sem acesso à configuração'],
-                1  => ['label' => 'Sim', 'desc' => 'Acesso total à configuração (prazo alerta, notificações, e-mails por entidade, templates)'],
+                31 => ['label' => 'Sim', 'desc' => 'Acesso total à configuração (prazo alerta, notificações, e-mails por entidade, templates)'],
             ];
         }
         // plugin_protocolo_use
         return [
             0  => ['label' => 'Não', 'desc' => 'Sem acesso — não vê menu Protocolo'],
-            1  => ['label' => 'Sim', 'desc' => 'Pode usar: dashboard, pastas (entrada/retirada/termos), escolas e tipos'],
+            31 => ['label' => 'Sim', 'desc' => 'Pode usar: dashboard, pastas (entrada/retirada/termos), escolas e tipos'],
         ];
     }
 
@@ -146,9 +152,10 @@ class Profile extends \CommonDBTM
             }
 
             $levels = self::getLevelsForRight($rightName);
-            $hasCustom = !isset($levels[$current]) && $current !== 0 && $current !== 1;
+            // Compat: instalações antigas salvaram 1; trata 1 como Sim (será migrado para 31 no save).
+            $hasCustom = !isset($levels[$current]) && $current !== 0 && $current !== 1 && $current !== 31;
             // Normaliza: qualquer >0 mostra como Com acesso
-            $displayVal = ($current > 0) ? 1 : 0;
+            $displayVal = ($current > 0) ? self::RIGHT_YES : self::RIGHT_NO;
             $badgeClass = $current > 0 ? 'bg-success' : 'bg-secondary';
             $badgeLabel = self::describeCurrent($current, $levels);
 
@@ -157,10 +164,10 @@ class Profile extends \CommonDBTM
             echo "<td style='min-width:260px'>";
             echo "<select name='_{$rightName}' id='drop_{$rightName}' class='form-select form-select-sm protocolo-dropdown' data-right='$rightName' style='max-width:100%'>";
             foreach ($levels as $val => $info) {
-                // Para Usar/Admin, qualquer valor >0 deve marcar como 1 selecionado (para não confundir com custom legado)
+                // Para Usar/Admin, qualquer valor >0 deve marcar como Sim selecionado
                 $isSelected = false;
                 if ($current === (int)$val) $isSelected = true;
-                elseif ($val === 1 && $current > 0) $isSelected = true;
+                elseif ($val === self::RIGHT_YES && $current > 0) $isSelected = true;
                 elseif ($val === 0 && $current === 0) $isSelected = true;
                 $selected = $isSelected ? 'selected' : '';
                 echo "<option value='$val' $selected>" . htmlspecialchars($info['label']) . "</option>";
@@ -171,7 +178,7 @@ class Profile extends \CommonDBTM
             echo "</select>";
             $desc = $levels[$displayVal]['desc'] ?? $levels[$current]['desc'] ?? '—';
             // Se custom legado >0, mostra desc de Com acesso
-            if ($current > 0 && !isset($levels[$current])) $desc = $levels[1]['desc'];
+            if ($current > 0 && !isset($levels[$current])) $desc = $levels[self::RIGHT_YES]['desc'];
             echo "<div class='mt-1'><small class='text-muted' id='desc_$rightName'>" . htmlspecialchars($desc) . "</small></div>";
             // Acesso EFETIVO deste perfil (lido do banco — é isto que as telas obedecem)
             $eff = self::hasEffectiveRight($id, $rightName);
@@ -291,5 +298,47 @@ class Profile extends \CommonDBTM
     public static function canAdmin(): bool
     {
         return self::haveRightDB('plugin_protocolo_admin', READ);
+    }
+
+    /**
+     * Migra direitos antigos (valor 1) para 31 (todos os bits).
+     * Necessário porque o núcleo do GLPI checa bits (CREATE=4, UPDATE=2...):
+     * com 1, só READ passava no Session::haveRight e fluxos como
+     * check(-1, CREATE) / botões de edição falhavam com 403 mesmo com
+     * haveRightDB retornando true. Roda de forma idempotente no init.
+     */
+    public static function ensureFullRights(): void
+    {
+        global $DB;
+        try {
+            if (!isset($DB) || !$DB->tableExists('glpi_profilerights')) {
+                return;
+            }
+            foreach (['plugin_protocolo_use', 'plugin_protocolo_admin'] as $rname) {
+                try {
+                    $it = $DB->request([
+                        'SELECT' => ['profiles_id', 'rights'],
+                        'FROM' => 'glpi_profilerights',
+                        'WHERE' => ['name' => $rname],
+                    ]);
+                    foreach ($it as $row) {
+                        $pid = (int)$row['profiles_id'];
+                        $val = (int)$row['rights'];
+                        // 0 = sem acesso (mantém); >0 e <31 = legado (1, 3, etc.) → 31
+                        if ($val > 0 && $val !== self::RIGHT_YES) {
+                            $DB->update('glpi_profilerights', ['rights' => self::RIGHT_YES], ['profiles_id' => $pid, 'name' => $rname]);
+                            if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
+                                $_SESSION['glpiactive_profile'][$rname] = self::RIGHT_YES;
+                                $_SESSION['glpiactiveprofile'][$rname] = self::RIGHT_YES;
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    error_log("[protocolo] ensureFullRights $rname: " . $e->getMessage());
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log("[protocolo] ensureFullRights geral: " . $e->getMessage());
+        }
     }
 }

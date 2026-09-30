@@ -6,7 +6,7 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '2.0.2');
+define('PLUGIN_PROTOCOLO_VERSION', '2.0.4');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -160,9 +160,14 @@ function plugin_init_protocolo(): void
                     $ref->setAccessible(true);
                     $ref->invoke(null);
                 } catch (\Throwable $e2) { error_log("[protocolo] initRights auto falhou: " . $e2->getMessage()); }
+                // Normaliza 1 → 31 (bits completos) para o núcleo do GLPI passar em CREATE/UPDATE
+                try { \GlpiPlugin\Protocolo\Profile::ensureFullRights(); } catch (\Throwable $e2) { error_log("[protocolo] ensureFullRights auto falhou: " . $e2->getMessage()); }
                 try { \GlpiPlugin\Protocolo\Config::initDefaults(); } catch (\Throwable $e2) {}
                 try { \GlpiPlugin\Protocolo\Install::registerCron(); } catch (\Throwable $e2) {}
                 try { \Config::setConfigurationValues('plugin:protocolo', ['migrated_version' => PLUGIN_PROTOCOLO_VERSION]); } catch (\Throwable $e) {}
+            } else {
+                // Mesmo sem migração de versão, garante 1 → 31 (barato e idempotente)
+                try { \GlpiPlugin\Protocolo\Profile::ensureFullRights(); } catch (\Throwable $e2) {}
             }
         }
     } catch (\Throwable $e) {

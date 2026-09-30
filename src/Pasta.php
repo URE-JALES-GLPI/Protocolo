@@ -13,7 +13,9 @@ use Plugin;
 
 class Pasta extends CommonDBTM
 {
-    public static $rightname = 'plugin_protocolo_pasta';
+    // Direito único do plugin (ver Profile::getRights). Usa 31 (todos os bits)
+    // para que o núcleo do GLPI (Session::haveRight) também passe em CREATE/UPDATE.
+    public static $rightname = 'plugin_protocolo_use';
 
     public function isEntityAssign()
     {
@@ -84,6 +86,24 @@ class Pasta extends CommonDBTM
     public static function canCreate(): bool
     {
         return self::hasRightDB(CREATE);
+    }
+
+    // Sobrescreve estáticos do núcleo para usar o banco (sem depender de
+    // sessão recarregada). Sem isto, check($id, UPDATE/DELETE/PURGE) usaria
+    // Session::haveRight com sessão antiga (valor 1) e daria 403.
+    public static function canUpdate(): bool
+    {
+        return self::hasRightDB(UPDATE);
+    }
+
+    public static function canDelete(): bool
+    {
+        return self::hasRightDB(DELETE);
+    }
+
+    public static function canPurge(): bool
+    {
+        return self::hasRightDB(PURGE);
     }
 
     private function hasRight(int $level): bool
@@ -928,7 +948,8 @@ class Pasta extends CommonDBTM
             }
         } else {
             // Ficha existente: abre em visualização; edição liberada via botão Editar
-            if (Session::haveRight(self::$rightname, UPDATE)) {
+            // Usa haveRightDB (aceita legado 1 e novo 31) em vez de Session::haveRight puro.
+            if (\GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', UPDATE)) {
                 echo "<button type='button' id='pt-pasta-edit-btn' class='pt-btn pt-btn-secondary' onclick='ptTogglePastaEdit(true)'><i class='ti ti-pencil'></i> " . __('Editar', 'protocolo') . "</button>";
                 echo "<button type='submit' name='update' value='1' id='pt-pasta-save-btn' class='pt-btn pt-btn-primary' style='display:none;'><i class='ti ti-device-floppy'></i> " . _x('button', 'Save') . "</button>";
                 echo "<button type='button' id='pt-pasta-canceledit-btn' class='pt-btn pt-btn-secondary' style='display:none;' onclick='location.reload()'>" . __('Cancelar', 'protocolo') . "</button>";

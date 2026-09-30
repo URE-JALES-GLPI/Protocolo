@@ -3,8 +3,6 @@ include('../../../inc/includes.php');
 
 use GlpiPlugin\Protocolo\Pasta;
 
-Session::checkLoginUser();
-
 $pasta = new Pasta();
 
 /** Coleta mensagens de erro da sessão para resposta AJAX (aponta o erro exato). */
@@ -47,13 +45,65 @@ function protocolo_ajax_answer(array $data): void
     exit;
 }
 
+/** Detecta AJAX de forma robusta (header pode ser removido por proxy). */
+function protocolo_is_ajax(): bool
+{
+    if ((($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest')) {
+        return true;
+    }
+    if (!empty($_POST['ajax']) || !empty($_GET['ajax'])) {
+        return true;
+    }
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    if (strpos($accept, 'application/json') !== false && !empty($_POST)) {
+        return true;
+    }
+    return false;
+}
+
+/** Diagnóstico de direitos para log e resposta JSON (não expõe dados sensíveis). */
+function protocolo_rights_diag(): array
+{
+    global $DB;
+    $uid = 0;
+    try { $uid = (int)Session::getLoginUserID(); } catch (\Throwable $e) {}
+    $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+    $dbVal = null;
+    try {
+        if ($pid > 0 && isset($DB) && $DB->tableExists('glpi_profilerights')) {
+            $it = $DB->request([
+                'SELECT' => ['rights'],
+                'FROM' => 'glpi_profilerights',
+                'WHERE' => ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use'],
+                'LIMIT' => 1,
+            ]);
+            foreach ($it as $r) { $dbVal = (int)$r['rights']; break; }
+        }
+    } catch (\Throwable $e) {}
+    $sessVal = $_SESSION['glpiactive_profile']['plugin_protocolo_use'] ?? $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] ?? null;
+    return ['uid' => $uid, 'pid' => $pid, 'db' => $dbVal, 'sess' => $sessVal !== null ? (int)$sessVal : null];
+}
+
+// checkLoginUser em GLPI 11 lança AccessDenied (vira 403 HTML). Para AJAX,
+// converte em JSON para o popup explicar em vez de mostrar 403 genérico.
+try {
+    Session::checkLoginUser();
+} catch (\Throwable $e) {
+    if (protocolo_is_ajax()) {
+        $d = protocolo_rights_diag();
+        error_log("[protocolo] ADD checkLogin falhou: uid={$d['uid']} pid={$d['pid']} err=" . $e->getMessage());
+        protocolo_ajax_answer(['ok' => false, 'code' => 'SESSION_DEAD', 'errors' => ['Sua sessão expirou (ou foi invalidada). Abra o GLPI em outra aba, entre de novo, volte aqui e clique em Registrar novamente — os dados continuam preenchidos.']]);
+    }
+    throw $e;
+}
+
 if (isset($_POST['add'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch add uid=".Session::getLoginUserID()." token=".($_POST['_glpi_csrf_token']??'none'));
-    $isAjax = (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest');
+    $isAjax = protocolo_is_ajax();
     $canCreate = Pasta::canCreate();
     $canView = Pasta::canView();
+    $diag = protocolo_rights_diag();
     $csrfOk = Session::validateCSRF($_POST) ? '1' : '0';
-    error_log("[protocolo] ADD attempt: uid=" . Session::getLoginUserID() . " pid=" . ($_SESSION['glpiactive_profile']['id'] ?? 0) . " canCreate=" . ($canCreate ? '1' : '0') . " canView=" . ($canView ? '1' : '0') . " csrf=$csrfOk ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
+    error_log("[protocolo] ADD attempt: uid=" . $diag['uid'] . " pid=" . $diag['pid'] . " db=" . var_export($diag['db'], true) . " sess=" . var_export($diag['sess'], true) . " canCreate=" . ($canCreate ? '1' : '0') . " canView=" . ($canView ? '1' : '0') . " csrf=$csrfOk ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
     if (!$canCreate) {
         $dbgUid = (int)Session::getLoginUserID();
         $dbgPid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
@@ -70,7 +120,29 @@ if (isset($_POST['add'])) {
         }
         Html::displayRightError();
     }
-    $newID = $pasta->add($_POST);
+    try {
+        $newID = $pasta->add($_POST);
+    } catch (\Throwable $e) {
+        // GLPI 11 lança AccessDenied (403) via check() interno ou plugin hook.
+        // Para AJAX, devolve JSON com diagnóstico em vez de página 403 genérica.
+        error_log("[protocolo] ADD excecao: uid=" . $diag['uid'] . " pid=" . $diag['pid'] . " err=" . get_class($e) . ": " . $e->getMessage());
+        if ($isAjax) {
+            $msg = $e->getMessage();
+            // Mensagem amigável: se for negação de acesso, explica perfil/sessão
+            if (stripos(get_class($e), 'AccessDenied') !== false || stripos($msg, 'right') !== false || stripos($msg, 'can*') !== false) {
+                $dbgPname2 = '';
+                try {
+                    if ($diag['pid'] > 0 && isset($DB) && $DB->tableExists('glpi_profiles')) {
+                        $it2 = $DB->request(['SELECT' => ['name'], 'FROM' => 'glpi_profiles', 'WHERE' => ['id' => $diag['pid']], 'LIMIT' => 1]);
+                        foreach ($it2 as $r2) { $dbgPname2 = (string)($r2['name'] ?? ''); break; }
+                    }
+                } catch (\Throwable $e2) {}
+                protocolo_ajax_answer(['ok' => false, 'code' => 'ADD_DENIED', 'errors' => ["O servidor negou a criação (usuário {$diag['uid']}, perfil '$dbgPname2' #{$diag['pid']}, direito DB=" . var_export($diag['db'], true) . "). Saia e entre de novo no GLPI e confira em Administração > Perfis > esse perfil > aba Protocolo > Usar = Sim (Efetivo precisa dizer PODE)."]]);
+            }
+            protocolo_ajax_answer(['ok' => false, 'code' => 'ADD_EXCEPTION', 'errors' => ['Falha ao registrar: ' . $msg]]);
+        }
+        throw $e;
+    }
     if ($newID) {
         if ($isAjax) {
             protocolo_ajax_answer(['ok' => true, 'code' => 'OK', 'id' => $newID, 'url' => Pasta::getFormURLWithID($newID)]);

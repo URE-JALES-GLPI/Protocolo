@@ -9,7 +9,7 @@ use Plugin;
 
 class TipoArquivo extends CommonDBTM
 {
-    public static $rightname = 'plugin_protocolo_tipo';
+    public static $rightname = 'plugin_protocolo_use';
 
     public static function getTypeName($nb = 0)
     {
@@ -42,6 +42,21 @@ class TipoArquivo extends CommonDBTM
     public static function canCreate(): bool
     {
         return self::hasRightDB(self::$rightname, CREATE) || \GlpiPlugin\Protocolo\Profile::haveRightDB('plugin_protocolo_use', CREATE);
+    }
+
+    public static function canUpdate(): bool
+    {
+        return self::hasRightDB(self::$rightname, UPDATE);
+    }
+
+    public static function canDelete(): bool
+    {
+        return self::hasRightDB(self::$rightname, DELETE);
+    }
+
+    public static function canPurge(): bool
+    {
+        return self::hasRightDB(self::$rightname, PURGE);
     }
 
     public function canViewItem(): bool { return self::canView(); }

@@ -25,6 +25,7 @@ global $DB;
 $rights = ProtoProfile::getRightsStatic();
 
 // Calcula valores enviados: suporta dropdown sequencial (valor único 0..255) e legado checkboxes (array bit=>1)
+// Normaliza: qualquer >0 vira 31 (todos os bits) para o núcleo do GLPI passar em CREATE/UPDATE.
 foreach ($rights as $rightName => $label) {
     $posted = $_POST["_{$rightName}"] ?? null;
     $value = 0;
@@ -42,6 +43,9 @@ foreach ($rights as $rightName => $label) {
     } elseif ($posted === null) {
         // nada enviado -> mantém 0 (sem acesso)
         $value = 0;
+    }
+    if ($value > 0) {
+        $value = ProtoProfile::RIGHT_YES;
     }
     // Atualiza ou insere em glpi_profilerights
     $exists = $DB->request(['FROM' => 'glpi_profilerights', 'WHERE' => ['profiles_id' => $profiles_id, 'name' => $rightName]]);
@@ -63,6 +67,7 @@ if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_p
             $val = 0;
             if (is_array($posted)) { foreach ($posted as $b => $v) if ((int)$v===1) $val|=(int)$b; }
             elseif (is_numeric($posted)) $val = max(0,min(255,(int)$posted));
+            if ($val > 0) $val = ProtoProfile::RIGHT_YES;
             $_SESSION['glpiactive_profile'][$rightName] = $val;
             $_SESSION['glpiactiveprofile'][$rightName] = $val;
         }

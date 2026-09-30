@@ -8,7 +8,7 @@ use Plugin;
 
 class Termo extends CommonDBTM
 {
-    public static $rightname = 'plugin_protocolo_pasta';
+    public static $rightname = 'plugin_protocolo_use';
 
     public static function getTypeName($nb = 0)
     {
@@ -34,6 +34,21 @@ class Termo extends CommonDBTM
     public static function canCreate(): bool
     {
         return self::hasRightDB(CREATE);
+    }
+
+    public static function canUpdate(): bool
+    {
+        return self::hasRightDB(UPDATE);
+    }
+
+    public static function canDelete(): bool
+    {
+        return self::hasRightDB(DELETE);
+    }
+
+    public static function canPurge(): bool
+    {
+        return self::hasRightDB(PURGE);
     }
 
     public function canViewItem(): bool { return self::canView(); }

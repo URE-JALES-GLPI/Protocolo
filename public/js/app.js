@@ -265,6 +265,7 @@ window.ptSubmitRegisterAjax = function(form) {
   // Revalida a sessão/permissão na hora do envio (o form pode ficar aberto por muito tempo)
   var fd = new FormData(form);
   if (!fd.has('add')) fd.append('add', '1'); // FormData não inclui o botão de submit
+  if (!fd.has('ajax')) fd.append('ajax', '1'); // flag robusta (header pode ser removido por proxy)
   fetch(ptPluginBase() + '/ajax/can.php', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
     .then(function(r){ return r.json(); })
     .then(function(d){
@@ -274,9 +275,23 @@ window.ptSubmitRegisterAjax = function(form) {
       return resp.text().then(function(text){ return {resp: resp, text: text}; });
     })
     .then(function(out){
-      // 403: primeiro tenta mostrar o motivo real vindo no corpo da resposta;
-      // se o corpo não disser nada, orienta recarregar (sessão/perfil).
+      // Tenta JSON primeiro (mesmo em 403: nosso PHP devolve JSON com o motivo).
+      var data403 = null;
       if (out.resp.status === 403) {
+        try {
+          var raw403 = (out.text || '').replace(/^\s+/, '');
+          var s403 = raw403.indexOf('{');
+          if (s403 > 0) raw403 = raw403.substring(s403);
+          data403 = JSON.parse(raw403);
+        } catch (e) { data403 = null; }
+        if (data403 && typeof data403.ok !== 'undefined' && !data403.ok) {
+          restore();
+          var errs403 = (data403.errors && data403.errors.length) ? data403.errors.join('\n') : 'Verifique os campos e tente novamente.';
+          if (data403.code) errs403 += '\n\nCódigo: ' + data403.code;
+          var title403 = data403.code === 'SESSION_DEAD' ? 'Sessão expirada' : 'Não foi possível registrar';
+          ptShowMsgPopup('error', title403, errs403);
+          return;
+        }
         restore();
         var bodyTxt = '';
         try { bodyTxt = ptExtractServerErrors(out.text); } catch (e) { bodyTxt = ''; }
@@ -284,7 +299,7 @@ window.ptSubmitRegisterAjax = function(form) {
           ptShowMsgPopup('error', 'Não foi possível registrar', bodyTxt + '\n\nCódigo: HTTP_403');
         } else {
           ptShowMsgPopup('error', 'Sessão desatualizada',
-            'O servidor recusou o envio (erro 403) sem detalhar o motivo.\n\nIsso acontece quando a sessão expirou ou o perfil/entidade mudou depois que esta tela foi aberta.\n\nRecarregue a página (F5) e tente novamente. Se persistir, confira em Administração > Perfis > (seu perfil) > aba Protocolo > Usar = Sim (e entre de novo no GLPI).');
+            'O servidor recusou o envio (erro 403) sem detalhar o motivo.\n\nIsso acontece quando a sessão expirou ou o perfil/entidade mudou depois que esta tela foi aberta.\n\nRecarregue a página (F5) e tente novamente. Se persistir, confira em Administração > Perfis > (seu perfil) > aba Protocolo > Usar = Sim (Efetivo precisa dizer PODE) e entre de novo no GLPI.');
         }
         return;
       }
