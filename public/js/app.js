@@ -266,11 +266,19 @@ window.ptSubmitRegisterAjax = function(form) {
   var fd = new FormData(form);
   if (!fd.has('add')) fd.append('add', '1'); // FormData não inclui o botão de submit
   if (!fd.has('ajax')) fd.append('ajax', '1'); // flag robusta (header pode ser removido por proxy)
+  // GLPI 11 (CheckCsrfListener): para AJAX (X-Requested-With) o token CSRF vai
+  // no header X-Glpi-Csrf-Token — o _glpi_csrf_token do body é IGNORADO nesse caso.
+  var csrfTok = '';
+  try {
+    var csrfInp = form.querySelector('input[name="_glpi_csrf_token"]');
+    if (csrfInp && csrfInp.value) csrfTok = csrfInp.value;
+    else if (fd.has('_glpi_csrf_token')) csrfTok = fd.get('_glpi_csrf_token');
+  } catch (e) {}
   fetch(ptPluginBase() + '/ajax/can.php', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
     .then(function(r){ return r.json(); })
     .then(function(d){
       if (!d || !d.canCreate) { sessionDead(); return; }
-      fetch(form.action, {method: 'POST', body: fd, credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      fetch(form.action, {method: 'POST', body: fd, credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest', 'X-Glpi-Csrf-Token': csrfTok}})
     .then(function(resp){
       return resp.text().then(function(text){ return {resp: resp, text: text}; });
     })
