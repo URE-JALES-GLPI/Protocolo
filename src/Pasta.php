@@ -965,6 +965,14 @@ class Pasta extends CommonDBTM
 
         echo "</form>";
 
+        // Trava imediata inline (não depende do app.js nem do DOMContentLoaded):
+        // o script viaja junto do form (inclusive se a aba vier via AJAX) e
+        // roda no parse, com o form já existente. O app.js mantém o estado
+        // depois; o botão Editar destrava via ptTogglePastaEdit(true).
+        if (!$isNew) {
+            echo "<script>(function(){var f=document.getElementById('plugin_protocolo_pasta_form');if(!f)return;var els=f.querySelectorAll('input:not([type=\"hidden\"]):not([type=\"submit\"]):not([type=\"button\"]),select,textarea');for(var i=0;i<els.length;i++){try{els[i].disabled=true;}catch(e){}}})();</script>";
+        }
+
         // Se não é novo, mostra ações laterais (retirada, upload, cancelar) - fora do form principal
         if (!$isNew) {
             echo "<div class='row g-3 mt-3'>";
