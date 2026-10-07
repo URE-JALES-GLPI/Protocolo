@@ -219,7 +219,7 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<a href='#atrasadas' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</a>";
 }
 if (Pasta::canCreate()) {
-    echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
+    echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-green pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
 }
 if (Config::canEdit()) {
     echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/config.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-settings'></i> Config</a>";
@@ -272,10 +272,6 @@ if ($categoriaFiltro) echo "<span class='pt-badge pt-badge-pasta ms-2'>Filtrando
 echo "</div>";
 echo "</div>";
 echo "</div>";
-
-if ($alertaAtivo && $totalAtrasadas > 0) {
-    echo "<div class='pt-alert pt-alert-danger'><div style='flex:1'><i class='ti ti-alert-triangle'></i> <strong>$totalAtrasadas " . __('pasta(s) aguardando há mais de', 'protocolo') . " $prazoAlerta " . __('dias', 'protocolo') . "</strong> — " . __('regularize a retirada ou contate a escola.', 'protocolo') . "</div><a href='#atrasadas' class='pt-btn pt-btn-danger pt-btn-sm'>" . __('Ver atrasadas', 'protocolo') . "</a></div>";
-}
 
 // Tabs Resumo / Dashboards
 $activeTab = $_GET['tab'] ?? 'resumo';
