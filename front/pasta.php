@@ -23,6 +23,7 @@ global $DB;
 $status = $_GET['status'] ?? '';
 $q = trim($_GET['q'] ?? '');
 $escola_filtro = (int)($_GET['escola'] ?? 0);
+$minhas = !empty($_GET['minhas']);
 $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = (int)($_GET['per_page'] ?? 20);
 if (!in_array($perPage, [10,20,50,100])) $perPage = 20;
@@ -53,6 +54,9 @@ if ($q !== '') {
 }
 if ($escola_filtro > 0) {
     $where .= " AND p.plugin_protocolo_escolas_id=" . (int)$escola_filtro;
+}
+if ($minhas) {
+    $where .= " AND p.users_id=" . (int)Session::getLoginUserID();
 }
 
 // Escolas para filtro — ESCOLA = ENTIDADE GLPI (mostra TODAS)
@@ -160,8 +164,12 @@ echo "<span class='ms-auto text-muted'>Ordenado por <b>$sort</b> $order</span>";
 echo "</div>";
 
 $self = Pasta::getSearchURL();
-$hasActiveFilter = ($q !== '' || $escola_filtro > 0 || $status !== '' || $perPage !== 20);
-$activeCount = ($q!==''?1:0) + ($escola_filtro>0?1:0) + ($status!==''?1:0) + ($perPage!==20?1:0);
+$hasActiveFilter = ($q !== '' || $escola_filtro > 0 || $status !== '' || $perPage !== 20 || $minhas);
+$activeCount = ($q!==''?1:0) + ($escola_filtro>0?1:0) + ($status!==''?1:0) + ($perPage!==20?1:0) + ($minhas?1:0);
+echo "<div class='pt-tabs' style='margin-bottom:12px;'>";
+echo "<a href='" . buildUrl(['minhas'=>'','page'=>1]) . "' class='pt-tab" . (!$minhas?' active':'') . "'><i class='ti ti-apps'></i> Todas</a>";
+echo "<a href='" . buildUrl(['minhas'=>1,'page'=>1]) . "' class='pt-tab" . ($minhas?' active':'') . "'><i class='ti ti-user'></i> Minhas pastas</a>";
+echo "</div>";
 echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
 echo "<div style='display:flex;align-items:center;gap:8px;'>";
 echo "<button type='button' id='pasta-filter-toggle-btn' class='pt-filter-toggle-btn' onclick=\"ptToggleFilter('pasta-filter-content','pasta-filter-toggle-btn','pasta-filter-text','pasta-filter-icon')\"><i class='ti ti-filter'></i> Filtros";
@@ -181,8 +189,9 @@ foreach ($escolas as $e) {
 echo "</select></div>";
 echo "<div class='pt-filter-group'><label>Status</label><select name='status' class='pt-select'><option value=''>Todos</option><option value='aguardando' " . ($status==='aguardando'?'selected':'') . ">Aguardando</option><option value='retirada' " . ($status==='retirada'?'selected':'') . ">Retirada</option><option value='cancelada' " . ($status==='cancelada'?'selected':'') . ">Cancelada</option></select></div>";
 echo "<div class='pt-filter-group'><label>Por página</label><select name='per_page' class='pt-select'><option " . ($perPage==10?'selected':'') . ">10</option><option " . ($perPage==20?'selected':'') . ">20</option><option " . ($perPage==50?'selected':'') . ">50</option><option " . ($perPage==100?'selected':'') . ">100</option></select></div>";
-// preserva sort/order ao filtrar
+// preserva sort/order/minhas ao filtrar
 echo "<input type='hidden' name='sort' value='" . htmlspecialchars($sort) . "'><input type='hidden' name='order' value='" . htmlspecialchars($order) . "'>";
+if ($minhas) echo "<input type='hidden' name='minhas' value='1'>";
 echo "<div class='pt-filter-group'><label>&nbsp;</label><div style='display:flex;gap:8px;'><button class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-search'></i> Filtrar</button>";
 echo "<a href='$self' class='pt-btn pt-btn-secondary pt-btn-sm'>Limpar</a></div></div>";
 echo "</div></form>";
@@ -229,7 +238,7 @@ if ($lista) {
         echo "</tr>";
     }
 } else {
-    echo "<tr class='pt-list-row'><td colspan='8'><div class='pt-empty-state pt-empty-small'><i class='ti ti-folder-off'></i><p>Nenhum resultado. <a href='" . Pasta::getFormURL() . "'>Registrar a primeira pasta</a>?</p><small class='pt-row-sub'>Filtros: q=" . htmlspecialchars($q) . " escola=$escola_filtro status=$status</small></div></td></tr>";
+    echo "<tr class='pt-list-row'><td colspan='8'><div class='pt-empty-state pt-empty-small'><i class='ti ti-folder-off'></i><p>" . ($minhas ? 'Você ainda não registrou nenhuma pasta.' : 'Nenhum resultado.') . " <a href='" . Pasta::getFormURL() . "'>Registrar a primeira pasta</a>?</p><small class='pt-row-sub'>Filtros: q=" . htmlspecialchars($q) . " escola=$escola_filtro status=$status" . ($minhas ? ' minhas=1' : '') . "</small></div></td></tr>";
 }
 echo "</tbody></table></div>";
 
