@@ -754,26 +754,21 @@ class Pasta extends CommonDBTM
         if ($isNew) {
             echo "<div id='protocoloAlert' class='alert alert-warning d-none mx-2' role='alert' style='border-left:4px solid #ffc107'><i class='ti ti-alert-triangle me-1'></i> <span id='protocoloAlertMsg'></span></div>";
         }
-        // Data + Hora (campos separados)
+        // Data + Hora + Espécie na mesma linha
         $valDtRaw = $this->fields['data_recebimento'] ?? date('Y-m-d H:i:s');
         try { $tsDt = strtotime((string)$valDtRaw) ?: time(); } catch (\Throwable $e) { $tsDt = time(); }
         $valDate = date('Y-m-d', $tsDt);
         $valTime = date('H:i', $tsDt);
-        echo "<tr class='tab_bg_1'>";
-        echo "<td width='15%'><label>" . __('Data', 'protocolo') . " <span class='required'>*</span></label></td>";
-        echo "<td width='35%'><input type='date' name='data_recebimento_date' id='data_recebimento_date' class='form-control' required value='$valDate'></td>";
-        echo "<td width='15%'><label>" . __('Hora', 'protocolo') . " <span class='required'>*</span></label></td>";
-        echo "<td><input type='time' name='data_recebimento_time' id='data_recebimento_time' class='form-control' required value='$valTime'></td>";
-        echo "</tr>";
-        // Espécie (substitui Categoria) + Assunto
-        // Para novo, sem pré-seleção (obriga atenção); para edição, mantém valor salvo
+        // Espécie: para novo, sem pré-seleção (obriga atenção); para edição, mantém valor salvo
         $espVal = strtolower($this->fields['categoria'] ?? '');
         $espOpts = self::getEspecieOptions();
         if (!array_key_exists($espVal, $espOpts)) $espVal = $isNew ? '' : 'pasta';
         $espOutro = $this->fields['especie_outro'] ?? '';
         echo "<tr class='tab_bg_1'>";
-        echo "<td><label>" . __('Espécie', 'protocolo') . " <span class='required'>*</span></label></td>";
-        echo "<td>";
+        echo "<td colspan='4'><div class='d-flex gap-3 align-items-start flex-wrap'>";
+        echo "<div style='min-width:160px'><label>" . __('Data', 'protocolo') . " <span class='required'>*</span></label><input type='date' name='data_recebimento_date' id='data_recebimento_date' class='form-control' required value='$valDate'></div>";
+        echo "<div style='min-width:130px'><label>" . __('Hora', 'protocolo') . " <span class='required'>*</span></label><input type='time' name='data_recebimento_time' id='data_recebimento_time' class='form-control' required value='$valTime'></div>";
+        echo "<div class='flex-fill' style='min-width:220px'><label>" . __('Espécie', 'protocolo') . " <span class='required'>*</span></label>";
         echo "<select name='categoria' id='especieSelect' class='form-select' required style='width:100%'>";
         echo "<option value=''>-- " . __('Selecione', 'protocolo') . " --</option>";
         foreach ($espOpts as $ev => $el) {
@@ -783,9 +778,12 @@ class Pasta extends CommonDBTM
         echo "</select>";
         echo "<div id='especie_outro_wrap' style='display:" . ($espVal==='outro'?'block':'none') . ";margin-top:6px;'><input type='text' name='especie_outro' id='especie_outro_input' class='form-control' value='" . Html::cleanInputText($espOutro) . "' placeholder='Descreva a espécie'></div>";
         echo "<small class='text-muted'>Separa gráficos e filtros</small>";
-        echo "</td>";
-        echo "<td><label>" . __('Assunto', 'protocolo') . " <span class='required'>*</span></label></td>";
-        echo "<td><input type='text' name='assunto' id='assunto_field' class='form-control' required maxlength='255' value='" . Html::cleanInputText($this->fields['assunto'] ?? '') . "' placeholder='Ex: Ofício nº 123/2026 — matrícula'></td>";
+        echo "</div>";
+        echo "</div></td>";
+        echo "</tr>";
+        echo "<tr class='tab_bg_1'>";
+        echo "<td width='15%'><label>" . __('Assunto', 'protocolo') . " <span class='required'>*</span></label></td>";
+        echo "<td colspan='3'><input type='text' name='assunto' id='assunto_field' class='form-control' required maxlength='255' style='width:100%' value='" . Html::cleanInputText($this->fields['assunto'] ?? '') . "' placeholder='Ex: Ofício nº 123/2026 — matrícula'></td>";
         echo "</tr>";
 
         // Origem/Interessado (Escola ou Outros; URE só aparece em registros antigos)
@@ -802,11 +800,13 @@ class Pasta extends CommonDBTM
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Origem/Interessado', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(de onde vem)</small></label></td>";
         echo "<td colspan='3'>";
-        echo "<div class='d-flex gap-3 mb-2' id='origemGroup'>";
+        echo "<div class='d-flex gap-3 align-items-start'>";
+        echo "<div class='d-flex flex-column gap-2 pt-1' id='origemGroup' style='min-width:100px'>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_escola' value='escola' " . ($origemTipo==='escola'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='origem_escola'>Escola</label></div>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . "><label class='form-check-label' for='origem_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outros</label></div>";
         echo "</div>";
+        echo "<div class='flex-fill'>";
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
         echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
@@ -827,6 +827,8 @@ class Pasta extends CommonDBTM
             echo "</select>";
         }
         echo "</div>";
+        echo "</div>";
+        echo "</div>";
         echo "</td></tr>";
 
         // Destino
@@ -842,11 +844,13 @@ class Pasta extends CommonDBTM
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Destino', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(para onde vai)</small></label></td>";
         echo "<td colspan='3'>";
-        echo "<div class='d-flex gap-3 mb-2' id='destinoGroup'>";
-        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='destino_outro'>Outro</label></div>";
+        echo "<div class='d-flex gap-3 align-items-start'>";
+        echo "<div class='d-flex flex-column gap-2 pt-1' id='destinoGroup' style='min-width:100px'>";
+        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_escola' value='escola' " . ($destinoTipo==='escola'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='destino_escola'>Escola</label></div>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_ure' value='ure' " . ($destinoTipo==='ure'?'checked':'') . "><label class='form-check-label' for='destino_ure'>URE</label></div>";
-        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_escola' value='escola' " . ($destinoTipo==='escola'?'checked':'') . "><label class='form-check-label' for='destino_escola'>Escola</label></div>";
+        echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . "><label class='form-check-label' for='destino_outro'>Outros</label></div>";
         echo "</div>";
+        echo "<div class='flex-fill'>";
         echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
         echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
         echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
@@ -866,6 +870,8 @@ class Pasta extends CommonDBTM
             if ($destinoEnt) { $n = self::getEscolaName($destinoEnt); echo "<option value='$destinoEnt' selected>" . htmlspecialchars($n) . "</option>"; }
             echo "</select>";
         }
+        echo "</div>";
+        echo "</div>";
         echo "</div>";
         // compat: mantém plugin_protocolo_escolas_id escondido para buscas antigas (espelha destino quando escola)
         echo "<input type='hidden' name='plugin_protocolo_escolas_id' id='compat_escola_id' value='$destinoEnt'>";
@@ -1090,6 +1096,34 @@ class Pasta extends CommonDBTM
                         if(outroWrap) outroWrap.style.display = val==='outro' ? 'block' : 'none';
                         if(ureWrap) ureWrap.style.display = val==='ure' ? 'block' : 'none';
                         if(escolaWrap) escolaWrap.style.display = val==='escola' ? 'block' : 'none';
+                        // Escola: esconde URE da combo de escola; demais tipos: restaura
+                        var escSel = escolaWrap ? escolaWrap.querySelector('select') : null;
+                        if(escSel){
+                            if(val==='escola'){
+                                if(!escSel.dataset.ureHidden){
+                                    var ureOpt = null;
+                                    var allOpts = escSel.querySelectorAll('option');
+                                    for(var oi=0; oi<allOpts.length; oi++){
+                                        var oTxt = allOpts[oi].textContent.toLowerCase();
+                                        if(oTxt.indexOf('--')===0) continue;
+                                        if(oTxt.indexOf('unidade regional')!==-1){ ureOpt=allOpts[oi]; break; }
+                                    }
+                                    if(ureOpt){
+                                        escSel.dataset.ureBackup = ureOpt.outerHTML;
+                                        if(escSel.value===ureOpt.value) escSel.value='';
+                                        ureOpt.remove();
+                                        escSel.dataset.ureHidden='1';
+                                        if(window.jQuery) window.jQuery(escSel).trigger('change');
+                                    }
+                                }
+                            } else if(escSel.dataset.ureHidden){
+                                var tpl=document.createElement('template');
+                                tpl.innerHTML=(escSel.dataset.ureBackup||'').trim();
+                                if(tpl.content.firstChild) escSel.insertBefore(tpl.content.firstChild, escSel.firstChild);
+                                delete escSel.dataset.ureHidden; delete escSel.dataset.ureBackup;
+                                if(window.jQuery) window.jQuery(escSel).trigger('change');
+                            }
+                        }
                         // required handling
                         var outroInp = document.getElementById(prefix+'_outro_input');
                         if(outroInp) outroInp.required = val==='outro';
