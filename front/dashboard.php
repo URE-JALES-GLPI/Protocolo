@@ -232,11 +232,6 @@ $especieIcons = ['pasta'=>'ti ti-folder','malote'=>'ti ti-mail','envelope'=>'ti 
 
 echo "<div class='pt-dash-grid'>";
 echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span class='pt-badge pt-badge-aguardando'>" . __('Aguardando retirada', 'protocolo') . "</span></div><div class='pt-dash-number'>$totalAguardando</div><div class='pt-dash-label'>pastas</div><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=aguardando' class='pt-dash-link'>Ver lista &rarr;</a></div>";
-if ($alertaAtivo) {
-    $alertCls = $totalAtrasadas > 0 ? ' pt-dash-card-alert' : '';
-    $numColor = $totalAtrasadas > 0 ? ' style="color:#dc2626;"' : '';
-    echo "<div class='pt-dash-card$alertCls'><div class='pt-dash-card-top'><span style='font-size:.8rem;font-weight:700;color:#dc2626;'><i class='ti ti-alarm'></i> " . __('Atrasadas', 'protocolo') . " (&gt;{$prazoAlerta}d)</span></div><div class='pt-dash-number'$numColor>$totalAtrasadas</div><div class='pt-dash-label'>pastas</div><a href='#atrasadas' class='pt-dash-link'>" . __('Ver atrasadas', 'protocolo') . " &rarr;</a></div>";
-}
 echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span class='pt-badge pt-badge-retirada'>" . __('Retiradas', 'protocolo') . "</span></div><div class='pt-dash-number'>$totalRetiradas</div><div class='pt-dash-label'>pastas</div><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=retirada' class='pt-dash-link'>Ver lista &rarr;</a></div>";
 if ($hasCategoriaCol && !$categoriaFiltro) {
     foreach (Pasta::getEspecieOptions() as $espVal => $espLabel) {
