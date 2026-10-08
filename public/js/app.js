@@ -293,6 +293,7 @@ window.ptSubmitRegisterAjax = function(form) {
         if (data.ok) {
           restore();
           var termoUrl = ptPluginBase() + '/front/termo.php?id=' + encodeURIComponent(data.id) + '&tipo=recebimento';
+          var dashUrl = ptPluginBase() + '/front/dashboard.php';
           var ov = document.createElement('div');
           ov.id = 'pt-msg-overlay';
           ov.className = 'pt-modal-overlay open';
@@ -301,7 +302,7 @@ window.ptSubmitRegisterAjax = function(form) {
             + '<div class="pt-modal-body"><p style="margin:0;font-size:.9rem;">O termo de entrada foi gerado.' + (data.id ? ' Imprima a via de quem está deixando o item.' : '') + '</p></div>'
             + '<div style="padding:12px 24px;border-top:1px solid #f0f2f8;display:flex;gap:8px;justify-content:flex-end;background:#fafbff;border-radius:0 0 20px 20px;">'
             + '<a class="pt-btn pt-btn-green pt-btn-sm" target="_blank" href="' + termoUrl + '"><i class="ti ti-printer"></i> Imprimir termo</a>'
-            + '<a class="pt-btn pt-btn-primary pt-btn-sm" href="' + data.url + '">Ver ficha</a></div></div>';
+            + '<a class="pt-btn pt-btn-secondary pt-btn-sm" href="' + dashUrl + '">Fechar</a></div></div>';
           document.body.appendChild(ov);
           return;
         }

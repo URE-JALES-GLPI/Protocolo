@@ -143,8 +143,15 @@ function sortLink(string $field, string $label, string $currentSort, string $cur
 // Render — identidade visual padronizada com assetmgrstatus (pt-*)
 echo "<div class='container-fluid pt-page'>";
 echo "<div class='pt-page-header'>";
-echo "<div class='pt-page-title'><i class='ti ti-folder'></i><h2>" . Pasta::getTypeName(2) . " <small>$total registros</small></h2></div>";
+if ($minhas) {
+    echo "<div class='pt-page-title'><i class='ti ti-history'></i><h2>Histórico <small>$total registros</small></h2></div>";
+} else {
+    echo "<div class='pt-page-title'><i class='ti ti-folder'></i><h2>" . Pasta::getTypeName(2) . " <small>$total registros</small></h2></div>";
+}
 echo "<div class='pt-page-actions'>";
+if ($minhas) {
+    echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/dashboard.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-arrow-left'></i> Voltar</a>";
+}
 if (Pasta::canCreate()) {
     echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> Nova</a>";
 }
@@ -163,7 +170,7 @@ $hasActiveFilter = ($q !== '' || $escola_filtro > 0 || $status !== '' || $perPag
 $activeCount = ($q!==''?1:0) + ($escola_filtro>0?1:0) + ($status!==''?1:0) + ($perPage!==20?1:0) + ($minhas?1:0);
 echo "<div class='pt-tabs' style='margin-bottom:12px;'>";
 echo "<a href='" . buildUrl(['minhas'=>'','page'=>1]) . "' class='pt-tab" . (!$minhas?' active':'') . "'><i class='ti ti-apps'></i> Todas</a>";
-echo "<a href='" . buildUrl(['minhas'=>1,'page'=>1]) . "' class='pt-tab" . ($minhas?' active':'') . "'><i class='ti ti-user'></i> Minhas pastas</a>";
+echo "<a href='" . buildUrl(['minhas'=>1,'page'=>1]) . "' class='pt-tab" . ($minhas?' active':'') . "'><i class='ti ti-history'></i> Histórico</a>";
 echo "</div>";
 echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
 echo "<div style='display:flex;align-items:center;gap:8px;'>";
@@ -194,11 +201,19 @@ echo "</div>";
 echo "</div>";
 
 echo "<div class='pt-card'><div style='overflow-x:auto;'><table class='pt-list-table'><thead><tr>";
+if ($minhas) {
+echo "<th>Código</th>";
+echo "<th>Categoria</th>";
+echo "<th>Origem → Destino</th>";
+echo "<th>Recebido de</th>";
+echo "<th>Data Recebimento</th><th>Data Retirada</th><th>Status</th><th></th>";
+} else {
 echo "<th>" . sortLink('codigo','Código',$sort,$order) . "</th>";
 echo "<th>" . sortLink('escola','Escola',$sort,$order) . "</th>";
 echo "<th>" . sortLink('recebido','Recebido de',$sort,$order) . "</th>";
 echo "<th>" . sortLink('data','Recebimento',$sort,$order) . "</th>";
 echo "<th>Retirada</th><th>" . sortLink('status','Status',$sort,$order) . "</th><th>Assinatura</th><th></th>";
+}
 echo "</tr></thead><tbody>";
 if ($lista) {
     foreach ($lista as $r) {
@@ -210,6 +225,24 @@ if ($lista) {
         $recebimento = Html::convDateTime($r['data_recebimento']);
         $retirada = !empty($r['data_retirada']) ? Html::convDateTime($r['data_retirada']) . "<br><small class='pt-row-sub'>" . htmlspecialchars($r['retirado_por'] ?? '') . "</small>" : '<span class="pt-row-sub">—</span>';
         $statusBadge = Pasta::getStatusBadge($r['status']);
+        $viewUrl = Pasta::getFormURLWithID($r['id']);
+        if ($minhas) {
+            $catBadgeH = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta', $r['especie_outro'] ?? null);
+            $fluxoH = Pasta::getOrigemDestinoDisplay($r, 'origem') . " <i class='ti ti-arrow-right text-muted mx-1'></i> " . Pasta::getOrigemDestinoDisplay($r, 'destino');
+            $dataRecH = Html::convDateTime($r['data_recebimento']);
+            $dataRetH = !empty($r['data_retirada']) ? Html::convDateTime($r['data_retirada']) : '<span class="pt-row-sub">—</span>';
+            echo "<tr class='pt-list-row'>";
+            echo "<td><a href='$viewUrl' class='pt-row-title' style='color:#4f46e5;text-decoration:none;'>" . htmlspecialchars($r['codigo']) . "</a></td>";
+            echo "<td>$catBadgeH</td>";
+            echo "<td class='small' style='min-width:180px'>$fluxoH</td>";
+            echo "<td>" . htmlspecialchars($r['recebido_de']) . "</td>";
+            echo "<td>$dataRecH</td>";
+            echo "<td>$dataRetH</td>";
+            echo "<td>$statusBadge</td>";
+            echo "<td class='text-end'><a href='$viewUrl' class='pt-btn pt-btn-outline pt-btn-sm'><i class='ti ti-eye'></i> Ver</a></td>";
+            echo "</tr>";
+            continue;
+        }
         $recSig = !empty($r['recebido_assinatura_image']);
         $retSig = !empty($r['retirada_assinatura_image']);
         $termosHtml = '';

@@ -702,6 +702,15 @@ class Pasta extends CommonDBTM
             echo "</div>";
             echo "<tbody data-ptstep='1'>";
         }
+        if ($isNew) {
+            echo "<div id='pt-dev-overlay' style='display:none;position:fixed;inset:0;background:rgba(17,24,39,.6);z-index:10090;align-items:center;justify-content:center;padding:20px;'>";
+            echo "<div style='background:#fff;border-radius:16px;max-width:420px;width:100%;padding:28px 24px;text-align:center;'>";
+            echo "<div style='width:64px;height:64px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;'><i class='ti ti-device-tablet' style='font-size:1.8rem;color:#fff;'></i></div>";
+            echo "<div style='font-weight:800;font-size:1.1rem;margin-bottom:8px;'>Devolva o tablet ao responsável</div>";
+            echo "<p style='font-size:.9rem;color:#6b7280;'>Para finalizar a entrega, devolva o equipamento ao responsável do protocolo e continue.</p>";
+            echo "<button type='button' class='pt-btn pt-btn-green' style='width:100%;' onclick='ptDevOk()'>Entendi, continuar</button>";
+            echo "</div></div>";
+        }
 
         if (!$isNew) {
             $catBadge = self::getCategoriaBadge($this->fields['categoria'] ?? 'pasta', $this->fields['especie_outro'] ?? null);
@@ -884,15 +893,30 @@ class Pasta extends CommonDBTM
         echo "<input type='hidden' name='plugin_protocolo_escolas_id' id='compat_escola_id' value='$destinoEnt'>";
         echo "</td></tr>";
 
+        if ($isNew) {
+            echo "<tr class='tab_bg_1' data-pts2='r1'>";
+            echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para a pessoa preencher</small></td>";
+            echo "<td colspan='3'><input type='text' name='recebido_de' id='recebido_de_field' class='form-control' required value='" . Html::cleanInputText($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria' style='font-size:1.05rem;padding:12px;'></td>";
+            echo "</tr>";
+            echo "<tr class='tab_bg_1' data-pts2='r2' style='display:none;'>";
+            echo "<td><label>" . __('Documento de quem deixou', 'protocolo') . "</label></td>";
+            echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='rg' onclick='ptRecDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='cpf' onclick='ptRecDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
+            echo "</div><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small></td>";
+            echo "</tr>";
+        } else {
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td><input type='text' name='recebido_de' class='form-control' required value='" . Html::cleanInputText($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria'></td>";
         echo "<td><label>" . __('Documento', 'protocolo') . "</label></td>";
         echo "<td><div class='input-group'><select name='recebido_documento_tipo' id='recebido_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='cpf')?' selected':'') . ">CPF</option><option value='rg'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='rg')?' selected':'') . ">RG</option></select><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos (000.000.000-00) | RG: 7-9 dígitos</small></td>";
         echo "</tr>";
+        }
         if ($isNew) {
-            echo "<tr class='tab_bg_1'><td><label>Assinatura de quem deixou <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para assinatura</small></td>";
+            echo "<tr class='tab_bg_1' data-pts2='r3' style='display:none;'><td><label>Assinatura de quem deixou <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para assinatura</small></td>";
             echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-rec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-rec-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebido_assinatura_image' id='pt-rec-image' value=''></td></tr>";
+            echo "<tr class='tab_bg_1' data-pts2='nav'><td colspan='4'><div style='display:flex;gap:8px;justify-content:center;'><button type='button' id='pt-s2-back' class='pt-btn pt-btn-secondary' style='display:none;' onclick='ptS2Nav(-1)'><i class='ti ti-arrow-left'></i> Voltar</button><button type='button' id='pt-s2-next' class='pt-btn pt-btn-green' onclick='ptS2Nav(1)'>Continuar <i class='ti ti-arrow-right'></i></button></div></td></tr>";
         }
         if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
 
@@ -966,14 +990,14 @@ class Pasta extends CommonDBTM
         // Botões GLPI — identidade pt-*
         echo "<div class='card-body d-flex gap-2 justify-content-center' style='padding:16px;'>";
         if ($isNew) {
+            if ($isModal) {
+                echo "<button type='button' id='pt-wiz-fechar' class='pt-btn pt-btn-secondary' onclick='ptCloseRegisterModal()'>" . __('Fechar') . "</button>";
+            } else {
+                echo "<a href='" . self::getSearchURL() . "' id='pt-wiz-fechar' class='pt-btn pt-btn-secondary'>" . __('Cancelar') . "</a>";
+            }
             echo "<button type='button' id='pt-wiz-back' class='pt-btn pt-btn-secondary' style='display:none;' onclick='ptWizNav(-1)'><i class='ti ti-arrow-left'></i> Voltar</button>";
             echo "<button type='button' id='pt-wiz-next' class='pt-btn pt-btn-green' onclick='ptWizNav(1)'>Próximo <i class='ti ti-arrow-right'></i></button>";
             echo "<button type='submit' name='add' value='1' id='pt-reg-submit' class='pt-btn pt-btn-green' style='display:none;'><i class='ti ti-check'></i> " . __('Registrar pasta', 'protocolo') . "</button>";
-            if ($isModal) {
-                echo "<button type='button' class='pt-btn pt-btn-secondary' onclick='ptCloseRegisterModal()'>" . __('Fechar') . "</button>";
-            } else {
-                echo "<a href='" . self::getSearchURL() . "' class='pt-btn pt-btn-secondary'>" . __('Cancelar') . "</a>";
-            }
         } else {
             // Ficha existente: abre em visualização; edição liberada via botão Editar
             // Usa haveRightDB (aceita legado 1 e novo 31) em vez de Session::haveRight puro.
@@ -1219,12 +1243,20 @@ class Pasta extends CommonDBTM
                 });
                 var bV = document.getElementById('pt-wiz-back');
                 if(bV) bV.style.display = n === 1 ? 'none' : '';
+                var bF = document.getElementById('pt-wiz-fechar');
+                if(bF) bF.style.display = n === 1 ? '' : 'none';
                 var bN = document.getElementById('pt-wiz-next');
                 if(bN) bN.style.display = n === 3 ? 'none' : '';
                 var bS = document.getElementById('pt-reg-submit');
                 if(bS) bS.style.display = n === 3 ? '' : 'none';
                 if(n === 2) setTimeout(ptRecFit, 60);
             }
+            window.__ptDevShown = false;
+            window.ptDevOk = function(){
+                var ov = document.getElementById('pt-dev-overlay');
+                if(ov) ov.style.display = 'none';
+                ptWizShow(3);
+            };
             window.ptWizNav = function(d){
                 var cur = window.__ptWizStep || 1;
                 if(d > 0){
@@ -1260,6 +1292,12 @@ class Pasta extends CommonDBTM
                         if(!rd || !rd.value.trim()){ ptWizAlertMsg('Preencha \"Recebido de (quem deixou)\".', rd); return; }
                         if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
                     }
+                }
+                if(d > 0 && cur === 2 && !window.__ptDevShown){
+                    window.__ptDevShown = true;
+                    var dov = document.getElementById('pt-dev-overlay');
+                    if(dov) dov.style.display = 'flex';
+                    return;
                 }
                 ptWizShow(Math.min(3, Math.max(1, cur + d)));
             };
@@ -1297,13 +1335,143 @@ class Pasta extends CommonDBTM
                 var cl = document.getElementById('pt-rec-clear');
                 if(cl) cl.addEventListener('click', function(){ ptRecFit(); var cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); window.__ptRecDrawn = false; var hi = document.getElementById('pt-rec-image'); if(hi) hi.value = ''; });
             }
-            if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); }
+            window.__ptS2 = 1;
+            window.__ptRecDocType = 'cpf';
+            function ptS2Show(m){
+                window.__ptS2 = m;
+                [1, 2, 3].forEach(function(i){
+                    document.querySelectorAll('[data-pts2="r' + i + '"]').forEach(function(el){ el.style.display = (i === m) ? '' : 'none'; });
+                });
+                var bB = document.getElementById('pt-s2-back');
+                if(bB) bB.style.display = m === 1 ? 'none' : '';
+                var bN = document.getElementById('pt-s2-next');
+                if(bN) bN.style.display = m === 3 ? 'none' : '';
+                if(m === 3) setTimeout(ptRecFit, 60);
+            }
+            window.ptS2Nav = function(d){
+                var cur = window.__ptS2 || 1;
+                if(d > 0){
+                    if(cur === 1){
+                        var rn = document.querySelector('input[name="recebido_de"]');
+                        if(!rn || !rn.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn); return; }
+                    }
+                    if(cur === 2) ptRecDocPaint();
+                }
+                ptS2Show(Math.min(3, Math.max(1, cur + d)));
+            };
+            window.ptRecDocType = function(t){
+                window.__ptRecDocType = (t === 'rg') ? 'rg' : 'cpf';
+                var h = document.getElementById('recebido_documento_tipo');
+                if(h) h.value = window.__ptRecDocType;
+                var hint = document.getElementById('recebido_doc_hint');
+                if(hint) hint.textContent = window.__ptRecDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
+                ptRecDocPaint();
+            };
+            function ptRecDocPaint(){
+                document.querySelectorAll('.pt-recdoc-btn').forEach(function(b){
+                    var on = b.getAttribute('data-t') === (window.__ptRecDocType || 'cpf');
+                    b.style.borderColor = on ? '#16a34a' : '';
+                    b.style.background = on ? '#f0fdf4' : '';
+                    b.style.color = on ? '#16a34a' : '';
+                });
+            }
+            if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); }
+            function ptSchoolEnsure(){
+                var ov = document.getElementById('pt-school-overlay');
+                if(ov) return ov;
+                ov = document.createElement('div');
+                ov.id = 'pt-school-overlay';
+                ov.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(17,24,39,.6);z-index:10080;align-items:center;justify-content:center;padding:20px;';
+                var box = document.createElement('div');
+                box.style.cssText = 'background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:84vh;display:flex;flex-direction:column;box-shadow:0 25px 80px rgba(0,0,0,.3);';
+                var head = document.createElement('div');
+                head.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #f0f2f8;';
+                var tt = document.createElement('strong');
+                tt.style.fontSize = '.95rem';
+                tt.textContent = 'Selecionar escola';
+                var x = document.createElement('button');
+                x.type = 'button';
+                x.style.cssText = 'background:#f3f4f6;border:0;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:800;';
+                x.textContent = 'X';
+                x.addEventListener('click', ptSchoolClose);
+                head.appendChild(tt);
+                head.appendChild(x);
+                var sWrap = document.createElement('div');
+                sWrap.style.cssText = 'padding:12px 14px;border-bottom:1px solid #f0f2f8;';
+                var q = document.createElement('input');
+                q.type = 'text';
+                q.id = 'pt-school-q';
+                q.className = 'form-control';
+                q.placeholder = 'Digite para pesquisar...';
+                q.setAttribute('autocomplete', 'off');
+                q.addEventListener('input', function(){ ptSchoolRender(q.value); });
+                q.addEventListener('keydown', function(ev){ ev.stopPropagation(); if(ev.key === 'Escape'){ ptSchoolClose(); } });
+                sWrap.appendChild(q);
+                var list = document.createElement('div');
+                list.id = 'pt-school-list';
+                list.style.cssText = 'overflow-y:auto;padding:8px;min-height:120px;';
+                box.appendChild(head);
+                box.appendChild(sWrap);
+                box.appendChild(list);
+                ov.appendChild(box);
+                ov.addEventListener('click', function(e){ if(e.target === ov) ptSchoolClose(); });
+                document.body.appendChild(ov);
+                return ov;
+            }
+            window.__ptSchoolSel = null;
+            function ptSchoolOpen(sel){
+                if(!sel) return;
+                window.__ptSchoolSel = sel;
+                var ov = ptSchoolEnsure();
+                var q = document.getElementById('pt-school-q');
+                if(q) q.value = '';
+                ptSchoolRender('');
+                ov.style.display = 'flex';
+                setTimeout(function(){ var qq = document.getElementById('pt-school-q'); if(qq) qq.focus(); }, 60);
+            }
+            function ptSchoolClose(){
+                var ov = document.getElementById('pt-school-overlay');
+                if(ov) ov.style.display = 'none';
+                window.__ptSchoolSel = null;
+            }
+            function ptSchoolRender(filter){
+                var sel = window.__ptSchoolSel;
+                var list = document.getElementById('pt-school-list');
+                if(!sel || !list) return;
+                list.innerHTML = '';
+                var f = (filter || '').toLowerCase();
+                var n = 0;
+                Array.from(sel.options).forEach(function(o){
+                    if(o.value === '' || (f !== '' && o.textContent.toLowerCase().indexOf(f) === -1)) return;
+                    n++;
+                    var it = document.createElement('div');
+                    it.textContent = o.textContent;
+                    it.style.cssText = 'padding:11px 12px;cursor:pointer;font-size:.9rem;border-radius:8px;' + ((sel.value === o.value) ? 'background:#f0fdf4;color:#16a34a;font-weight:700;' : '');
+                    it.addEventListener('mouseenter', function(){ it.style.background = '#f1f5f9'; });
+                    it.addEventListener('mouseleave', function(){ it.style.background = (sel.value === o.value) ? '#f0fdf4' : ''; });
+                    it.addEventListener('click', function(){
+                        sel.value = o.value;
+                        var b = sel._ptBtn;
+                        if(b){
+                            var so = sel.selectedOptions.length ? sel.selectedOptions[0] : null;
+                            b.textContent = (so && so.value !== '') ? so.textContent : '-- Selecione a escola --';
+                        }
+                        ptSchoolClose();
+                        sel.dispatchEvent(new Event('change', {bubbles: true}));
+                    });
+                    list.appendChild(it);
+                });
+                if(!n){
+                    var em = document.createElement('div');
+                    em.style.cssText = 'padding:16px;text-align:center;color:#9ca3af;font-size:.88rem;';
+                    em.textContent = 'Nenhuma escola encontrada';
+                    list.appendChild(em);
+                }
+            }
             function ptComboBuild(sel){
                 if(!sel || sel.dataset.combo) return;
                 sel.dataset.combo = '1';
                 sel.style.display = 'none';
-                var wrap = document.createElement('div');
-                wrap.style.cssText = 'position:relative;';
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'form-control';
@@ -1313,68 +1481,13 @@ class Pasta extends CommonDBTM
                     return (o && o.value !== '') ? o.textContent : '-- Selecione a escola --';
                 }
                 btn.textContent = curLabel();
-                var panel = document.createElement('div');
-                panel.className = 'pt-combo-panel';
-                panel.style.cssText = 'display:none;position:absolute;top:100%;left:0;right:0;z-index:60;background:#fff;border:1.5px solid #16a34a;border-radius:10px;margin-top:4px;box-shadow:0 10px 30px rgba(0,0,0,.15);overflow:hidden;';
-                var search = document.createElement('input');
-                search.type = 'text';
-                search.className = 'form-control';
-                search.placeholder = 'Digite para filtrar...';
-                search.setAttribute('autocomplete', 'off');
-                search.style.cssText = 'border:0;border-bottom:1px solid #e8eaf0;border-radius:0;';
-                var list = document.createElement('div');
-                list.style.cssText = 'max-height:220px;overflow-y:auto;';
-                function paint(it, o){
-                    it.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:.88rem;' + ((sel.value === o.value && o.value !== '') ? 'background:#f0fdf4;color:#16a34a;font-weight:700;' : '');
-                }
-                function render(filter){
-                    list.innerHTML = '';
-                    var q = (filter || '').toLowerCase();
-                    var n = 0;
-                    Array.from(sel.options).forEach(function(o){
-                        if(o.value === '' || (q !== '' && o.textContent.toLowerCase().indexOf(q) === -1)) return;
-                        n++;
-                        var it = document.createElement('div');
-                        it.textContent = o.value === '' ? '-- Selecione a escola --' : o.textContent;
-                        paint(it, o);
-                        it.addEventListener('mouseenter', function(){ it.style.background = '#f1f5f9'; });
-                        it.addEventListener('mouseleave', function(){ paint(it, o); });
-                        it.addEventListener('mousedown', function(ev){
-                            ev.preventDefault();
-                            sel.value = o.value;
-                            btn.textContent = curLabel();
-                            closeCombo();
-                            sel.dispatchEvent(new Event('change', {bubbles: true}));
-                        });
-                        list.appendChild(it);
-                    });
-                    if(!n){
-                        var em = document.createElement('div');
-                        em.style.cssText = 'padding:14px;text-align:center;color:#9ca3af;font-size:.85rem;';
-                        em.textContent = 'Nenhuma escola encontrada';
-                        list.appendChild(em);
-                    }
-                }
-                function openCombo(){ ptComboCloseAll(); render(''); search.value = ''; panel.style.display = 'block'; setTimeout(function(){ search.focus(); }, 30); }
-                function closeCombo(){ panel.style.display = 'none'; }
-                btn.addEventListener('click', function(ev){ ev.stopPropagation(); if(panel.style.display === 'block'){ closeCombo(); } else { openCombo(); } });
-                search.addEventListener('input', function(){ render(search.value); });
-                search.addEventListener('click', function(ev){ ev.stopPropagation(); });
-                search.addEventListener('keydown', function(ev){ ev.stopPropagation(); if(ev.key === 'Escape'){ closeCombo(); } });
-                panel.appendChild(search);
-                panel.appendChild(list);
-                wrap.appendChild(btn);
-                wrap.appendChild(panel);
-                sel.parentElement.insertBefore(wrap, sel.nextSibling);
-                render('');
-            }
-            function ptComboCloseAll(){
-                document.querySelectorAll('.pt-combo-panel').forEach(function(p){ p.style.display = 'none'; });
+                sel._ptBtn = btn;
+                btn.addEventListener('click', function(ev){ ev.stopPropagation(); ptSchoolOpen(sel); });
+                sel.parentElement.insertBefore(btn, sel.nextSibling);
             }
             function ptComboInit(){
                 document.querySelectorAll('select.pt-escola-combo').forEach(ptComboBuild);
             }
-            document.addEventListener('click', function(){ ptComboCloseAll(); });
             ptComboInit();
             setupOrigemDestino();
 
