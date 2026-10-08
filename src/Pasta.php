@@ -827,6 +827,7 @@ class Pasta extends CommonDBTM
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . "><label class='form-check-label' for='origem_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outros</label></div>";
         echo "</div>";
+        echo "<div id='origem_locked_wrap' style='display:" . ($origemTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo ao lado (Escola, URE ou Outros)'></div>";
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
         echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
@@ -879,6 +880,7 @@ class Pasta extends CommonDBTM
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_ure' value='ure' " . ($destinoTipo==='ure'?'checked':'') . "><label class='form-check-label' for='destino_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . "><label class='form-check-label' for='destino_outro'>Outros</label></div>";
         echo "</div>";
+        echo "<div id='destino_locked_wrap' style='display:" . ($destinoTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo ao lado (Escola, URE ou Outros)'></div>";
         echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
         echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
         echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
@@ -1130,10 +1132,13 @@ class Pasta extends CommonDBTM
                     var ureWrap = document.getElementById(prefix+'_ure_wrap');
                     var escolaWrap = document.getElementById(prefix+'_escola_wrap');
                     function update(){
-                        var val = document.querySelector('input[name=\"'+prefix+'_tipo\"]:checked')?.value || 'escola';
+                        var checkedRt = document.querySelector('input[name="'+prefix+'_tipo"]:checked');
+                        var val = checkedRt ? checkedRt.value : '';
+                        var lockedWrap = document.getElementById(prefix+'_locked_wrap');
                         if(outroWrap) outroWrap.style.display = val==='outro' ? 'block' : 'none';
                         if(ureWrap) ureWrap.style.display = val==='ure' ? 'block' : 'none';
                         if(escolaWrap) escolaWrap.style.display = val==='escola' ? 'block' : 'none';
+                        if(lockedWrap) lockedWrap.style.display = val==='' ? 'block' : 'none';
                         // Escola: esconde URE da combo de escola; demais tipos: restaura
                         var escSel = escolaWrap ? escolaWrap.querySelector('select') : null;
                         if(escSel){
