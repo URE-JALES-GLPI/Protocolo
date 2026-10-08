@@ -1132,7 +1132,7 @@ class Pasta extends CommonDBTM
                     var ureWrap = document.getElementById(prefix+'_ure_wrap');
                     var escolaWrap = document.getElementById(prefix+'_escola_wrap');
                     function update(){
-                        var checkedRt = document.querySelector('input[name="'+prefix+'_tipo"]:checked');
+                        var checkedRt = document.querySelector('input[name=\"'+prefix+'_tipo\"]:checked');
                         var val = checkedRt ? checkedRt.value : '';
                         var lockedWrap = document.getElementById(prefix+'_locked_wrap');
                         if(outroWrap) outroWrap.style.display = val==='outro' ? 'block' : 'none';
