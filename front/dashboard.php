@@ -242,9 +242,6 @@ if ($hasCategoriaCol && !$categoriaFiltro) {
         echo "<div class='pt-dash-card'><div class='pt-dash-card-top'>" . Pasta::getCategoriaBadge($espVal) . "</div><div class='pt-dash-number'>$espTotal</div><div class='pt-dash-label'>" . htmlspecialchars(mb_strtolower($espLabel)) . "</div><a href='?categoria=$espVal' class='pt-dash-link'>Filtrar &rarr;</a></div>";
     }
 }
-echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span style='font-size:.8rem;font-weight:700;color:#4f46e5;'><i class='ti ti-calendar-plus'></i> " . __('Entradas no mês', 'protocolo') . "</span></div><div class='pt-dash-number'>$totalMes</div><div class='pt-dash-label'>este mês</div></div>";
-echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span style='font-size:.8rem;font-weight:700;color:#d97706;'><i class='ti ti-circle-filled'></i> Pend. Termo Entrega</span></div><div class='pt-dash-number' style='color:#d97706;'>$totalPendRec</div><div class='pt-dash-label'>termos</div><a href='#pendencias' class='pt-dash-link'>Ver abaixo &rarr;</a></div>";
-echo "<div class='pt-dash-card'><div class='pt-dash-card-top'><span style='font-size:.8rem;font-weight:700;color:#dc2626;'><i class='ti ti-circle-filled'></i> Pend. Termo Retirada</span></div><div class='pt-dash-number' style='color:#dc2626;'>$totalPendRet</div><div class='pt-dash-label'>termos</div><a href='#pendencias' class='pt-dash-link'>Ver abaixo &rarr;</a></div>";
 echo "</div>";
 
 echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
