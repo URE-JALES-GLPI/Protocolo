@@ -731,6 +731,7 @@ class Pasta extends CommonDBTM
         // Ficha existente abre em modo visualização (edição só via botão Editar)
         echo "<form method='post' action='$formUrl' enctype='multipart/form-data' id='plugin_protocolo_pasta_form' novalidate" . ($isNew ? '' : " data-viewonly='1'") . ">";
         echo '<input type="hidden" name="_glpi_csrf_token" value="' . $csrf . '">';
+        echo "<style>#plugin_protocolo_pasta_form input[type='text']:not([name*='observacao']){text-transform:uppercase}</style>";
         if (!$isNew) {
             echo Html::hidden('id', ['value' => $ID]);
         }
@@ -800,13 +801,11 @@ class Pasta extends CommonDBTM
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Origem/Interessado', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(de onde vem)</small></label></td>";
         echo "<td colspan='3'>";
-        echo "<div class='d-flex gap-3 align-items-start'>";
-        echo "<div class='d-flex flex-column gap-2 pt-1' id='origemGroup' style='min-width:100px'>";
+        echo "<div class='d-flex gap-3 mb-2 flex-wrap' id='origemGroup'>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_escola' value='escola' " . ($origemTipo==='escola'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='origem_escola'>Escola</label></div>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . "><label class='form-check-label' for='origem_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outros</label></div>";
         echo "</div>";
-        echo "<div class='flex-fill'>";
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
         echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
@@ -827,8 +826,6 @@ class Pasta extends CommonDBTM
             echo "</select>";
         }
         echo "</div>";
-        echo "</div>";
-        echo "</div>";
         echo "</td></tr>";
 
         // Destino
@@ -844,13 +841,11 @@ class Pasta extends CommonDBTM
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Destino', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(para onde vai)</small></label></td>";
         echo "<td colspan='3'>";
-        echo "<div class='d-flex gap-3 align-items-start'>";
-        echo "<div class='d-flex flex-column gap-2 pt-1' id='destinoGroup' style='min-width:100px'>";
+        echo "<div class='d-flex gap-3 mb-2 flex-wrap' id='destinoGroup'>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_escola' value='escola' " . ($destinoTipo==='escola'?'checked':'') . ($isNew?' required':' required') . "><label class='form-check-label' for='destino_escola'>Escola</label></div>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_ure' value='ure' " . ($destinoTipo==='ure'?'checked':'') . "><label class='form-check-label' for='destino_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . "><label class='form-check-label' for='destino_outro'>Outros</label></div>";
         echo "</div>";
-        echo "<div class='flex-fill'>";
         echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
         echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
         echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
@@ -870,8 +865,6 @@ class Pasta extends CommonDBTM
             if ($destinoEnt) { $n = self::getEscolaName($destinoEnt); echo "<option value='$destinoEnt' selected>" . htmlspecialchars($n) . "</option>"; }
             echo "</select>";
         }
-        echo "</div>";
-        echo "</div>";
         echo "</div>";
         // compat: mantém plugin_protocolo_escolas_id escondido para buscas antigas (espelha destino quando escola)
         echo "<input type='hidden' name='plugin_protocolo_escolas_id' id='compat_escola_id' value='$destinoEnt'>";
@@ -931,7 +924,7 @@ class Pasta extends CommonDBTM
             echo "</div></div></div>";
 
             $lastItens = $lastInput['itens'] ?? [];
-            echo "<div class='spaced'><div class='d-flex justify-content-between align-items-center mb-2'><h3 class='mb-0'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " *</h3><button type='button' id='btnAddItem' class='btn btn-sm btn-outline-primary'><i class='ti ti-plus'></i> " . __('Adicionar item', 'protocolo') . "</button></div>";
+            echo "<div class='spaced'><div class='d-flex justify-content-between align-items-center mb-2'><h3 class='mb-0'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " *</h3></div>";
             if (!empty($lastItens) && is_array($lastItens)) {
                 echo "<div id='itensWrap'>";
                 foreach ($lastItens as $idx => $it) {
@@ -1181,6 +1174,15 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
+                        try{
+                            var upEls=form.querySelectorAll('input[type=\"text\"]');
+                            for(var ui=0;ui<upEls.length;ui++){
+                                var un=upEls[ui].name||'';
+                                if(un.indexOf('observacao')!==-1) continue;
+                                if(upEls[ui].disabled) continue;
+                                upEls[ui].value=upEls[ui].value.toUpperCase();
+                            }
+                        }catch(ue){}
                         var espSel = form.querySelector('select[name=\"categoria\"]');
                         if(!espSel || !espSel.value){
                             e.preventDefault(); showAlert('Selecione a Espécie.', document.getElementById('especieSelect')); return;

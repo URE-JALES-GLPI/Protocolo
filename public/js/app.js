@@ -236,11 +236,31 @@ window.ptCloseRegisterModal = function(ev) {
   return false;
 };
 document.addEventListener('keydown', function(e){
-  if (e.key === 'Escape') {
-    var msg = document.getElementById('pt-msg-overlay');
-    if (msg) { msg.remove(); return; }
-    window.ptCloseRegisterModal();
+  if (e.key !== 'Escape' && e.key !== 'Esc') return;
+  // Só age quando a janela Registrar Entrada existe na página
+  if (!document.getElementById('pt-register-overlay')) return;
+  var msg = document.getElementById('pt-msg-overlay');
+  if (msg) { msg.remove(); return; }
+  // Combo select2 aberta? Fecha ela e NÃO fecha a janela
+  try {
+    if (window.jQuery && window.jQuery('.select2-container--open').length) {
+      window.jQuery('select').each(function(){
+        try { var s = window.jQuery(this); if (s.data('select2') && s.select2('isOpen')) s.select2('close'); } catch (err) {}
+      });
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      return;
+    }
+  } catch (err) {}
+  // Select nativo com foco (pode estar aberto): 1º ESC fecha o select, 2º fecha a janela
+  var ae = document.activeElement;
+  if (ae && ae.tagName === 'SELECT' && !window.__ptEscArmed) {
+    window.__ptEscArmed = true;
+    setTimeout(function(){ window.__ptEscArmed = false; }, 1500);
+    return;
   }
+  window.__ptEscArmed = false;
+  window.ptCloseRegisterModal();
 });
 
 // Recarrega se a página voltar do cache do navegador (botão Voltar):
