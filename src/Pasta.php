@@ -1340,7 +1340,7 @@ class Pasta extends CommonDBTM
             function ptS2Show(m){
                 window.__ptS2 = m;
                 [1, 2, 3].forEach(function(i){
-                    document.querySelectorAll('[data-pts2="r' + i + '"]').forEach(function(el){ el.style.display = (i === m) ? '' : 'none'; });
+                    document.querySelectorAll('[data-pts2=\"r' + i + '\"]').forEach(function(el){ el.style.display = (i === m) ? '' : 'none'; });
                 });
                 var bB = document.getElementById('pt-s2-back');
                 if(bB) bB.style.display = m === 1 ? 'none' : '';
@@ -1352,7 +1352,7 @@ class Pasta extends CommonDBTM
                 var cur = window.__ptS2 || 1;
                 if(d > 0){
                     if(cur === 1){
-                        var rn = document.querySelector('input[name="recebido_de"]');
+                        var rn = document.querySelector('input[name=\"recebido_de\"]');
                         if(!rn || !rn.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn); return; }
                     }
                     if(cur === 2) ptRecDocPaint();
