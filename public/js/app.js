@@ -339,7 +339,21 @@ window.ptSubmitRegisterAjax = function(form) {
         data = JSON.parse(raw);
       } catch (e) { data = null; }
       if (data && typeof data.ok !== 'undefined') {
-        if (data.ok) { window.location.href = data.url; return; } // sucesso: abre a ficha nova
+        if (data.ok) {
+          restore();
+          var termoUrl = ptPluginBase() + '/front/termo.php?id=' + encodeURIComponent(data.id) + '&tipo=recebimento';
+          var ov = document.createElement('div');
+          ov.id = 'pt-msg-overlay';
+          ov.className = 'pt-modal-overlay open';
+          ov.innerHTML = '<div class="pt-modal" style="max-width:440px;" role="alertdialog" aria-modal="true">'
+            + '<div class="pt-modal-header"><div class="pt-modal-title"><i class="ti ti-check"></i><span>Pasta registrada!</span></div></div>'
+            + '<div class="pt-modal-body"><p style="margin:0;font-size:.9rem;">O termo de entrada foi gerado.' + (data.id ? ' Imprima a via de quem está deixando o item.' : '') + '</p></div>'
+            + '<div style="padding:12px 24px;border-top:1px solid #f0f2f8;display:flex;gap:8px;justify-content:flex-end;background:#fafbff;border-radius:0 0 20px 20px;">'
+            + '<a class="pt-btn pt-btn-green pt-btn-sm" target="_blank" href="' + termoUrl + '"><i class="ti ti-printer"></i> Imprimir termo</a>'
+            + '<a class="pt-btn pt-btn-primary pt-btn-sm" href="' + data.url + '">Ver ficha</a></div></div>';
+          document.body.appendChild(ov);
+          return;
+        }
         restore();
         var errs = (data.errors && data.errors.length) ? data.errors.join('\n') : 'Verifique os campos e tente novamente.';
         if (data.code) errs += '\n\nCódigo: ' + data.code;
@@ -459,6 +473,162 @@ window.ptDashTab = function(ev, tab) {
   }
   return false;
 };
+
+window.__ptRetIds = [];
+window.__ptRetDrawn = false;
+function ptRetSelected(){
+  var out = [];
+  document.querySelectorAll('.pt-ret-check:checked').forEach(function(cb){ out.push({id: parseInt(cb.value, 10), codigo: cb.getAttribute('data-codigo') || ('#' + cb.value)}); });
+  return out;
+}
+function ptRetRefreshBar(){
+  var sel = ptRetSelected();
+  var bar = document.getElementById('pt-ret-bulkbar');
+  var count = document.getElementById('pt-ret-bulkcount');
+  var all = document.getElementById('pt-ret-check-all');
+  if (bar) bar.style.display = sel.length ? 'flex' : 'none';
+  if (count) count.textContent = sel.length + ' selecionada(s)';
+  if (all) {
+    var boxes = document.querySelectorAll('.pt-ret-check');
+    all.checked = boxes.length > 0 && sel.length === boxes.length;
+  }
+}
+window.ptRetClearSelection = function(){
+  document.querySelectorAll('.pt-ret-check:checked').forEach(function(cb){ cb.checked = false; });
+  ptRetRefreshBar();
+};
+window.ptOpenRetiradaBulk = function(){
+  var sel = ptRetSelected();
+  if (!sel.length) return;
+  ptOpenRetiradaModal(sel.map(function(s){ return s.id; }));
+};
+window.ptOpenRetiradaModal = function(ids){
+  if (!ids || !ids.length) return;
+  window.__ptRetIds = ids.map(function(v){ return parseInt(v, 10); });
+  var ov = document.getElementById('pt-retirada-overlay');
+  if (!ov) return;
+  var list = document.getElementById('pt-ret-list');
+  if (list) {
+    var names = [];
+    document.querySelectorAll('.pt-ret-check:checked').forEach(function(cb){ names.push(cb.getAttribute('data-codigo') || ''); });
+    if (!names.length) names = ids.map(function(v){ return 'Pasta #' + v; });
+    list.innerHTML = '<strong>' + window.__ptRetIds.length + ' pasta(s):</strong> ' + names.join(', ');
+  }
+  var nm = document.getElementById('pt-ret-nome');
+  if (nm) nm.value = '';
+  var dc = document.getElementById('pt-ret-doc');
+  if (dc) dc.value = '';
+  var ob = document.getElementById('pt-ret-obs');
+  if (ob) ob.value = '';
+  ptRetClearCanvas();
+  ov.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(ptRetFitCanvas, 60);
+  if (nm) nm.focus();
+};
+window.ptCloseRetiradaModal = function(){
+  var ov = document.getElementById('pt-retirada-overlay');
+  if (ov) ov.classList.remove('open');
+  document.body.style.overflow = '';
+};
+function ptRetFitCanvas(){
+  var c = document.getElementById('pt-ret-canvas');
+  if (!c) return;
+  var r = c.getBoundingClientRect();
+  var w = Math.max(280, Math.floor(r.width));
+  c.width = w;
+  c.height = 200;
+  window.__ptRetDrawn = false;
+}
+window.ptRetClearCanvas = function(){
+  var c = document.getElementById('pt-ret-canvas');
+  if (!c) return;
+  ptRetFitCanvas();
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  window.__ptRetDrawn = false;
+};
+function ptRetBindCanvas(){
+  var c = document.getElementById('pt-ret-canvas');
+  if (!c || c.dataset.bound) return;
+  c.dataset.bound = '1';
+  var ctx = c.getContext('2d');
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#111827';
+  var drawing = false;
+  function pos(ev){
+    var r = c.getBoundingClientRect();
+    var x, y;
+    if (ev.touches && ev.touches.length) { x = ev.touches[0].clientX; y = ev.touches[0].clientY; }
+    else { x = ev.clientX; y = ev.clientY; }
+    var sx = c.width / r.width;
+    var sy = c.height / r.height;
+    return [(x - r.left) * sx, (y - r.top) * sy];
+  }
+  function start(ev){ drawing = true; var p = pos(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if (ev.preventDefault) ev.preventDefault(); }
+  function move(ev){ if (!drawing) return; var p = pos(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptRetDrawn = true; if (ev.preventDefault) ev.preventDefault(); }
+  function end(){ drawing = false; }
+  c.addEventListener('mousedown', start);
+  c.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', end);
+  c.addEventListener('touchstart', start, {passive: false});
+  c.addEventListener('touchmove', move, {passive: false});
+  c.addEventListener('touchend', end);
+}
+window.ptSubmitRetirada = function(){
+  var nomeEl = document.getElementById('pt-ret-nome');
+  var nome = nomeEl ? nomeEl.value.trim() : '';
+  if (!nome) { if (nomeEl) nomeEl.focus(); return; }
+  if (!window.__ptRetDrawn) return;
+  var dtEl = document.getElementById('pt-ret-doctipo');
+  var docEl = document.getElementById('pt-ret-doc');
+  var obsEl = document.getElementById('pt-ret-obs');
+  var csrfEl = document.getElementById('pt-ret-csrf');
+  var c = document.getElementById('pt-ret-canvas');
+  var img = '';
+  try { img = c.toDataURL('image/png'); } catch (e) { return; }
+  var btn = document.getElementById('pt-ret-confirm');
+  if (btn) { btn.disabled = true; }
+  var base = (typeof ptPluginBase === 'function') ? ptPluginBase() : '/plugins/protocolo';
+  fetch(base + '/ajax/retirada_save.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+    body: JSON.stringify({
+      ids: window.__ptRetIds,
+      nome: nome,
+      doc_tipo: dtEl ? dtEl.value : 'cpf',
+      doc: docEl ? docEl.value : '',
+      obs: obsEl ? obsEl.value : '',
+      image: img,
+      _glpi_csrf_token: csrfEl ? csrfEl.value : ''
+    })
+  }).then(function(r){ return r.json(); })
+    .then(function(d){
+      if (btn) { btn.disabled = false; }
+      if (d && d.ok) {
+        if (d.termos && d.termos.length) {
+          d.termos.forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
+        }
+        window.location.reload();
+      }
+    })
+    .catch(function(){ if (btn) { btn.disabled = false; } });
+};
+document.addEventListener('change', function(e){
+  if (e.target && e.target.id === 'pt-ret-check-all') {
+    var on = e.target.checked;
+    document.querySelectorAll('.pt-ret-check').forEach(function(cb){ cb.checked = on; });
+    ptRetRefreshBar();
+  } else if (e.target && e.target.classList && e.target.classList.contains('pt-ret-check')) {
+    ptRetRefreshBar();
+  }
+});
+document.addEventListener('DOMContentLoaded', function(){
+  ptRetBindCanvas();
+  ptRetRefreshBar();
+});
 
 (function(){
   try {

@@ -196,9 +196,22 @@ body{ background:#eee; }
 
   <div class="assinaturas">
     <div class="assinatura">
+      <?php
+      $sigImg = '';
+      $sigDataFmt = '';
+      if ($tipo === 'retirada' && !empty($pasta->fields['retirada_assinatura_image'])) {
+          $sigImg = $pasta->fields['retirada_assinatura_image'];
+          if (!empty($pasta->fields['retirada_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['retirada_assinatura_data']));
+      } elseif ($tipo === 'recebimento' && !empty($pasta->fields['recebido_assinatura_image'])) {
+          $sigImg = $pasta->fields['recebido_assinatura_image'];
+          if (!empty($pasta->fields['recebido_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['recebido_assinatura_data']));
+      }
+      ?>
+      <?php if ($sigImg): ?><img src="<?= htmlspecialchars($sigImg) ?>" alt="Assinatura" style="max-height:70px;max-width:100%;object-fit:contain;"><br><?php endif; ?>
       <?= $tipo === 'recebimento' ? __('Assinatura de quem entregou', 'protocolo') : __('Assinatura de quem retirou', 'protocolo') ?><br>
       <strong><?= htmlspecialchars($responsavel) ?></strong><br>
       <small><?= htmlspecialchars($documento) ?></small>
+      <?php if ($sigImg && $sigDataFmt): ?><br><small>Assinado digitalmente em <?= htmlspecialchars($sigDataFmt) ?></small><?php endif; ?>
     </div>
     <div class="assinatura">
       <?= __('Assinatura / Carimbo do setor de protocolo', 'protocolo') ?><br>

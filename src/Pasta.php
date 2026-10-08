@@ -738,6 +738,16 @@ class Pasta extends CommonDBTM
 
         // Usa layout GLPI padrão: tab_cadre_fixe
         echo "<div class='spaced'><table class='tab_cadre_fixe'>";
+        if ($isNew) {
+            echo "<div id='pt-wiz-ind' style='display:flex;gap:8px;align-items:center;margin:2px 8px 12px;flex-wrap:wrap;'>";
+            echo "<span class='pt-wiz-dot' data-s='1' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #4f46e5;background:#eef2ff;color:#4f46e5;'><span>1</span> Dados</span>";
+            echo "<span style='color:#cbd5e1;'>→</span>";
+            echo "<span class='pt-wiz-dot' data-s='2' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>2</span> Origem e destino</span>";
+            echo "<span style='color:#cbd5e1;'>→</span>";
+            echo "<span class='pt-wiz-dot' data-s='3' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>3</span> Itens</span>";
+            echo "</div>";
+            echo "<tbody data-ptstep='1'>";
+        }
 
         if (!$isNew) {
             $catBadge = self::getCategoriaBadge($this->fields['categoria'] ?? 'pasta', $this->fields['especie_outro'] ?? null);
@@ -786,6 +796,7 @@ class Pasta extends CommonDBTM
         echo "<td width='15%'><label>" . __('Assunto', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td colspan='3'><input type='text' name='assunto' id='assunto_field' class='form-control' required maxlength='255' style='width:100%' value='" . Html::cleanInputText($this->fields['assunto'] ?? '') . "' placeholder='Ex: Ofício nº 123/2026 — matrícula'></td>";
         echo "</tr>";
+        if ($isNew) echo "</tbody><tbody data-ptstep='2' style='display:none'>";
 
         // Origem/Interessado (Escola ou Outros; URE só aparece em registros antigos)
         $origemTipoRaw = $this->fields['origem_tipo'] ?? '';
@@ -923,6 +934,11 @@ class Pasta extends CommonDBTM
         echo "<td><label>" . __('Documento', 'protocolo') . "</label></td>";
         echo "<td><div class='input-group'><select name='recebido_documento_tipo' id='recebido_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='cpf')?' selected':'') . ">CPF</option><option value='rg'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='rg')?' selected':'') . ">RG</option></select><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos (000.000.000-00) | RG: 7-9 dígitos</small></td>";
         echo "</tr>";
+        if ($isNew) {
+            echo "<tr class='tab_bg_1'><td><label>Assinatura de quem deixou <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para assinatura</small></td>";
+            echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-rec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-rec-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebido_assinatura_image' id='pt-rec-image' value=''></td></tr>";
+        }
+        if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Código', 'protocolo') . "</label></td>";
@@ -947,10 +963,12 @@ class Pasta extends CommonDBTM
             }
         }
 
+        if ($isNew) echo "</tbody>";
         echo "</table></div>";
 
         // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
+            echo "<div data-ptstep='3' style='display:none'>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
@@ -986,12 +1004,15 @@ class Pasta extends CommonDBTM
                 echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div></div>";
             }
             echo "<div class='form-text mb-3'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
+            echo "</div>";
         }
 
         // Botões GLPI — identidade pt-*
         echo "<div class='card-body d-flex gap-2 justify-content-center' style='padding:16px;'>";
         if ($isNew) {
-            echo "<button type='submit' name='add' value='1' class='pt-btn pt-btn-primary'><i class='ti ti-check'></i> " . __('Registrar pasta', 'protocolo') . "</button>";
+            echo "<button type='button' id='pt-wiz-back' class='pt-btn pt-btn-secondary' style='display:none;' onclick='ptWizNav(-1)'><i class='ti ti-arrow-left'></i> Voltar</button>";
+            echo "<button type='button' id='pt-wiz-next' class='pt-btn pt-btn-primary' onclick='ptWizNav(1)'>Próximo <i class='ti ti-arrow-right'></i></button>";
+            echo "<button type='submit' name='add' value='1' id='pt-reg-submit' class='pt-btn pt-btn-primary' style='display:none;'><i class='ti ti-check'></i> " . __('Registrar pasta', 'protocolo') . "</button>";
             if ($isModal) {
                 echo "<button type='button' class='pt-btn pt-btn-secondary' onclick='ptCloseRegisterModal()'>" . __('Fechar') . "</button>";
             } else {
@@ -1221,6 +1242,106 @@ class Pasta extends CommonDBTM
                     if(e.stopPropagation) e.stopPropagation();
                 }
             }, true);
+            window.__ptWizStep = 1;
+            window.__ptRecDrawn = false;
+            function ptWizAlertMsg(msg, el){
+                var ab = document.getElementById('protocoloAlert');
+                var am = document.getElementById('protocoloAlertMsg');
+                if(ab && am){ am.textContent = msg; ab.classList.remove('d-none'); ab.scrollIntoView({behavior:'smooth', block:'center'}); }
+                if(el){ el.classList.add('is-invalid'); try{ el.focus(); }catch(ef){} setTimeout(function(){ el.classList.remove('is-invalid'); }, 3000); }
+            }
+            function ptWizShow(n){
+                window.__ptWizStep = n;
+                document.querySelectorAll('[data-ptstep]').forEach(function(el){
+                    el.style.display = (el.getAttribute('data-ptstep') === String(n)) ? '' : 'none';
+                });
+                document.querySelectorAll('#pt-wiz-ind .pt-wiz-dot').forEach(function(d){
+                    var on = d.getAttribute('data-s') === String(n);
+                    d.style.borderColor = on ? '#4f46e5' : '#e8eaf0';
+                    d.style.background = on ? '#eef2ff' : '#fff';
+                    d.style.color = on ? '#4f46e5' : '#9ca3af';
+                });
+                var bV = document.getElementById('pt-wiz-back');
+                if(bV) bV.style.display = n === 1 ? 'none' : '';
+                var bN = document.getElementById('pt-wiz-next');
+                if(bN) bN.style.display = n === 3 ? 'none' : '';
+                var bS = document.getElementById('pt-reg-submit');
+                if(bS) bS.style.display = n === 3 ? '' : 'none';
+                if(n === 2) setTimeout(ptRecFit, 60);
+            }
+            window.ptWizNav = function(d){
+                var cur = window.__ptWizStep || 1;
+                if(d > 0){
+                    if(cur === 1){
+                        var esp = document.getElementById('especieSelect');
+                        if(!esp || !esp.value){ ptWizAlertMsg('Selecione a Espécie.', esp); return; }
+                        if(esp.value === 'outro'){
+                            var eo = document.getElementById('especie_outro_input');
+                            if(!eo || !eo.value.trim()){ ptWizAlertMsg('Espécie = Outros: descreva a espécie.', eo); return; }
+                        }
+                        var asf = document.getElementById('assunto_field');
+                        if(!asf || !asf.value.trim()){ ptWizAlertMsg('Preencha o Assunto.', asf); return; }
+                    } else if(cur === 2){
+                        var os = document.querySelector('input[name=\"origem_tipo\"]:checked');
+                        if(!os){ ptWizAlertMsg('Selecione a Origem/Interessado (Escola, URE ou Outros).', document.getElementById('origem_escola')); return; }
+                        if(os.value === 'outro'){
+                            var oo = document.getElementById('origem_outro_input');
+                            if(!oo || !oo.value.trim()){ ptWizAlertMsg('Origem = Outro: preencha \"Escreva a origem\".', oo); return; }
+                        } else if(os.value === 'escola'){
+                            var ose = document.querySelector('#origem_escola_wrap select');
+                            if(!ose || !ose.value){ ptWizAlertMsg('Origem = Escola: selecione a escola.', ose); return; }
+                        }
+                        var ds = document.querySelector('input[name=\"destino_tipo\"]:checked');
+                        if(!ds){ ptWizAlertMsg('Selecione o Destino (Outro, URE ou Escola).', document.getElementById('destino_outro')); return; }
+                        if(ds.value === 'outro'){
+                            var dout = document.getElementById('destino_outro_input');
+                            if(!dout || !dout.value.trim()){ ptWizAlertMsg('Destino = Outro: preencha \"Escreva o destino\".', dout); return; }
+                        } else if(ds.value === 'escola'){
+                            var dse = document.querySelector('#destino_escola_wrap select');
+                            if(!dse || !dse.value){ ptWizAlertMsg('Destino = Escola: selecione a escola.', dse); return; }
+                        }
+                        var rd = document.querySelector('input[name=\"recebido_de\"]');
+                        if(!rd || !rd.value.trim()){ ptWizAlertMsg('Preencha \"Recebido de (quem deixou)\".', rd); return; }
+                        if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
+                    }
+                }
+                ptWizShow(Math.min(3, Math.max(1, cur + d)));
+            };
+            function ptRecFit(){
+                var c = document.getElementById('pt-rec-canvas');
+                if(!c) return;
+                var r = c.getBoundingClientRect();
+                c.width = Math.max(280, Math.floor(r.width));
+                c.height = 180;
+            }
+            function ptRecBind(){
+                var c = document.getElementById('pt-rec-canvas');
+                if(!c || c.dataset.bound) return;
+                c.dataset.bound = '1';
+                var ctx = c.getContext('2d');
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#111827';
+                var dw = false;
+                function pp(ev){
+                    var r = c.getBoundingClientRect();
+                    var x = (ev.touches && ev.touches.length) ? ev.touches[0].clientX : ev.clientX;
+                    var y = (ev.touches && ev.touches.length) ? ev.touches[0].clientY : ev.clientY;
+                    return [(x - r.left) * (c.width / r.width), (y - r.top) * (c.height / r.height)];
+                }
+                function st(ev){ dw = true; var p = pp(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if(ev.preventDefault) ev.preventDefault(); }
+                function mv(ev){ if(!dw) return; var p = pp(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptRecDrawn = true; if(ev.preventDefault) ev.preventDefault(); }
+                function en(){ dw = false; }
+                c.addEventListener('mousedown', st);
+                c.addEventListener('mousemove', mv);
+                document.addEventListener('mouseup', en);
+                c.addEventListener('touchstart', st, {passive: false});
+                c.addEventListener('touchmove', mv, {passive: false});
+                c.addEventListener('touchend', en);
+                var cl = document.getElementById('pt-rec-clear');
+                if(cl) cl.addEventListener('click', function(){ ptRecFit(); var cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); window.__ptRecDrawn = false; var hi = document.getElementById('pt-rec-image'); if(hi) hi.value = ''; });
+            }
+            if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); }
             setupOrigemDestino();
 
             // Espécie -> mostra campo livre quando Outros
@@ -1250,6 +1371,7 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
+                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 3){ e.preventDefault(); ptWizNav(1); return; }
                         try{
                             var upEls=form.querySelectorAll('input[type=\"text\"]');
                             for(var ui=0;ui<upEls.length;ui++){
@@ -1259,6 +1381,13 @@ class Pasta extends CommonDBTM
                                 upEls[ui].value=upEls[ui].value.toUpperCase();
                             }
                         }catch(ue){}
+                        try{
+                            var rcv = document.getElementById('pt-rec-canvas');
+                            var rhi = document.getElementById('pt-rec-image');
+                            if(rcv && rhi && window.__ptRecDrawn){ rhi.value = rcv.toDataURL('image/png'); }
+                        }catch(rce){}
+                        var rcv2 = document.getElementById('pt-rec-canvas');
+                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(2); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
                         var espSel = form.querySelector('select[name=\"categoria\"]');
                         if(!espSel || !espSel.value){
                             e.preventDefault(); showAlert('Selecione a Espécie.', document.getElementById('especieSelect')); return;
@@ -1355,6 +1484,7 @@ class Pasta extends CommonDBTM
 
     public function prepareInputForAdd($input)
     {
+        global $DB;
         // Espécie (substitui Categoria — obrigatória, sem padrão, força atenção)
         $categoria = strtolower(trim($input['categoria'] ?? ''));
         if (!array_key_exists($categoria, self::getEspecieOptions())) {
@@ -1462,6 +1592,18 @@ class Pasta extends CommonDBTM
             Session::addMessageAfterRedirect(__('Recebido de é obrigatório', 'protocolo'), false, ERROR);
             return false;
         }
+        $recSig = trim($input['recebido_assinatura_image'] ?? '');
+        if ($recSig !== '' && strpos($recSig, 'data:image/') !== 0) $recSig = '';
+        if (strlen($recSig) > 1500000) $recSig = '';
+        try {
+            if ($DB->fieldExists(self::getTable(), 'recebido_assinatura_image')) {
+                $input['recebido_assinatura_image'] = $recSig !== '' ? $recSig : null;
+                $input['recebido_assinatura_data'] = $recSig !== '' ? date('Y-m-d H:i:s') : null;
+                $input['recebido_assinatura_ip'] = $recSig !== '' ? ($_SERVER['REMOTE_ADDR'] ?? null) : null;
+            } else {
+                unset($input['recebido_assinatura_image']);
+            }
+        } catch (\Throwable $e) { unset($input['recebido_assinatura_image']); }
         // Itens validation
         $itens = $input['itens'] ?? [];
         $filtered = [];
@@ -1705,7 +1847,12 @@ class Pasta extends CommonDBTM
                 return false;
             }
         }
-        $DB->update(self::getTable(), [
+        $sigImage = trim($params['retirada_assinatura_image'] ?? '');
+        if ($sigImage !== '' && strpos($sigImage, 'data:image/') !== 0) $sigImage = '';
+        if (strlen($sigImage) > 1500000) $sigImage = '';
+        $sigData = date('Y-m-d H:i:s');
+        $sigIp = $_SERVER['REMOTE_ADDR'] ?? null;
+        $updRetirada = [
             'status' => 'retirada',
             'data_retirada' => $dataRet,
             'retirado_por' => $retiradoPor,
@@ -1714,7 +1861,15 @@ class Pasta extends CommonDBTM
             'observacao_retirada' => trim($params['observacao_retirada'] ?? '') ?: null,
             'users_id_retirada' => Session::getLoginUserID(),
             'date_mod' => date('Y-m-d H:i:s')
-        ], ['id' => $this->getID()]);
+        ];
+        try {
+            if ($DB->fieldExists(self::getTable(), 'retirada_assinatura_image')) {
+                $updRetirada['retirada_assinatura_image'] = $sigImage !== '' ? $sigImage : null;
+                $updRetirada['retirada_assinatura_data'] = $sigImage !== '' ? $sigData : null;
+                $updRetirada['retirada_assinatura_ip'] = $sigImage !== '' ? $sigIp : null;
+            }
+        } catch (\Throwable $e) {}
+        $DB->update(self::getTable(), $updRetirada, ['id' => $this->getID()]);
 
         // cria termo retirada
         $codigo = Install::gerarCodigoTermo('retirada');
@@ -1733,6 +1888,8 @@ class Pasta extends CommonDBTM
         $this->fields['retirado_documento'] = $docRet;
         $this->fields['retirado_documento_tipo'] = $tipoRet;
         $this->fields['observacao_retirada'] = trim($params['observacao_retirada'] ?? '') ?: null;
+        $this->fields['retirada_assinatura_image'] = $sigImage !== '' ? $sigImage : null;
+        $this->fields['retirada_assinatura_data'] = $sigImage !== '' ? $sigData : null;
         // Notificação automática de retirada
         try {
             if (class_exists(Notificacao::class)) {
