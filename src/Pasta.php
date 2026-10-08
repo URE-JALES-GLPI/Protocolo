@@ -693,16 +693,16 @@ class Pasta extends CommonDBTM
         // Usa layout GLPI padrão: tab_cadre_fixe
         echo "<div class='spaced'><table class='tab_cadre_fixe'>";
         if ($isNew) {
-            echo "<div id='pt-wiz-ind' style='display:flex;gap:8px;align-items:center;margin:2px 8px 12px;flex-wrap:wrap;'>";
+            echo "<div id='pt-wiz-ind' style='display:flex;gap:6px;align-items:center;margin:2px 8px 12px;flex-wrap:wrap;'>";
             echo "<span class='pt-wiz-dot' data-s='1' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #16a34a;background:#f0fdf4;color:#16a34a;'><span>1</span> Dados</span>";
-            echo "<span style='color:#cbd5e1;'>→</span>";
-            echo "<span class='pt-wiz-dot' data-s='2' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>2</span> Origem e destino</span>";
-            echo "<span style='color:#cbd5e1;'>→</span>";
-            echo "<span class='pt-wiz-dot' data-s='3' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>3</span> Quem entrega</span>";
-            echo "<span style='color:#cbd5e1;'>→</span>";
-            echo "<span class='pt-wiz-dot' data-s='4' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>4</span> Quem recebe</span>";
-            echo "<span style='color:#cbd5e1;'>→</span>";
-            echo "<span class='pt-wiz-dot' data-s='5' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>5</span> Itens</span>";
+            echo "<span class='pt-wiz-dot' data-s='2' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>2</span> Origem</span>";
+            echo "<span class='pt-wiz-dot' data-s='3' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>3</span> Entregador</span>";
+            echo "<span class='pt-wiz-dot' data-s='4' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>4</span> Doc</span>";
+            echo "<span class='pt-wiz-dot' data-s='5' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>5</span> Assinatura</span>";
+            echo "<span class='pt-wiz-dot' data-s='6' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>6</span> Recebedor</span>";
+            echo "<span class='pt-wiz-dot' data-s='7' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>7</span> Doc</span>";
+            echo "<span class='pt-wiz-dot' data-s='8' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>8</span> Assinatura</span>";
+            echo "<span class='pt-wiz-dot' data-s='9' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>9</span> Itens</span>";
             echo "</div>";
             echo "<tbody data-ptstep='1'>";
         }
@@ -899,17 +899,19 @@ class Pasta extends CommonDBTM
         if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
 
         if ($isNew) {
-            echo "<tr class='tab_bg_1' data-pts2='r1'>";
+            echo "<tr class='tab_bg_1'>";
             echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para a pessoa preencher</small></td>";
             echo "<td colspan='3'><input type='text' name='recebido_de' id='recebido_de_field' class='form-control' required value='" . Html::cleanInputText($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria' style='font-size:1.05rem;padding:12px;'></td>";
             echo "</tr>";
-            echo "<tr class='tab_bg_1' data-pts2='r2' style='display:none;'>";
+            echo "</tbody><tbody data-ptstep='4' style='display:none'>";
+            echo "<tr class='tab_bg_1'>";
             echo "<td><label>" . __('Documento de quem deixou', 'protocolo') . "</label></td>";
             echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='rg' onclick='ptRecDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='cpf' onclick='ptRecDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
             echo "</div><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small></td>";
             echo "</tr>";
+            echo "</tbody><tbody data-ptstep='5' style='display:none'>";
         } else {
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label></td>";
@@ -919,28 +921,27 @@ class Pasta extends CommonDBTM
         echo "</tr>";
         }
         if ($isNew) {
-            echo "<tr class='tab_bg_1' data-pts2='r3' style='display:none;'><td><label>Assinatura de quem deixou <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para assinatura</small></td>";
+            echo "<tr class='tab_bg_1'><td><label>Assinatura de quem deixou <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para assinatura</small></td>";
             echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-rec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-rec-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebido_assinatura_image' id='pt-rec-image' value=''></td></tr>";
-            echo "<tr class='tab_bg_1' data-pts2='nav'><td colspan='4'><div style='display:flex;gap:8px;justify-content:center;'><button type='button' id='pt-s2-back' class='pt-btn pt-btn-secondary' style='display:none;' onclick='ptS2Nav(-1)'><i class='ti ti-arrow-left'></i> Voltar</button><button type='button' id='pt-s2-next' class='pt-btn pt-btn-green' onclick='ptS2Nav(1)'>Continuar <i class='ti ti-arrow-right'></i></button></div></td></tr>";
+            echo "</tbody><tbody data-ptstep='6' style='display:none'>";
         }
-        if ($isNew) echo "</tbody><tbody data-ptstep='4' style='display:none'>";
         if ($isNew) {
-            echo "<tr class='tab_bg_1' data-pts3='r1'>";
+            echo "<tr class='tab_bg_1'>";
             echo "<td><label>Nome completo de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente que recebe a pasta</small></td>";
             echo "<td colspan='3'><input type='text' name='recebedor_nome' id='recebedor_nome_field' class='form-control' required value='" . Html::cleanInputText($this->fields['recebedor_nome'] ?? '') . "' placeholder='Ex: Maria Souza' style='font-size:1.05rem;padding:12px;'></td>";
             echo "</tr>";
-            echo "<tr class='tab_bg_1' data-pts3='r2' style='display:none;'>";
+            echo "</tbody><tbody data-ptstep='7' style='display:none'>";
+            echo "<tr class='tab_bg_1'>";
             echo "<td><label>Documento de quem recebe</label></td>";
             echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='rg' onclick='ptRecbDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='cpf' onclick='ptRecbDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
             echo "</div><div class='input-group'><input type='text' name='recebedor_documento' id='recebedor_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebedor_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small></td>";
             echo "</tr>";
-            echo "<tr class='tab_bg_1' data-pts3='r3' style='display:none;'><td><label>Assinatura de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente assina no tablet</small></td>";
+            echo "<tr class='tab_bg_1'><td><label>Assinatura de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente assina no tablet</small></td>";
             echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-recb-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-recb-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''></td></tr>";
-            echo "<tr class='tab_bg_1' data-pts3='nav'><td colspan='4'><div style='display:flex;gap:8px;justify-content:center;'><button type='button' id='pt-s3-back' class='pt-btn pt-btn-secondary' style='display:none;' onclick='ptS3Nav(-1)'><i class='ti ti-arrow-left'></i> Voltar</button><button type='button' id='pt-s3-next' class='pt-btn pt-btn-green' onclick='ptS3Nav(1)'>Continuar <i class='ti ti-arrow-right'></i></button></div></td></tr>";
+            echo "</tbody><tbody data-ptstep='9' style='display:none'>";
         }
-        if ($isNew) echo "</tbody><tbody data-ptstep='5' style='display:none'>";
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Código', 'protocolo') . "</label></td>";
@@ -975,7 +976,7 @@ class Pasta extends CommonDBTM
 
         // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
-            echo "<div data-ptstep='5' style='display:none'>";
+            echo "<div data-ptstep='9' style='display:none'>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
@@ -1274,17 +1275,17 @@ class Pasta extends CommonDBTM
                 var bF = document.getElementById('pt-wiz-fechar');
                 if(bF) bF.style.display = n === 1 ? '' : 'none';
                 var bN = document.getElementById('pt-wiz-next');
-                if(bN) bN.style.display = n === 5 ? 'none' : '';
+                if(bN) bN.style.display = n === 9 ? 'none' : '';
                 var bS = document.getElementById('pt-reg-submit');
-                if(bS) bS.style.display = n === 5 ? '' : 'none';
-                if(n === 3) setTimeout(ptRecFit, 60);
-                if(n === 4) setTimeout(ptRecbFit, 60);
+                if(bS) bS.style.display = n === 9 ? '' : 'none';
+                if(n === 5) setTimeout(ptRecFit, 60);
+                if(n === 8) setTimeout(ptRecbFit, 60);
             }
             window.__ptDevShown = false;
             window.ptDevOk = function(){
                 var ov = document.getElementById('pt-dev-overlay');
                 if(ov) ov.style.display = 'none';
-                ptWizShow(5);
+                ptWizShow(9);
             };
             window.ptWizNav = function(d){
                 var cur = window.__ptWizStep || 1;
@@ -1320,20 +1321,22 @@ class Pasta extends CommonDBTM
                     } else if(cur === 3){
                         var rn3 = document.querySelector('input[name=\"recebido_de\"]');
                         if(!rn3 || !rn3.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn3); return; }
+                    } else if(cur === 5){
                         if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
-                    } else if(cur === 4){
+                    } else if(cur === 6){
                         var rb4 = document.querySelector('input[name=\"recebedor_nome\"]');
                         if(!rb4 || !rb4.value.trim()){ ptWizAlertMsg('Preencha o nome de quem recebe.', rb4); return; }
+                    } else if(cur === 8){
                         if(!window.__ptRecbDrawn){ ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', document.getElementById('pt-recb-canvas')); return; }
                     }
                 }
-                if(d > 0 && cur === 4 && !window.__ptDevShown){
+                if(d > 0 && cur === 8 && !window.__ptDevShown){
                     window.__ptDevShown = true;
                     var dov = document.getElementById('pt-dev-overlay');
                     if(dov) dov.style.display = 'flex';
                     return;
                 }
-                ptWizShow(Math.min(5, Math.max(1, cur + d)));
+                ptWizShow(Math.min(9, Math.max(1, cur + d)));
             };
             function ptRecFit(){
                 var c = document.getElementById('pt-rec-canvas');
@@ -1626,7 +1629,7 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
-                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 5){ e.preventDefault(); ptWizNav(1); return; }
+                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 9){ e.preventDefault(); ptWizNav(1); return; }
                         try{
                             var upEls=form.querySelectorAll('input[type=\"text\"]');
                             for(var ui=0;ui<upEls.length;ui++){
@@ -1647,9 +1650,9 @@ class Pasta extends CommonDBTM
                             if(rbv && bhi && window.__ptRecbDrawn){ bhi.value = rbv.toDataURL('image/png'); }
                         }catch(bce){}
                         var rcv2 = document.getElementById('pt-rec-canvas');
-                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(3); ptS2Show(3); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
+                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(5); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
                         var rcb2 = document.getElementById('pt-recb-canvas');
-                        if(rcb2 && !window.__ptRecbDrawn){ e.preventDefault(); ptWizShow(4); ptS3Show(3); ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', rcb2); return; }
+                        if(rcb2 && !window.__ptRecbDrawn){ e.preventDefault(); ptWizShow(8); ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', rcb2); return; }
                         var espSel = form.querySelector('select[name=\"categoria\"]');
                         if(!espSel || !espSel.value){
                             e.preventDefault(); showAlert('Selecione a Espécie.', document.getElementById('especieSelect')); return;
