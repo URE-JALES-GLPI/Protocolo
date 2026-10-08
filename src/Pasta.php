@@ -827,7 +827,7 @@ class Pasta extends CommonDBTM
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_ure' value='ure' " . ($origemTipo==='ure'?'checked':'') . "><label class='form-check-label' for='origem_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outros</label></div>";
         echo "</div>";
-        echo "<div id='origem_locked_wrap' style='display:" . ($origemTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo ao lado (Escola, URE ou Outros)'></div>";
+        echo "<div id='origem_locked_wrap' style='display:" . ($origemTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo'></div>";
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
         echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
@@ -880,7 +880,7 @@ class Pasta extends CommonDBTM
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_ure' value='ure' " . ($destinoTipo==='ure'?'checked':'') . "><label class='form-check-label' for='destino_ure'>URE</label></div>";
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . "><label class='form-check-label' for='destino_outro'>Outros</label></div>";
         echo "</div>";
-        echo "<div id='destino_locked_wrap' style='display:" . ($destinoTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo ao lado (Escola, URE ou Outros)'></div>";
+        echo "<div id='destino_locked_wrap' style='display:" . ($destinoTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo'></div>";
         echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
         echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
         echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
