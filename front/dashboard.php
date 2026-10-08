@@ -134,7 +134,7 @@ try {
 } catch (Exception $e) { $totalPendRec = 0; $totalPendRet = 0; }
 
 // Últimas aguardando — ESCOLA = ENTIDADE - com JOIN agregado para evitar N+1 + dias
-$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql ORDER BY p.data_recebimento ASC LIMIT 12";
+$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql ORDER BY p.data_recebimento DESC, p.id DESC LIMIT 12";
 $lastRows = [];
 $res = $DB->doQuery($lastSql);
 if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
