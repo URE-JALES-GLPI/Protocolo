@@ -848,7 +848,8 @@ class Pasta extends CommonDBTM
             foreach ($filhasURE as $frO) {
                 $fidO = (int)$frO['id'];
                 $fselO = ($origemTipo==='escola' && $fidO===$origemEnt) ? 'selected' : '';
-                $flblO = trim((string)($frO['completename'] ?? '')) !== '' ? $frO['completename'] : $frO['name'];
+                $flblOp = explode('>', (string)($frO['completename'] ?? $frO['name']));
+                $flblO = trim(end($flblOp));
                 echo "<option value='$fidO' $fselO>" . htmlspecialchars($flblO) . "</option>";
             }
             echo "</select>";
@@ -901,7 +902,8 @@ class Pasta extends CommonDBTM
             foreach ($filhasURE as $frD) {
                 $fidD = (int)$frD['id'];
                 $fselD = ($destinoTipo==='escola' && $fidD===$destinoEnt) ? 'selected' : '';
-                $flblD = trim((string)($frD['completename'] ?? '')) !== '' ? $frD['completename'] : $frD['name'];
+                $flblDp = explode('>', (string)($frD['completename'] ?? $frD['name']));
+                $flblD = trim(end($flblDp));
                 echo "<option value='$fidD' $fselD>" . htmlspecialchars($flblD) . "</option>";
             }
             echo "</select>";
@@ -2047,7 +2049,12 @@ class Pasta extends CommonDBTM
         global $DB;
         // ESCOLA = ENTIDADE: tenta glpi_entities primeiro, fallback para tabela antiga glpi_plugin_protocolo_escolas
         $it = $DB->request(['FROM' => 'glpi_entities', 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
-        foreach ($it as $r) { $cache[$escolaId] = $r['completename'] ?? $r['name']; return $cache[$escolaId]; }
+        foreach ($it as $r) {
+            $full = $r['completename'] ?? $r['name'];
+            $parts = explode('>', (string)$full);
+            $cache[$escolaId] = trim(end($parts));
+            return $cache[$escolaId];
+        }
         $it2 = $DB->request(['FROM' => Escola::getTable(), 'WHERE' => ['id' => $escolaId], 'LIMIT' => 1]);
         foreach ($it2 as $r) { $cache[$escolaId] = $r['name']; return $cache[$escolaId]; }
         $cache[$escolaId] = '-';

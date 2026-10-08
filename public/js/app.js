@@ -520,7 +520,10 @@ window.ptOpenRetiradaModal = function(ids){
   if (dc) dc.value = '';
   var ob = document.getElementById('pt-ret-obs');
   if (ob) ob.value = '';
+  window.__ptRetDocType = 'cpf';
+  ptRetDocType('cpf', true);
   ptRetClearCanvas();
+  ptRWizShow(1);
   ov.classList.add('open');
   document.body.style.overflow = 'hidden';
   setTimeout(ptRetFitCanvas, 60);
@@ -530,6 +533,46 @@ window.ptCloseRetiradaModal = function(){
   var ov = document.getElementById('pt-retirada-overlay');
   if (ov) ov.classList.remove('open');
   document.body.style.overflow = '';
+};
+window.__ptRetWiz = 1;
+window.__ptRetTermos = [];
+window.ptRWizShow = function(n){
+  window.__ptRetWiz = n;
+  [1, 2, 3, 4].forEach(function(i){
+    var p = document.getElementById('pt-ret-w' + i);
+    if (p) p.style.display = (i === n) ? '' : 'none';
+  });
+  var t = document.getElementById('pt-ret-wiz-title');
+  if (t) t.textContent = n === 4 ? 'Retirada concluída' : ('Retirada — Etapa ' + n + ' de 3');
+  var bar = document.getElementById('pt-ret-progress');
+  if (bar) bar.style.width = n === 4 ? '100%' : (n === 1 ? '33%' : (n === 2 ? '66%' : '100%'));
+  if (n === 3) setTimeout(ptRetFitCanvas, 60);
+};
+window.ptRWizNext = function(cur){
+  if (cur === 1) {
+    var nm = document.getElementById('pt-ret-nome');
+    if (!nm || !nm.value.trim()) { if (nm) nm.focus(); return; }
+    ptRWizShow(2);
+  } else if (cur === 2) {
+    ptRWizShow(3);
+  }
+};
+window.ptRetDocType = function(t, silent){
+  window.__ptRetDocType = (t === 'rg') ? 'rg' : 'cpf';
+  document.querySelectorAll('.pt-ret-doctbtn').forEach(function(b){
+    var on = b.getAttribute('data-t') === window.__ptRetDocType;
+    b.style.borderColor = on ? '#4f46e5' : '';
+    b.style.background = on ? '#eef2ff' : '';
+    b.style.color = on ? '#4f46e5' : '';
+  });
+  var doc = document.getElementById('pt-ret-doc');
+  if (doc) {
+    doc.placeholder = window.__ptRetDocType === 'cpf' ? '000.000.000-00' : '00.000.000-0';
+    if (!silent) doc.focus();
+  }
+};
+window.ptRetPrintTermos = function(){
+  (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
 };
 function ptRetFitCanvas(){
   var c = document.getElementById('pt-ret-canvas');
@@ -581,7 +624,6 @@ window.ptSubmitRetirada = function(){
   var nome = nomeEl ? nomeEl.value.trim() : '';
   if (!nome) { if (nomeEl) nomeEl.focus(); return; }
   if (!window.__ptRetDrawn) return;
-  var dtEl = document.getElementById('pt-ret-doctipo');
   var docEl = document.getElementById('pt-ret-doc');
   var obsEl = document.getElementById('pt-ret-obs');
   var csrfEl = document.getElementById('pt-ret-csrf');
@@ -598,7 +640,7 @@ window.ptSubmitRetirada = function(){
     body: JSON.stringify({
       ids: window.__ptRetIds,
       nome: nome,
-      doc_tipo: dtEl ? dtEl.value : 'cpf',
+      doc_tipo: window.__ptRetDocType || 'cpf',
       doc: docEl ? docEl.value : '',
       obs: obsEl ? obsEl.value : '',
       image: img,
@@ -608,10 +650,11 @@ window.ptSubmitRetirada = function(){
     .then(function(d){
       if (btn) { btn.disabled = false; }
       if (d && d.ok) {
-        if (d.termos && d.termos.length) {
-          d.termos.forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
-        }
-        window.location.reload();
+        window.__ptRetTermos = d.termos || [];
+        var info = document.getElementById('pt-ret-w4-info');
+        if (info) info.textContent = d.done + ' pasta(s) retirada(s) com 1 assinatura. Os termos abrirão para impressão.';
+        ptRWizShow(4);
+        (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
       }
     })
     .catch(function(){ if (btn) { btn.disabled = false; } });
