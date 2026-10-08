@@ -637,11 +637,18 @@ function ptRetBindCanvas(){
   c.addEventListener('touchmove', move, {passive: false});
   c.addEventListener('touchend', end);
 }
+window.ptRetErr = function(msg){
+  var e = document.getElementById('pt-ret-err');
+  if (e) { e.textContent = msg; e.style.display = 'block'; }
+  try { console.error('[protocolo] retirada: ' + msg); } catch (ex) {}
+};
 window.ptSubmitRetirada = function(){
+  var err0 = document.getElementById('pt-ret-err');
+  if (err0) err0.style.display = 'none';
   var nomeEl = document.getElementById('pt-ret-nome');
   var nome = nomeEl ? nomeEl.value.trim() : '';
-  if (!nome) { if (nomeEl) nomeEl.focus(); return; }
-  if (!window.__ptRetDrawn) return;
+  if (!nome) { window.ptRetErr('Informe o nome de quem retira.'); if (nomeEl) nomeEl.focus(); return; }
+  if (!window.__ptRetDrawn) { window.ptRetErr('Faça a assinatura no quadro.'); return; }
   var docEl = document.getElementById('pt-ret-doc');
   var obsEl = document.getElementById('pt-ret-obs');
   var csrfEl = document.getElementById('pt-ret-csrf');
@@ -651,10 +658,11 @@ window.ptSubmitRetirada = function(){
   var btn = document.getElementById('pt-ret-confirm');
   if (btn) { btn.disabled = true; }
   var base = (typeof ptPluginBase === 'function') ? ptPluginBase() : '/plugins/protocolo';
+  var csrfHd = csrfEl ? csrfEl.value : '';
   fetch(base + '/ajax/retirada_save.php', {
     method: 'POST',
     credentials: 'same-origin',
-    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-Glpi-Csrf-Token': csrfHd},
     body: JSON.stringify({
       ids: window.__ptRetIds,
       nome: nome,
@@ -673,9 +681,11 @@ window.ptSubmitRetirada = function(){
         if (info) info.textContent = d.done + ' pasta(s) retirada(s) com 1 assinatura. Os termos abrirão para impressão.';
         ptRWizShow(5);
         (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
+      } else {
+        window.ptRetErr((d && d.error) || 'Falha ao registrar. Tente de novo.');
       }
     })
-    .catch(function(){ if (btn) { btn.disabled = false; } });
+    .catch(function(){ if (btn) { btn.disabled = false; } window.ptRetErr('Falha de conexão. Tente de novo.'); });
 };
 document.addEventListener('change', function(e){
   if (e.target && e.target.id === 'pt-ret-check-all') {
