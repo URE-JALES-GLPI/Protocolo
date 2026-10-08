@@ -302,6 +302,8 @@ if ($lastRows) {
 }
 echo "</tbody></table></div></div>";
 
+echo "<div id='pt-aguard-cards' class='pt-only-mobile' style='gap:10px;padding:4px 12px 12px;$cardsStyle'>" . ($mobileCards ?? '') . "</div>";
+
 echo "<div id='pt-retirada-overlay' class='pt-modal-overlay' onclick='if(event.target===this)ptCloseRetiradaModal()'>";
 echo "<div class='pt-modal' onclick='event.stopPropagation()' role='dialog' aria-modal='true' aria-label='Registrar retirada' style='max-width:520px;max-height:92vh;display:flex;flex-direction:column;'>";
 echo "<div class='pt-modal-header' style='background:linear-gradient(135deg,#1a73b5,#4f46e5);'><div class='pt-modal-title'><i class='ti ti-signature'></i><span id='pt-ret-wiz-title'>Retirada — Etapa 1 de 4</span></div><button type='button' class='pt-modal-close' onclick='ptCloseRetiradaModal()' aria-label='Fechar'><i class='ti ti-x'></i></button></div>";
@@ -362,7 +364,6 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
         echo "<tr class='pt-list-row table-danger'><td><span class='pt-row-title'>" . htmlspecialchars($r['codigo']) . "</span></td><td>$catBadge</td><td class='small'>$origem</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='pt-badge pt-badge-warn'>$dias d</span></td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> Regularizar</a></td></tr>";
     }
 echo "</tbody></table></div>";
-echo "<div id='pt-aguard-cards' class='pt-only-mobile' style='gap:10px;padding:4px 12px 12px;$cardsStyle'>" . ($mobileCards ?? '') . "</div>";
 echo "</div>";
     echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";
 }
