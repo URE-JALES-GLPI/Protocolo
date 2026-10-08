@@ -565,6 +565,17 @@ class Install
                     } catch (\Throwable $e) {}
                 }
             }
+            // Preferência de visualização grade/lista por usuário (persiste entre logins)
+            if (!$DB->tableExists('glpi_plugin_protocolo_view_prefs')) {
+                try {
+                    $DB->doQuery("CREATE TABLE `glpi_plugin_protocolo_view_prefs` (
+                      `users_id` INT NOT NULL PRIMARY KEY,
+                      `view` VARCHAR(10) NOT NULL DEFAULT 'grid',
+                      `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
+                    error_log("[protocolo] migrateEntities: tabela view_prefs criada");
+                } catch (\Throwable $e) { error_log("[protocolo] migrate view_prefs falhou: " . $e->getMessage()); }
+            }
             // Nova tabela entity_emails
             if (!$DB->tableExists('glpi_plugin_protocolo_entity_emails')) {
                 try {

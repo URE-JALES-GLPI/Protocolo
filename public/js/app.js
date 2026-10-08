@@ -647,9 +647,47 @@ document.addEventListener('change', function(e){
     ptRetRefreshBar();
   }
 });
+window.ptSetInvView = function(v){
+  if (v !== 'grid' && v !== 'list') return;
+  var tw = document.getElementById('pt-aguard-table');
+  var cw = document.getElementById('pt-aguard-cards');
+  if (tw) tw.style.display = (v === 'list') ? '' : 'none';
+  if (cw) {
+    cw.style.display = (v === 'grid') ? 'grid' : 'none';
+    if (v === 'grid') {
+      cw.style.gridTemplateColumns = 'repeat(auto-fill,minmax(250px,1fr))';
+      cw.style.gap = '10px';
+      cw.style.padding = '4px 12px 12px';
+    }
+  }
+  document.querySelectorAll('.pt-view-btn').forEach(function(b){
+    if (b.getAttribute('data-v') === v) b.classList.add('on');
+    else b.classList.remove('on');
+  });
+  try { localStorage.setItem('pt_inv_view', v); } catch (e) {}
+  try {
+    var base = (typeof ptPluginBase === 'function') ? ptPluginBase() : '/plugins/protocolo';
+    fetch(base + '/ajax/view.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+      body: JSON.stringify({view: v})
+    }).catch(function(){});
+  } catch (e) {}
+};
 document.addEventListener('DOMContentLoaded', function(){
   ptRetBindCanvas();
   ptRetRefreshBar();
+  var cur = null;
+  var tw = document.getElementById('pt-aguard-table');
+  if (tw) cur = (tw.style.display === 'none') ? 'grid' : 'list';
+  if (!cur) {
+    try { cur = localStorage.getItem('pt_inv_view'); } catch (e) {}
+  }
+  if (cur !== 'grid' && cur !== 'list') cur = 'grid';
+  document.querySelectorAll('.pt-view-btn').forEach(function(b){
+    if (b.getAttribute('data-v') === cur) b.classList.add('on');
+  });
 });
 
 (function(){

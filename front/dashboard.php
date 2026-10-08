@@ -258,9 +258,19 @@ echo "<div class='tab-content'>";
 echo "<div class='tab-pane fade " . ($activeTab==='resumo'?'show active':'') . "' id='tab-resumo'>";
 
 // Tabela aguardando
+$invView = 'grid';
+try {
+    $uidView = (int)Session::getLoginUserID();
+    if ($uidView > 0 && $DB->tableExists('glpi_plugin_protocolo_view_prefs')) {
+        $itV = $DB->request(['SELECT' => ['view'], 'FROM' => 'glpi_plugin_protocolo_view_prefs', 'WHERE' => ['users_id' => $uidView], 'LIMIT' => 1]);
+        foreach ($itV as $rowV) { if (in_array($rowV['view'], ['grid', 'list'], true)) $invView = $rowV['view']; break; }
+    }
+} catch (\Throwable $e) {}
+$tableStyle = $invView === 'grid' ? 'display:none;' : '';
+$cardsStyle = $invView === 'grid' ? 'display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));' : 'display:none;';
 echo "<div id='pt-ret-bulkbar' class='pt-card' style='display:none;margin-bottom:12px;padding:10px 14px;flex-direction:row;align-items:center;gap:10px;'><span id='pt-ret-bulkcount' style='font-weight:700;'>0 selecionada(s)</span><button type='button' class='pt-btn pt-btn-sm' style='background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:0;' onclick='ptOpenRetiradaBulk()'><i class='ti ti-signature'></i> Retirar selecionadas</button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptRetClearSelection()'><i class='ti ti-x'></i> Limpar</button></div>";
-echo "<div class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-outline pt-btn-sm'>" . __('Ver todas') . "</a></div><div class='pt-hide-mobile' style='overflow-x:auto;'><table class='pt-list-table'><thead><tr><th style='width:36px;'><input type='checkbox' id='pt-ret-check-all' title='Selecionar todas' style='width:17px;height:17px;accent-color:#4f46e5;'></th><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>DATA</th><th>" . __('Dias', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th>Ações</th></tr></thead><tbody>";
-echo "<style>.pt-only-mobile{display:none;}@media (max-width:768px){.pt-hide-mobile{display:none!important;}.pt-only-mobile{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;padding:4px 12px 12px;}}</style>";
+echo "<div class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><span style='display:inline-flex;gap:4px;align-items:center;'><span style='display:inline-flex;gap:4px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='list' onclick='ptSetInvView(\"list\")' title='Lista'><i class='ti ti-list'></i></button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='grid' onclick='ptSetInvView(\"grid\")' title='Grade'><i class='ti ti-layout-grid'></i></button></span><a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-outline pt-btn-sm'>" . __('Ver todas') . "</a></span></div><div id='pt-aguard-table' class='pt-hide-mobile' style='overflow-x:auto;$tableStyle'><table class='pt-list-table'><thead><tr><th style='width:36px;'><input type='checkbox' id='pt-ret-check-all' title='Selecionar todas' style='width:17px;height:17px;accent-color:#4f46e5;'></th><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>DATA</th><th>" . __('Dias', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th>Ações</th></tr></thead><tbody>";
+echo "<style>.pt-only-mobile{display:none;}.pt-view-btn.on{border-color:#4f46e5!important;color:#4f46e5!important;background:#eef2ff!important;}@media (max-width:768px){.pt-hide-mobile{display:none;}.pt-only-mobile{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;padding:4px 12px 12px;}}</style>";
 if ($lastRows) {
     $mobileCards = '';
     foreach ($lastRows as $r) {
@@ -352,7 +362,7 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
         echo "<tr class='pt-list-row table-danger'><td><span class='pt-row-title'>" . htmlspecialchars($r['codigo']) . "</span></td><td>$catBadge</td><td class='small'>$origem</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='pt-badge pt-badge-warn'>$dias d</span></td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> Regularizar</a></td></tr>";
     }
 echo "</tbody></table></div>";
-echo "<div class='pt-only-mobile'>" . ($mobileCards ?? '') . "</div>";
+echo "<div id='pt-aguard-cards' class='pt-only-mobile' style='gap:10px;padding:4px 12px 12px;$cardsStyle'>" . ($mobileCards ?? '') . "</div>";
 echo "</div>";
     echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";
 }
