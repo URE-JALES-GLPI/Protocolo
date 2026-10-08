@@ -214,8 +214,17 @@ body{ background:#eee; }
       <?php if ($sigImg && $sigDataFmt): ?><br><small>Assinado digitalmente em <?= htmlspecialchars($sigDataFmt) ?></small><?php endif; ?>
     </div>
     <div class="assinatura">
-      <?= __('Assinatura / Carimbo do setor de protocolo', 'protocolo') ?><br>
-      <strong><?= htmlspecialchars($criadorNome) ?></strong>
+      <?php
+      $recbImg = ($tipo === 'recebimento' && !empty($pasta->fields['recebedor_assinatura_image'])) ? $pasta->fields['recebedor_assinatura_image'] : '';
+      $recbDataFmt = (!empty($pasta->fields['recebedor_assinatura_data'])) ? date('d/m/Y H:i', strtotime($pasta->fields['recebedor_assinatura_data'])) : '';
+      $recbNome = trim($pasta->fields['recebedor_nome'] ?? '');
+      $recbDoc = trim($pasta->fields['recebedor_documento'] ?? '');
+      ?>
+      <?php if ($recbImg): ?><img src="<?= htmlspecialchars($recbImg) ?>" alt="Assinatura" style="max-height:70px;max-width:100%;object-fit:contain;"><br><?php endif; ?>
+      <?= $tipo === 'recebimento' ? 'Assinatura de quem recebeu' : __('Assinatura / Carimbo do setor de protocolo', 'protocolo') ?><br>
+      <strong><?= $recbNome !== '' ? htmlspecialchars($recbNome) : htmlspecialchars($criadorNome) ?></strong>
+      <?php if ($recbDoc !== ''): ?><br><small><?= htmlspecialchars($recbDoc) ?></small><?php endif; ?>
+      <?php if ($recbImg && $recbDataFmt): ?><br><small>Assinado digitalmente em <?= htmlspecialchars($recbDataFmt) ?></small><?php endif; ?>
     </div>
   </div>
 

@@ -668,7 +668,7 @@ class Pasta extends CommonDBTM
         $lastInput = $options['input'] ?? [];
         if (!empty($lastInput) && $isNew) {
             // Mescla para facilitar pré-preenchimento
-            foreach (['categoria','especie_outro','assunto','origem_tipo','origem_outro','origem_entities_id','destino_tipo','destino_outro','destino_entities_id','recebido_de','recebido_documento','recebido_documento_tipo','observacao','data_recebimento','data_recebimento_date','data_recebimento_time'] as $k) {
+            foreach (['categoria','especie_outro','assunto','origem_tipo','origem_outro','origem_entities_id','destino_tipo','destino_outro','destino_entities_id','recebido_de','recebido_documento','recebido_documento_tipo','recebedor_nome','recebedor_documento','recebedor_documento_tipo','observacao','data_recebimento','data_recebimento_date','data_recebimento_time'] as $k) {
                 if (isset($lastInput[$k])) $this->fields[$k] = $lastInput[$k];
             }
         }
@@ -698,7 +698,11 @@ class Pasta extends CommonDBTM
             echo "<span style='color:#cbd5e1;'>→</span>";
             echo "<span class='pt-wiz-dot' data-s='2' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>2</span> Origem e destino</span>";
             echo "<span style='color:#cbd5e1;'>→</span>";
-            echo "<span class='pt-wiz-dot' data-s='3' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>3</span> Itens</span>";
+            echo "<span class='pt-wiz-dot' data-s='3' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>3</span> Quem entrega</span>";
+            echo "<span style='color:#cbd5e1;'>→</span>";
+            echo "<span class='pt-wiz-dot' data-s='4' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>4</span> Quem recebe</span>";
+            echo "<span style='color:#cbd5e1;'>→</span>";
+            echo "<span class='pt-wiz-dot' data-s='5' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>5</span> Itens</span>";
             echo "</div>";
             echo "<tbody data-ptstep='1'>";
         }
@@ -892,6 +896,7 @@ class Pasta extends CommonDBTM
         // compat: mantém plugin_protocolo_escolas_id escondido para buscas antigas (espelha destino quando escola)
         echo "<input type='hidden' name='plugin_protocolo_escolas_id' id='compat_escola_id' value='$destinoEnt'>";
         echo "</td></tr>";
+        if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
 
         if ($isNew) {
             echo "<tr class='tab_bg_1' data-pts2='r1'>";
@@ -918,7 +923,24 @@ class Pasta extends CommonDBTM
             echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-rec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-rec-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebido_assinatura_image' id='pt-rec-image' value=''></td></tr>";
             echo "<tr class='tab_bg_1' data-pts2='nav'><td colspan='4'><div style='display:flex;gap:8px;justify-content:center;'><button type='button' id='pt-s2-back' class='pt-btn pt-btn-secondary' style='display:none;' onclick='ptS2Nav(-1)'><i class='ti ti-arrow-left'></i> Voltar</button><button type='button' id='pt-s2-next' class='pt-btn pt-btn-green' onclick='ptS2Nav(1)'>Continuar <i class='ti ti-arrow-right'></i></button></div></td></tr>";
         }
-        if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
+        if ($isNew) echo "</tbody><tbody data-ptstep='4' style='display:none'>";
+        if ($isNew) {
+            echo "<tr class='tab_bg_1' data-pts3='r1'>";
+            echo "<td><label>Nome completo de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente que recebe a pasta</small></td>";
+            echo "<td colspan='3'><input type='text' name='recebedor_nome' id='recebedor_nome_field' class='form-control' required value='" . Html::cleanInputText($this->fields['recebedor_nome'] ?? '') . "' placeholder='Ex: Maria Souza' style='font-size:1.05rem;padding:12px;'></td>";
+            echo "</tr>";
+            echo "<tr class='tab_bg_1' data-pts3='r2' style='display:none;'>";
+            echo "<td><label>Documento de quem recebe</label></td>";
+            echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='rg' onclick='ptRecbDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='cpf' onclick='ptRecbDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
+            echo "</div><div class='input-group'><input type='text' name='recebedor_documento' id='recebedor_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebedor_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small></td>";
+            echo "</tr>";
+            echo "<tr class='tab_bg_1' data-pts3='r3' style='display:none;'><td><label>Assinatura de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente assina no tablet</small></td>";
+            echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-recb-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-recb-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''></td></tr>";
+            echo "<tr class='tab_bg_1' data-pts3='nav'><td colspan='4'><div style='display:flex;gap:8px;justify-content:center;'><button type='button' id='pt-s3-back' class='pt-btn pt-btn-secondary' style='display:none;' onclick='ptS3Nav(-1)'><i class='ti ti-arrow-left'></i> Voltar</button><button type='button' id='pt-s3-next' class='pt-btn pt-btn-green' onclick='ptS3Nav(1)'>Continuar <i class='ti ti-arrow-right'></i></button></div></td></tr>";
+        }
+        if ($isNew) echo "</tbody><tbody data-ptstep='5' style='display:none'>";
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Código', 'protocolo') . "</label></td>";
@@ -934,6 +956,11 @@ class Pasta extends CommonDBTM
         echo "<td colspan='3'><textarea name='observacao' class='form-control' rows='2' placeholder='" . __('Observações gerais', 'protocolo') . "'>" . Html::cleanInputText($this->fields['observacao'] ?? '') . "</textarea></td>";
         echo "</tr>";
 
+        if (!$isNew && !empty($this->fields['recebedor_nome'])) {
+            $recbDocV = trim($this->fields['recebedor_documento'] ?? '');
+            echo "<tr class='tab_bg_1'><td><label>Recebido por (atendente)</label></td><td colspan='3'>" . htmlspecialchars($this->fields['recebedor_nome']) . ($recbDocV !== '' ? " (" . htmlspecialchars($recbDocV) . ")" : "") . (!empty($this->fields['recebedor_assinatura_image']) ? " <span class='badge bg-success'><i class='ti ti-signature'></i> Assinado digitalmente</span>" : "") . "</td></tr>";
+        }
+
         if (!$isNew && $this->fields['status'] === 'retirada') {
             $tipoRet = strtoupper($this->fields['retirado_documento_tipo'] ?? 'CPF');
             $docRet = htmlspecialchars($this->fields['retirado_documento'] ?? '');
@@ -948,7 +975,7 @@ class Pasta extends CommonDBTM
 
         // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
-            echo "<div data-ptstep='3' style='display:none'>";
+            echo "<div data-ptstep='5' style='display:none'>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
@@ -1123,6 +1150,7 @@ class Pasta extends CommonDBTM
                 update();
             }
             setupDoc(document.getElementById('recebido_documento_tipo'), document.getElementById('recebido_documento'), document.getElementById('recebido_doc_hint'));
+            setupDoc(document.getElementById('recebedor_documento_tipo'), document.getElementById('recebedor_documento'), document.getElementById('recebedor_doc_hint'));
             setupDoc(document.getElementById('retirado_documento_tipo'), document.getElementById('retirado_documento'), document.getElementById('retirado_doc_hint'));
 
             // Origem/Destino toggle + compat escola_id
@@ -1246,16 +1274,17 @@ class Pasta extends CommonDBTM
                 var bF = document.getElementById('pt-wiz-fechar');
                 if(bF) bF.style.display = n === 1 ? '' : 'none';
                 var bN = document.getElementById('pt-wiz-next');
-                if(bN) bN.style.display = n === 3 ? 'none' : '';
+                if(bN) bN.style.display = n === 5 ? 'none' : '';
                 var bS = document.getElementById('pt-reg-submit');
-                if(bS) bS.style.display = n === 3 ? '' : 'none';
-                if(n === 2) setTimeout(ptRecFit, 60);
+                if(bS) bS.style.display = n === 5 ? '' : 'none';
+                if(n === 3) setTimeout(ptRecFit, 60);
+                if(n === 4) setTimeout(ptRecbFit, 60);
             }
             window.__ptDevShown = false;
             window.ptDevOk = function(){
                 var ov = document.getElementById('pt-dev-overlay');
                 if(ov) ov.style.display = 'none';
-                ptWizShow(3);
+                ptWizShow(5);
             };
             window.ptWizNav = function(d){
                 var cur = window.__ptWizStep || 1;
@@ -1288,18 +1317,23 @@ class Pasta extends CommonDBTM
                             var dse = document.querySelector('#destino_escola_wrap select');
                             if(!dse || !dse.value){ ptWizAlertMsg('Destino = Escola: selecione a escola.', dse); return; }
                         }
-                        var rd = document.querySelector('input[name=\"recebido_de\"]');
-                        if(!rd || !rd.value.trim()){ ptWizAlertMsg('Preencha \"Recebido de (quem deixou)\".', rd); return; }
+                    } else if(cur === 3){
+                        var rn3 = document.querySelector('input[name=\"recebido_de\"]');
+                        if(!rn3 || !rn3.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn3); return; }
                         if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
+                    } else if(cur === 4){
+                        var rb4 = document.querySelector('input[name=\"recebedor_nome\"]');
+                        if(!rb4 || !rb4.value.trim()){ ptWizAlertMsg('Preencha o nome de quem recebe.', rb4); return; }
+                        if(!window.__ptRecbDrawn){ ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', document.getElementById('pt-recb-canvas')); return; }
                     }
                 }
-                if(d > 0 && cur === 2 && !window.__ptDevShown){
+                if(d > 0 && cur === 4 && !window.__ptDevShown){
                     window.__ptDevShown = true;
                     var dov = document.getElementById('pt-dev-overlay');
                     if(dov) dov.style.display = 'flex';
                     return;
                 }
-                ptWizShow(Math.min(3, Math.max(1, cur + d)));
+                ptWizShow(Math.min(5, Math.max(1, cur + d)));
             };
             function ptRecFit(){
                 var c = document.getElementById('pt-rec-canvas');
@@ -1375,7 +1409,81 @@ class Pasta extends CommonDBTM
                     b.style.color = on ? '#16a34a' : '';
                 });
             }
-            if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); }
+            window.__ptS3 = 1;
+            window.__ptRecbDrawn = false;
+            window.__ptRecbDocType = 'cpf';
+            function ptS3Show(m){
+                window.__ptS3 = m;
+                [1, 2, 3].forEach(function(i){
+                    document.querySelectorAll('[data-pts3=\"r' + i + '\"]').forEach(function(el){ el.style.display = (i === m) ? '' : 'none'; });
+                });
+                var bB3 = document.getElementById('pt-s3-back');
+                if(bB3) bB3.style.display = m === 1 ? 'none' : '';
+                var bN3 = document.getElementById('pt-s3-next');
+                if(bN3) bN3.style.display = m === 3 ? 'none' : '';
+                if(m === 3) setTimeout(ptRecbFit, 60);
+            }
+            window.ptS3Nav = function(d){
+                var cur = window.__ptS3 || 1;
+                if(d > 0){
+                    if(cur === 1){
+                        var rb = document.querySelector('input[name=\"recebedor_nome\"]');
+                        if(!rb || !rb.value.trim()){ ptWizAlertMsg('Preencha o nome de quem recebe.', rb); return; }
+                    }
+                }
+                ptS3Show(Math.min(3, Math.max(1, cur + d)));
+            };
+            window.ptRecbDocType = function(t){
+                window.__ptRecbDocType = (t === 'rg') ? 'rg' : 'cpf';
+                var h = document.getElementById('recebedor_documento_tipo');
+                if(h) h.value = window.__ptRecbDocType;
+                var hint = document.getElementById('recebedor_doc_hint');
+                if(hint) hint.textContent = window.__ptRecbDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
+                ptRecbDocPaint();
+            };
+            function ptRecbDocPaint(){
+                document.querySelectorAll('.pt-recbdoc-btn').forEach(function(b){
+                    var on = b.getAttribute('data-t') === (window.__ptRecbDocType || 'cpf');
+                    b.style.borderColor = on ? '#16a34a' : '';
+                    b.style.background = on ? '#f0fdf4' : '';
+                    b.style.color = on ? '#16a34a' : '';
+                });
+            }
+            function ptRecbFit(){
+                var c = document.getElementById('pt-recb-canvas');
+                if(!c) return;
+                var r = c.getBoundingClientRect();
+                c.width = Math.max(280, Math.floor(r.width));
+                c.height = 180;
+            }
+            function ptRecbBind(){
+                var c = document.getElementById('pt-recb-canvas');
+                if(!c || c.dataset.bound) return;
+                c.dataset.bound = '1';
+                var ctx = c.getContext('2d');
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#111827';
+                var dw = false;
+                function pp(ev){
+                    var r = c.getBoundingClientRect();
+                    var x = (ev.touches && ev.touches.length) ? ev.touches[0].clientX : ev.clientX;
+                    var y = (ev.touches && ev.touches.length) ? ev.touches[0].clientY : ev.clientY;
+                    return [(x - r.left) * (c.width / r.width), (y - r.top) * (c.height / r.height)];
+                }
+                function st(ev){ dw = true; var p = pp(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if(ev.preventDefault) ev.preventDefault(); }
+                function mv(ev){ if(!dw) return; var p = pp(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptRecbDrawn = true; if(ev.preventDefault) ev.preventDefault(); }
+                function en(){ dw = false; }
+                c.addEventListener('mousedown', st);
+                c.addEventListener('mousemove', mv);
+                document.addEventListener('mouseup', en);
+                c.addEventListener('touchstart', st, {passive: false});
+                c.addEventListener('touchmove', mv, {passive: false});
+                c.addEventListener('touchend', en);
+                var cl = document.getElementById('pt-recb-clear');
+                if(cl) cl.addEventListener('click', function(){ ptRecbFit(); var cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); window.__ptRecbDrawn = false; var hi = document.getElementById('pt-recb-image'); if(hi) hi.value = ''; });
+            }
+            if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); }
             function ptSchoolEnsure(){
                 var ov = document.getElementById('pt-school-overlay');
                 if(ov) return ov;
@@ -1518,7 +1626,7 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
-                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 3){ e.preventDefault(); ptWizNav(1); return; }
+                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 5){ e.preventDefault(); ptWizNav(1); return; }
                         try{
                             var upEls=form.querySelectorAll('input[type=\"text\"]');
                             for(var ui=0;ui<upEls.length;ui++){
@@ -1533,8 +1641,15 @@ class Pasta extends CommonDBTM
                             var rhi = document.getElementById('pt-rec-image');
                             if(rcv && rhi && window.__ptRecDrawn){ rhi.value = rcv.toDataURL('image/png'); }
                         }catch(rce){}
+                        try{
+                            var rbv = document.getElementById('pt-recb-canvas');
+                            var bhi = document.getElementById('pt-recb-image');
+                            if(rbv && bhi && window.__ptRecbDrawn){ bhi.value = rbv.toDataURL('image/png'); }
+                        }catch(bce){}
                         var rcv2 = document.getElementById('pt-rec-canvas');
-                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(2); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
+                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(3); ptS2Show(3); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
+                        var rcb2 = document.getElementById('pt-recb-canvas');
+                        if(rcb2 && !window.__ptRecbDrawn){ e.preventDefault(); ptWizShow(4); ptS3Show(3); ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', rcb2); return; }
                         var espSel = form.querySelector('select[name=\"categoria\"]');
                         if(!espSel || !espSel.value){
                             e.preventDefault(); showAlert('Selecione a Espécie.', document.getElementById('especieSelect')); return;
@@ -1751,6 +1866,32 @@ class Pasta extends CommonDBTM
                 unset($input['recebido_assinatura_image']);
             }
         } catch (\Throwable $e) { unset($input['recebido_assinatura_image']); }
+        $recbNome = trim($input['recebedor_nome'] ?? '');
+        if ($recbNome === '') {
+            Session::addMessageAfterRedirect(__('Informe o nome de quem recebe', 'protocolo'), false, ERROR);
+            return false;
+        }
+        $input['recebedor_nome'] = $recbNome;
+        $recbDocTipo = strtolower(trim($input['recebedor_documento_tipo'] ?? 'cpf'));
+        if (!in_array($recbDocTipo, ['cpf', 'rg'], true)) $recbDocTipo = 'cpf';
+        $input['recebedor_documento_tipo'] = $recbDocTipo;
+        $input['recebedor_documento'] = trim($input['recebedor_documento'] ?? '');
+        $recbSig = trim($input['recebedor_assinatura_image'] ?? '');
+        if ($recbSig !== '' && strpos($recbSig, 'data:image/') !== 0) $recbSig = '';
+        if (strlen($recbSig) > 1500000) $recbSig = '';
+        try {
+            if ($DB->fieldExists(self::getTable(), 'recebedor_assinatura_image')) {
+                if ($recSig === '' || $recbSig === '') {
+                    Session::addMessageAfterRedirect(__('Colete as duas assinaturas (quem deixa e quem recebe)', 'protocolo'), false, ERROR);
+                    return false;
+                }
+                $input['recebedor_assinatura_image'] = $recbSig;
+                $input['recebedor_assinatura_data'] = date('Y-m-d H:i:s');
+                $input['recebedor_assinatura_ip'] = $_SERVER['REMOTE_ADDR'] ?? null;
+            } else {
+                unset($input['recebedor_assinatura_image']);
+            }
+        } catch (\Throwable $e) { unset($input['recebedor_assinatura_image']); }
         // Itens validation
         $itens = $input['itens'] ?? [];
         $filtered = [];

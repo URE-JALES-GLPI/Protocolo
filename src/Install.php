@@ -169,6 +169,12 @@ class Install
               `recebido_assinatura_image` LONGTEXT DEFAULT NULL,
               `recebido_assinatura_data` DATETIME DEFAULT NULL,
               `recebido_assinatura_ip` VARCHAR(45) DEFAULT NULL,
+              `recebedor_nome` VARCHAR(150) DEFAULT NULL,
+              `recebedor_documento` VARCHAR(30) DEFAULT NULL,
+              `recebedor_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf',
+              `recebedor_assinatura_image` LONGTEXT DEFAULT NULL,
+              `recebedor_assinatura_data` DATETIME DEFAULT NULL,
+              `recebedor_assinatura_ip` VARCHAR(45) DEFAULT NULL,
               `observacao` TEXT DEFAULT NULL,
               `data_retirada` DATETIME DEFAULT NULL,
               `retirado_por` VARCHAR(150) DEFAULT NULL,
@@ -525,6 +531,22 @@ class Install
                         $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `assunto` VARCHAR(255) DEFAULT NULL AFTER `especie_outro`");
                         error_log("[protocolo] migrateEntities: especie/assunto adicionados (1.8.0)");
                     } catch (\Throwable $e) { error_log("[protocolo] migrateEntities: especie/assunto falhou: " . $e->getMessage()); }
+                }
+                // --- 2.4.0: recebedor (quem recebe) com assinatura ---
+                $recbCols = [
+                    'recebedor_nome'             => 'VARCHAR(150) DEFAULT NULL',
+                    'recebedor_documento'        => 'VARCHAR(30) DEFAULT NULL',
+                    'recebedor_documento_tipo'   => "ENUM('cpf','rg') DEFAULT 'cpf'",
+                    'recebedor_assinatura_image' => 'LONGTEXT DEFAULT NULL',
+                    'recebedor_assinatura_data'  => 'DATETIME DEFAULT NULL',
+                    'recebedor_assinatura_ip'    => 'VARCHAR(45) DEFAULT NULL',
+                ];
+                foreach ($recbCols as $col => $def) {
+                    try {
+                        if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', $col)) {
+                            $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `$col` $def");
+                        }
+                    } catch (\Throwable $e) { error_log("[protocolo] migrateEntities: coluna $col falhou: " . $e->getMessage()); }
                 }
                 // --- 2.2.0: assinaturas digitais (recebimento no tablet + retirada) ---
                 $sigCols = [
