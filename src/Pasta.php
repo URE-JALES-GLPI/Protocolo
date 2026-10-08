@@ -802,10 +802,10 @@ class Pasta extends CommonDBTM
         try {
             $dbLoc = $GLOBALS['DB'] ?? null;
             if ($dbLoc && function_exists('getSonsOf')) {
-                $parentURE = 1;
+                $parentURE = 0;
                 $sonsURE = getSonsOf('glpi_entities', $parentURE);
                 if (empty($sonsURE)) {
-                    $parentURE = 0;
+                    $parentURE = 1;
                     $sonsURE = getSonsOf('glpi_entities', $parentURE);
                 }
                 $idsURE = [];
