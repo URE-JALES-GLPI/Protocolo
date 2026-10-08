@@ -181,11 +181,6 @@ if (isset($_POST['add'])) {
         $pasta->check($id, UPDATE);
         $pasta->doReabrir();
         Html::redirect(Pasta::getFormURLWithID($id));
-    } elseif ($action === 'upload') {
-        $pasta->check($id, UPDATE);
-        $termoId = (int)($_POST['termo_id'] ?? 0);
-        $pasta->doUpload($termoId, $_FILES['arquivo'] ?? []);
-        Html::redirect(Pasta::getFormURLWithID($id));
     } elseif ($action === 'purge' || isset($_POST['purge'])) {
         $pasta->check($id, PURGE);
         $pasta->delete($_POST, 1);

@@ -187,7 +187,7 @@ class Profile extends \CommonDBTM
             echo "</td>";
             echo "<td class='small text-muted' style='max-width:320px'>";
             if ($rightName === 'plugin_protocolo_use') {
-                echo "<b>Usar:</b> acesso operacional. Inclui Dashboard, Pastas (Registrar Entrada, Registrar Retirada, Termos, upload assinado), Escolas e Tipos de Arquivo. <b>Usuário comum deve ter Usar habilitado.</b>";
+                echo "<b>Usar:</b> acesso operacional. Inclui Dashboard, Pastas (Registrar Entrada, Registrar Retirada, Termos), Escolas e Tipos de Arquivo. <b>Usuário comum deve ter Usar habilitado.</b>";
             } else {
                 echo "<b>Admin:</b> acesso à <b>Configuração</b> do Protocolo (prazo alerta, notificações por e-mail, e-mails por entidade, templates de e-mail, gráficos). Também libera gestão avançada. <b>Sem Admin, o usuário não vê nem altera Configuração.</b>";
             }

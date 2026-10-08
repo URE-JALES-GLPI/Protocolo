@@ -11,7 +11,7 @@ Evoluiu de sistema standalone em PHP para plugin nativo do GLPI 11.
 ## Para que serve
 
 - **Protocolar entradas e retiradas** — Registro com código único, escola vinculada e itens da pasta.
-- **Comprovar movimentações** — Geração de termos em PDF com código de verificação e upload do documento assinado.
+- **Comprovar movimentações** — Geração de termos em PDF com código de verificação e assinatura digital no tablet.
 - **Rastrear status** — Acompanhamento de pendências, retiradas e cancelamentos com histórico completo.
 - **Gerenciar cadastros** — Escolas, tipos de arquivo e usuários com perfis e permissões.
 - **Centralizar a operação** — Dashboard com alertas de pendências e visão por período/escola.

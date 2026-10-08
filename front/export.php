@@ -63,12 +63,6 @@ if ($alertaAtivo) {
     } catch (Throwable $e) {}
 }
 $totalPendRec = 0; $totalPendRet = 0;
-try {
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 $entityWhereSql AND (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) IS NULL");
-    if ($res && $row = $DB->fetchAssoc($res)) $totalPendRec = (int)$row['cpt'];
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 AND p.status='retirada' $entityWhereSql AND ((SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) IS NULL)");
-    if ($res && $row = $DB->fetchAssoc($res)) $totalPendRet = (int)$row['cpt'];
-} catch (Throwable $e) {}
 
 $tempoMedioGeral = 0;
 try {
@@ -133,27 +127,8 @@ if ($alertaAtivo) {
     } catch (Throwable $e) {}
 }
 
-// Pendências detalhadas (primeiras 200)
+// Pendências de upload removidas (assinatura agora é digital)
 $pendExport = [];
-try {
-    $pendQuery = "SELECT p.codigo, COALESCE(e.completename, oe.name) AS escola_nome, p.status,
-        (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
-        (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) AS ret_assinado,
-        (SELECT id FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' LIMIT 1) AS ret_existe
-        FROM glpi_plugin_protocolo_pastas p
-        LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
-        LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
-        WHERE p.is_deleted=0 $entityWhereSql
-        HAVING rec_assinado IS NULL OR (ret_existe IS NOT NULL AND ret_assinado IS NULL) OR (p.status='retirada' AND ret_existe IS NULL)
-        ORDER BY p.id DESC LIMIT 200";
-    $res = $DB->doQuery($pendQuery);
-    if ($res) while ($r = $DB->fetchAssoc($res)) {
-        $pend = '';
-        if (empty($r['rec_assinado'])) $pend = 'Entrega';
-        if ((!empty($r['ret_existe']) && empty($r['ret_assinado'])) || ($r['status'] === 'retirada' && empty($r['ret_existe']))) $pend .= ($pend ? ' + ' : '') . 'Retirada';
-        $pendExport[] = [$r['codigo'], $r['escola_nome'], $r['status'], $pend];
-    }
-} catch (Throwable $e) {}
 
 // Tenta usar PhpSpreadsheet do GLPI ou do plugin
 $hasSpreadsheet = false;
@@ -196,8 +171,6 @@ if ($hasSpreadsheet) {
             ['Retiradas', $totalRetiradas],
             ['Canceladas', $totalCanceladas],
             ['Entradas no mês', $totalMes],
-            ['Pend. Termo Entrega', $totalPendRec],
-            ['Pend. Termo Retirada', $totalPendRet],
             ['Tempo médio geral (dias)', $tempoMedioGeral],
         ];
         $sheet->fromArray($resumoData, null, 'A1');
@@ -246,15 +219,6 @@ if ($hasSpreadsheet) {
         }
 
         // Pendências
-        $sheet6 = $spreadsheet->createSheet();
-        $sheet6->setTitle('Pendencias');
-        $sheet6->fromArray(array_merge([['Código', 'Escola', 'Status', 'Pendência']], $pendExport), null, 'A1');
-        $styleHeader($sheet6, 'A1:D1');
-        foreach (range('A', 'D') as $col) $sheet6->getColumnDimension($col)->setAutoSize(true);
-        $sheet6->freezePane('A2');
-        if (empty($pendExport)) {
-            $sheet6->setCellValue('A2', 'Nenhuma pendência');
-        }
 
         $spreadsheet->setActiveSheetIndex(0);
 
@@ -295,8 +259,6 @@ if (!$hasSpreadsheet) {
         ['Retiradas', $totalRetiradas],
         ['Canceladas', $totalCanceladas],
         ['Entradas no mes', $totalMes],
-        ['Pend Termo Entrega', $totalPendRec],
-        ['Pend Termo Retirada', $totalPendRet],
         ['Tempo medio geral', $tempoMedioGeral],
     ];
     foreach ($resumo as $r) fputcsv($out, $r, ';');
@@ -314,9 +276,6 @@ if (!$hasSpreadsheet) {
     if ($atrasadasExport) foreach ($atrasadasExport as $r) fputcsv($out, $r, ';');
     else fputcsv($out, ['Nenhuma'], ';');
     fputcsv($out, [], ';');
-    fputcsv($out, ['Pendencias', 'Escola', 'Status', 'Pendencia'], ';');
-    if ($pendExport) foreach ($pendExport as $r) fputcsv($out, $r, ';');
-    else fputcsv($out, ['Nenhuma'], ';');
     fclose($out);
     exit;
 }

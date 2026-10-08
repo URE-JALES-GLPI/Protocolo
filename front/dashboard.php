@@ -259,8 +259,10 @@ echo "<div class='tab-pane fade " . ($activeTab==='resumo'?'show active':'') . "
 
 // Tabela aguardando
 echo "<div id='pt-ret-bulkbar' class='pt-card' style='display:none;margin-bottom:12px;padding:10px 14px;flex-direction:row;align-items:center;gap:10px;'><span id='pt-ret-bulkcount' style='font-weight:700;'>0 selecionada(s)</span><button type='button' class='pt-btn pt-btn-sm' style='background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:0;' onclick='ptOpenRetiradaBulk()'><i class='ti ti-signature'></i> Retirar selecionadas</button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptRetClearSelection()'><i class='ti ti-x'></i> Limpar</button></div>";
-echo "<div class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-outline pt-btn-sm'>" . __('Ver todas') . "</a></div><div style='overflow-x:auto;'><table class='pt-list-table'><thead><tr><th style='width:36px;'><input type='checkbox' id='pt-ret-check-all' title='Selecionar todas' style='width:17px;height:17px;accent-color:#4f46e5;'></th><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>DATA</th><th>" . __('Dias', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th>Ações</th></tr></thead><tbody>";
+echo "<div class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-outline pt-btn-sm'>" . __('Ver todas') . "</a></div><div class='pt-hide-mobile' style='overflow-x:auto;'><table class='pt-list-table'><thead><tr><th style='width:36px;'><input type='checkbox' id='pt-ret-check-all' title='Selecionar todas' style='width:17px;height:17px;accent-color:#4f46e5;'></th><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>DATA</th><th>" . __('Dias', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th>Ações</th></tr></thead><tbody>";
+echo "<style>.pt-only-mobile{display:none;}@media (max-width:768px){.pt-hide-mobile{display:none!important;}.pt-only-mobile{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;padding:4px 12px 12px;}}</style>";
 if ($lastRows) {
+    $mobileCards = '';
     foreach ($lastRows as $r) {
         $itens = (int)($r['itens_qtd'] ?? 0);
         $dias = (int)($r['dias_parada'] ?? 0);
@@ -276,9 +278,17 @@ if ($lastRows) {
         $fluxoTitle = htmlspecialchars(trim(strip_tags($origem)) . ' → ' . trim(strip_tags($destino)));
         $viewUrlRow = Pasta::getFormURLWithID($r['id']);
         echo "<tr class='pt-list-row $rowCls'><td><input type='checkbox' class='pt-ret-check' value='" . (int)$r['id'] . "' data-codigo='" . htmlspecialchars($r['codigo']) . "' style='width:17px;height:17px;accent-color:#4f46e5;'></td><td style='white-space:normal;min-width:130px;'><span class='pt-row-title' title='" . htmlspecialchars($r['codigo']) . "'>" . htmlspecialchars($r['codigo']) . "</span></td><td>$catBadge</td><td class='small' style='min-width:200px;max-width:300px;' title='$fluxoTitle'>$fluxo</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td>$badgeDias</td><td><span class='pt-badge pt-badge-cancelada'>$itens</span></td><td>" . Pasta::getStatusBadge($r['status']) . "</td><td style='white-space:nowrap;'><a href='$viewUrlRow' class='pt-btn " . ($isAtrasada ? "pt-btn-danger" : "pt-btn-outline") . " pt-btn-sm'><i class='ti ti-eye'></i> Ver</a> <button type='button' class='pt-btn pt-btn-sm' style='background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:0;' title='Registrar retirada' onclick='ptOpenRetiradaModal([" . (int)$r['id'] . "])'><i class='ti ti-signature'></i> Retirar</button></td></tr>";
+        $mobileCards .= "<div style='background:#fff;border:1.5px solid #e8eaf0;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;'>";
+        $mobileCards .= "<div style='display:flex;align-items:center;gap:8px;'><input type='checkbox' class='pt-ret-check' value='" . (int)$r['id'] . "' data-codigo='" . htmlspecialchars($r['codigo']) . "' style='width:18px;height:18px;accent-color:#4f46e5;'><span class='pt-row-title' style='font-size:.95rem;'>" . htmlspecialchars($r['codigo']) . "</span><span style='margin-left:auto;'>" . Pasta::getStatusBadge($r['status']) . "</span></div>";
+        $mobileCards .= "<div style='display:flex;gap:6px;align-items:center;flex-wrap:wrap;'>$catBadge $badgeDias</div>";
+        $mobileCards .= "<div style='font-size:.82rem;color:#374151;line-height:1.4;'>" . $origem . "<br><span style='color:#4f46e5;'><i class='ti ti-arrow-down' style='font-size:.7rem;'></i></span> " . $destino . "</div>";
+        $mobileCards .= "<div style='font-size:.78rem;color:#6b7280;'>" . htmlspecialchars($r['recebido_de']) . " · " . Html::convDateTime($r['data_recebimento']) . "</div>";
+        $mobileCards .= "<div style='display:flex;gap:8px;'><a href='$viewUrlRow' class='pt-btn pt-btn-outline pt-btn-sm' style='flex:1;'><i class='ti ti-eye'></i> Ver</a><button type='button' class='pt-btn pt-btn-sm' style='flex:1;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:0;' onclick='ptOpenRetiradaModal([" . (int)$r['id'] . "])'><i class='ti ti-signature'></i> Retirar</button></div>";
+        $mobileCards .= "</div>";
     }
 } else {
     echo "<tr class='pt-list-row'><td colspan='10'><div class='pt-empty-state pt-empty-small'><i class='ti ti-folder-off'></i><p>" . __('Nenhuma pasta aguardando no momento.', 'protocolo') . "</p></div></td></tr>";
+    $mobileCards = "<div style='background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;text-align:center;color:#9ca3af;'>Nenhuma pasta aguardando no momento.</div>";
 }
 echo "</tbody></table></div></div>";
 
@@ -341,7 +351,9 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
         $origem = isset($r['origem_tipo']) ? Pasta::getOrigemDestinoDisplay($r, 'origem') . " <i class='ti ti-arrow-right'></i> " . Pasta::getOrigemDestinoDisplay($r, 'destino') : htmlspecialchars($r['escola_nome']);
         echo "<tr class='pt-list-row table-danger'><td><span class='pt-row-title'>" . htmlspecialchars($r['codigo']) . "</span></td><td>$catBadge</td><td class='small'>$origem</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='pt-badge pt-badge-warn'>$dias d</span></td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> Regularizar</a></td></tr>";
     }
-    echo "</tbody></table></div></div>";
+echo "</tbody></table></div>";
+echo "<div class='pt-only-mobile'>" . ($mobileCards ?? '') . "</div>";
+echo "</div>";
     echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";
 }
 
