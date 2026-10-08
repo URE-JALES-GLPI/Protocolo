@@ -453,10 +453,50 @@ window.ptDashTab = function(ev, tab) {
     history.replaceState(null, '', u.toString());
   } catch (e) {}
   if (tab === 'dashboards') {
-    // cria/redimensiona os gráficos após o pane ficar visível
     setTimeout(function(){
       if (typeof window.ptInitProtocoloCharts === 'function') window.ptInitProtocoloCharts();
     }, 60);
   }
   return false;
 };
+
+(function(){
+  try {
+    if (window.__ptVersionWatch) return;
+    window.__ptVersionWatch = true;
+    if (window.location.pathname.indexOf('/protocolo/') === -1) return;
+    var base = (typeof ptPluginBase === 'function') ? ptPluginBase() : '/plugins/protocolo';
+    var baseline = null;
+    var shown = false;
+    function showUpdateModal(){
+      if (shown || document.getElementById('pt-update-overlay')) return;
+      shown = true;
+      var ov = document.createElement('div');
+      ov.id = 'pt-update-overlay';
+      ov.setAttribute('role', 'alertdialog');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      ov.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);">'
+        + '<div style="width:56px;height:56px;border-radius:50%;background:#16a34a;color:#fff;font-size:1.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">!</div>'
+        + '<div style="font-size:1.1rem;font-weight:800;color:#1e1b4b;margin-bottom:8px;">Nova atualiza&ccedil;&atilde;o dispon&iacute;vel</div>'
+        + '<p style="font-size:.88rem;color:#6b7280;margin:0 0 20px;">O sistema foi atualizado. Atualize a p&aacute;gina para continuar.</p>'
+        + '<button type="button" id="pt-update-reload" style="background:#16a34a;color:#fff;border:0;border-radius:10px;padding:12px 24px;font-size:.95rem;font-weight:700;cursor:pointer;width:100%;">Atualizar agora</button></div>';
+      document.body.appendChild(ov);
+      document.getElementById('pt-update-reload').addEventListener('click', function(){ window.location.reload(); });
+    }
+    function check(){
+      try {
+        fetch(base + '/ajax/version.php?t=' + Date.now(), {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}, cache: 'no-store'})
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+            if (!d || !d.build) return;
+            if (!baseline) { baseline = d.build; return; }
+            if (d.build !== baseline) showUpdateModal();
+          })
+          .catch(function(){});
+      } catch (e) {}
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(check, 5000);
+    else document.addEventListener('DOMContentLoaded', function(){ setTimeout(check, 5000); });
+    setInterval(check, 60000);
+  } catch (e) {}
+})();
