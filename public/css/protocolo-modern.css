@@ -281,4 +281,17 @@ body.pt-dark-mode .pt-page table.tab_cadre_fixe td{color:#cbd5e1;border-color:#2
 }
 @media (hover:none) and (pointer:coarse){
   .pt-btn,.pt-tab{min-height:38px}
+  .pt-page .form-control,.pt-page .form-select,.pt-modal-body .form-control,.pt-modal-body .form-select{font-size:16px}
+  .pt-combo-panel{position:fixed!important;left:12px!important;right:12px!important;top:auto!important;bottom:12px!important;max-height:60vh}
+  .pt-card-body .pt-btn,.pt-modal-body .pt-btn{min-height:44px}
+}
+@media (max-width:768px){
+  .pt-page table.tab_cadre_fixe,.pt-page table.tab_cadre_fixe tbody,.pt-page table.tab_cadre_fixe tr,.pt-page table.tab_cadre_fixe td,.pt-page table.tab_cadre_fixe th{display:block;width:100%!important}
+  .pt-page table.tab_cadre_fixe tr{border-bottom:1px solid #f0f2f8;padding:4px 0}
+  .pt-page table.tab_cadre_fixe td{padding:6px 12px;border:0}
+  #pt-register-overlay table.tab_cadre_fixe td{padding:6px 12px}
+  #pt-ret-bulkbar{flex-wrap:wrap}
+  #pt-wiz-ind{margin:0 0 10px}
+  .pt-wiz-dot{font-size:.75rem!important;padding:5px 10px!important}
+  .pt-card-body .d-flex.gap-2{flex-wrap:wrap}
 }
