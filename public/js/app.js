@@ -655,7 +655,7 @@ window.ptSetInvView = function(v){
   if (cw) {
     cw.style.display = (v === 'grid') ? 'grid' : 'none';
     if (v === 'grid') {
-      cw.style.gridTemplateColumns = 'repeat(auto-fill,minmax(250px,1fr))';
+      cw.style.gridTemplateColumns = 'repeat(auto-fill,minmax(280px,1fr))';
       cw.style.gap = '10px';
       cw.style.padding = '4px 12px 12px';
     }
