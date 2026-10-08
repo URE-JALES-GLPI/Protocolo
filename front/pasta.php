@@ -270,7 +270,7 @@ echo "</div>";
 if (Pasta::canCreate()) {
     echo "<div id='pt-register-overlay' class='pt-modal-overlay' onclick='ptCloseRegisterModal(event)'>";
     echo "<div class='pt-modal pt-modal-lg' onclick='event.stopPropagation()' role='dialog' aria-modal='true' aria-label='Nova pasta'>";
-    echo "<div class='pt-modal-header'><div class='pt-modal-title'><i class='ti ti-folder-plus'></i><span>Nova pasta</span></div><button type='button' class='pt-modal-close' onclick='ptCloseRegisterModal()' aria-label='Fechar'><i class='ti ti-x'></i></button></div>";
+    echo "<div class='pt-modal-header' style='background:linear-gradient(135deg,#16a34a,#059669);'><div class='pt-modal-title'><i class='ti ti-folder-plus'></i><span>Nova pasta</span></div><button type='button' class='pt-modal-close' onclick='ptCloseRegisterModal()' aria-label='Fechar'><i class='ti ti-x'></i></button></div>";
     echo "<div class='pt-modal-body'>";
     $pastaModal = new Pasta();
     $pastaModal->showForm(0, ['modal' => true]);

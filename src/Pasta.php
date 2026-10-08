@@ -844,7 +844,6 @@ class Pasta extends CommonDBTM
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
         echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
-        echo "<input type='text' class='form-control pt-escola-search' placeholder='Digite para filtrar...' autocomplete='off' style='margin-bottom:6px;'>";
         if (!empty($filhasURE)) {
             echo "<select name='origem_entities_id' class='form-select pt-escola-combo' style='width:100%'>";
             echo "<option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
@@ -903,7 +902,6 @@ class Pasta extends CommonDBTM
         echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
         echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
         echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
-        echo "<input type='text' class='form-control pt-escola-search' placeholder='Digite para filtrar...' autocomplete='off' style='margin-bottom:6px;'>";
         if (!empty($filhasURE)) {
             echo "<select name='destino_entities_id' class='form-select pt-escola-combo' style='width:100%'>";
             echo "<option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
@@ -1354,19 +1352,84 @@ class Pasta extends CommonDBTM
                 if(cl) cl.addEventListener('click', function(){ ptRecFit(); var cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); window.__ptRecDrawn = false; var hi = document.getElementById('pt-rec-image'); if(hi) hi.value = ''; });
             }
             if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); }
-            document.querySelectorAll('.pt-escola-search').forEach(function(inp){
-                inp.addEventListener('input', function(){
-                    var wrap = inp.parentElement;
-                    var sel = wrap ? wrap.querySelector('select.pt-escola-combo') : null;
-                    if(!sel) return;
-                    var q = inp.value.toLowerCase();
+            function ptComboBuild(sel){
+                if(!sel || sel.dataset.combo) return;
+                sel.dataset.combo = '1';
+                sel.style.display = 'none';
+                var wrap = document.createElement('div');
+                wrap.style.cssText = 'position:relative;';
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'form-control';
+                btn.style.cssText = 'width:100%;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                function curLabel(){
+                    var o = sel.selectedOptions.length ? sel.selectedOptions[0] : null;
+                    return (o && o.value !== '') ? o.textContent : '-- Selecione a escola --';
+                }
+                btn.textContent = curLabel();
+                var panel = document.createElement('div');
+                panel.className = 'pt-combo-panel';
+                panel.style.cssText = 'display:none;position:absolute;top:100%;left:0;right:0;z-index:60;background:#fff;border:1.5px solid #16a34a;border-radius:10px;margin-top:4px;box-shadow:0 10px 30px rgba(0,0,0,.15);overflow:hidden;';
+                var search = document.createElement('input');
+                search.type = 'text';
+                search.className = 'form-control';
+                search.placeholder = 'Digite para filtrar...';
+                search.setAttribute('autocomplete', 'off');
+                search.style.cssText = 'border:0;border-bottom:1px solid #e8eaf0;border-radius:0;';
+                var list = document.createElement('div');
+                list.style.cssText = 'max-height:220px;overflow-y:auto;';
+                function paint(it, o){
+                    it.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:.88rem;' + ((sel.value === o.value && o.value !== '') ? 'background:#f0fdf4;color:#16a34a;font-weight:700;' : '');
+                }
+                function render(filter){
+                    list.innerHTML = '';
+                    var q = (filter || '').toLowerCase();
+                    var n = 0;
                     Array.from(sel.options).forEach(function(o){
-                        if(o.value === ''){ o.hidden = false; return; }
-                        o.hidden = q !== '' && o.textContent.toLowerCase().indexOf(q) === -1;
+                        if(o.value === '' || (q !== '' && o.textContent.toLowerCase().indexOf(q) === -1)) return;
+                        n++;
+                        var it = document.createElement('div');
+                        it.textContent = o.value === '' ? '-- Selecione a escola --' : o.textContent;
+                        paint(it, o);
+                        it.addEventListener('mouseenter', function(){ it.style.background = '#f1f5f9'; });
+                        it.addEventListener('mouseleave', function(){ paint(it, o); });
+                        it.addEventListener('mousedown', function(ev){
+                            ev.preventDefault();
+                            sel.value = o.value;
+                            btn.textContent = curLabel();
+                            closeCombo();
+                            sel.dispatchEvent(new Event('change', {bubbles: true}));
+                        });
+                        list.appendChild(it);
                     });
-                    if(sel.value && sel.selectedOptions.length && sel.selectedOptions[0].hidden){ sel.value = ''; }
-                });
-            });
+                    if(!n){
+                        var em = document.createElement('div');
+                        em.style.cssText = 'padding:14px;text-align:center;color:#9ca3af;font-size:.85rem;';
+                        em.textContent = 'Nenhuma escola encontrada';
+                        list.appendChild(em);
+                    }
+                }
+                function openCombo(){ ptComboCloseAll(); render(''); search.value = ''; panel.style.display = 'block'; setTimeout(function(){ search.focus(); }, 30); }
+                function closeCombo(){ panel.style.display = 'none'; }
+                btn.addEventListener('click', function(ev){ ev.stopPropagation(); if(panel.style.display === 'block'){ closeCombo(); } else { openCombo(); } });
+                search.addEventListener('input', function(){ render(search.value); });
+                search.addEventListener('click', function(ev){ ev.stopPropagation(); });
+                search.addEventListener('keydown', function(ev){ ev.stopPropagation(); if(ev.key === 'Escape'){ closeCombo(); } });
+                panel.appendChild(search);
+                panel.appendChild(list);
+                wrap.appendChild(btn);
+                wrap.appendChild(panel);
+                sel.parentElement.insertBefore(wrap, sel.nextSibling);
+                render('');
+            }
+            function ptComboCloseAll(){
+                document.querySelectorAll('.pt-combo-panel').forEach(function(p){ p.style.display = 'none'; });
+            }
+            function ptComboInit(){
+                document.querySelectorAll('select.pt-escola-combo').forEach(ptComboBuild);
+            }
+            document.addEventListener('click', function(){ ptComboCloseAll(); });
+            ptComboInit();
             setupOrigemDestino();
 
             // Espécie -> mostra campo livre quando Outros
