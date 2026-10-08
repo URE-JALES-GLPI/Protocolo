@@ -798,15 +798,27 @@ class Pasta extends CommonDBTM
         }
         $origemOutro = $this->fields['origem_outro'] ?? '';
         $origemEnt = (int)($this->fields['origem_entities_id'] ?? 0);
-        $escolaRestrict = [];
+        $filhasURE = [];
         try {
-            if (function_exists('getSonsOf')) {
-                foreach (getSonsOf('glpi_entities', 1) as $eid) {
-                    $eid = (int)$eid;
-                    if ($eid !== 1) $escolaRestrict[] = $eid;
+            $dbLoc = $GLOBALS['DB'] ?? null;
+            if ($dbLoc && function_exists('getSonsOf')) {
+                $parentURE = 1;
+                $sonsURE = getSonsOf('glpi_entities', $parentURE);
+                if (empty($sonsURE)) {
+                    $parentURE = 0;
+                    $sonsURE = getSonsOf('glpi_entities', $parentURE);
+                }
+                $idsURE = [];
+                foreach ((array)$sonsURE as $eidURE) {
+                    $eidURE = (int)$eidURE;
+                    if ($eidURE !== (int)$parentURE) $idsURE[] = $eidURE;
+                }
+                if (!empty($idsURE)) {
+                    $itURE = $dbLoc->request(['SELECT' => ['id', 'name', 'completename'], 'FROM' => 'glpi_entities', 'WHERE' => ['id' => $idsURE], 'ORDER' => 'completename']);
+                    foreach ($itURE as $rowURE) $filhasURE[] = $rowURE;
                 }
             }
-        } catch (\Throwable $e) { $escolaRestrict = []; }
+        } catch (\Throwable $e) { $filhasURE = []; }
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Origem/Interessado', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(de onde vem)</small></label></td>";
         echo "<td colspan='3'>";
@@ -818,6 +830,17 @@ class Pasta extends CommonDBTM
         echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
         echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
+        if (!empty($filhasURE)) {
+            echo "<select name='origem_entities_id' class='form-select' style='width:100%'>";
+            echo "<option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
+            foreach ($filhasURE as $frO) {
+                $fidO = (int)$frO['id'];
+                $fselO = ($origemTipo==='escola' && $fidO===$origemEnt) ? 'selected' : '';
+                $flblO = trim((string)($frO['completename'] ?? '')) !== '' ? $frO['completename'] : $frO['name'];
+                echo "<option value='$fidO' $fselO>" . htmlspecialchars($flblO) . "</option>";
+            }
+            echo "</select>";
+        } else {
         try {
             \Entity::dropdown([
                 'name'   => 'origem_entities_id',
@@ -828,11 +851,12 @@ class Pasta extends CommonDBTM
                 'comments' => false,
                 'entity' => 0,
                 'entity_sons' => true,
-            ] + (!empty($escolaRestrict) ? ['entity_restrict' => $escolaRestrict] : []));
+            ]);
         } catch (\Throwable $e) {
             echo "<select name='origem_entities_id' class='form-select' style='width:100%'><option value=''>-- Selecione --</option>";
             if ($origemEnt) { $n = self::getEscolaName($origemEnt); echo "<option value='$origemEnt' selected>" . htmlspecialchars($n) . "</option>"; }
             echo "</select>";
+        }
         }
         echo "</div>";
         echo "</td></tr>";
@@ -858,6 +882,17 @@ class Pasta extends CommonDBTM
         echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
         echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
         echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
+        if (!empty($filhasURE)) {
+            echo "<select name='destino_entities_id' class='form-select' style='width:100%'>";
+            echo "<option value=''>-- " . __('Selecione a escola', 'protocolo') . " --</option>";
+            foreach ($filhasURE as $frD) {
+                $fidD = (int)$frD['id'];
+                $fselD = ($destinoTipo==='escola' && $fidD===$destinoEnt) ? 'selected' : '';
+                $flblD = trim((string)($frD['completename'] ?? '')) !== '' ? $frD['completename'] : $frD['name'];
+                echo "<option value='$fidD' $fselD>" . htmlspecialchars($flblD) . "</option>";
+            }
+            echo "</select>";
+        } else {
         try {
             \Entity::dropdown([
                 'name'   => 'destino_entities_id',
@@ -868,11 +903,12 @@ class Pasta extends CommonDBTM
                 'comments' => false,
                 'entity' => 0,
                 'entity_sons' => true,
-            ] + (!empty($escolaRestrict) ? ['entity_restrict' => $escolaRestrict] : []));
+            ]);
         } catch (\Throwable $e) {
             echo "<select name='destino_entities_id' class='form-select' style='width:100%'><option value=''>-- Selecione --</option>";
             if ($destinoEnt) { $n = self::getEscolaName($destinoEnt); echo "<option value='$destinoEnt' selected>" . htmlspecialchars($n) . "</option>"; }
             echo "</select>";
+        }
         }
         echo "</div>";
         // compat: mantém plugin_protocolo_escolas_id escondido para buscas antigas (espelha destino quando escola)
@@ -1154,6 +1190,32 @@ class Pasta extends CommonDBTM
                 bindTipo('origem');
                 bindTipo('destino');
             }
+            document.addEventListener('keydown', function(e){
+                var k = e.key || '';
+                if(k !== 'Escape' && k !== 'Esc') return;
+                var ovPt = document.getElementById('pt-register-overlay');
+                if(!ovPt || !ovPt.classList.contains('open')) return;
+                var swallowed = false;
+                try {
+                    if(window.jQuery && window.jQuery('.select2-container--open').length){
+                        window.jQuery('select').each(function(){
+                            try{
+                                var sq = window.jQuery(this);
+                                if(sq.data('select2') && sq.select2('isOpen')){ sq.select2('close'); swallowed = true; }
+                            }catch(errSq){}
+                        });
+                    }
+                } catch(errJq) {}
+                if(!swallowed){
+                    var aePt = document.activeElement;
+                    if(aePt && aePt.tagName === 'SELECT') swallowed = true;
+                }
+                if(swallowed){
+                    e.preventDefault();
+                    if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+                    if(e.stopPropagation) e.stopPropagation();
+                }
+            }, true);
             setupOrigemDestino();
 
             // Espécie -> mostra campo livre quando Outros
