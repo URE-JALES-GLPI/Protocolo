@@ -105,34 +105,6 @@ try {
     $totalEscolas = countElementsInTable(Escola::getTable(), array_merge(['is_active' => 1], $entityFilter));
 }
 
-// Pendências de upload: ESCOLA = ENTIDADE - com filtro de entidade para performance
-try {
-    $pendQuery = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome,
-        (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
-        (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) AS ret_assinado,
-        (SELECT id FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' LIMIT 1) AS ret_existe
-        FROM glpi_plugin_protocolo_pastas p
-        LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
-        LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
-        WHERE p.is_deleted=0 $entityWhereSql $categoriaWhereSql
-        HAVING rec_assinado IS NULL OR (ret_existe IS NOT NULL AND ret_assinado IS NULL) OR (p.status='retirada' AND ret_existe IS NULL)
-        ORDER BY p.id DESC LIMIT 10";
-    $pendentes = [];
-    $res = $DB->doQuery($pendQuery);
-    if ($res) {
-        while ($row = $DB->fetchAssoc($res)) $pendentes[] = $row;
-    }
-} catch (Exception $e) { $pendentes = []; }
-
-try {
-    $totalPendRec = 0;
-    $totalPendRet = 0;
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) IS NULL");
-    if ($res && $row = $DB->fetchAssoc($res)) $totalPendRec = $row['cpt'];
-    $res = $DB->doQuery("SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.is_deleted=0 AND p.status='retirada' $entityWhereSql $categoriaWhereSql AND ((SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) IS NULL)");
-    if ($res && $row = $DB->fetchAssoc($res)) $totalPendRet = $row['cpt'];
-} catch (Exception $e) { $totalPendRec = 0; $totalPendRet = 0; }
-
 // Últimas aguardando — ESCOLA = ENTIDADE - com JOIN agregado para evitar N+1 + dias
 $lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql ORDER BY p.data_recebimento DESC, p.id DESC LIMIT 12";
 $lastRows = [];
@@ -373,24 +345,7 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";
 }
 
-// Pendências
-echo "<div id='pendencias' class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-alert-triangle'></i> " . __('Pendências de upload de termos', 'protocolo') . "</strong><span class='small text-muted'><i class='ti ti-circle-filled' style='color:#d97706;'></i> Entrega &nbsp; <i class='ti ti-circle-filled' style='color:#dc2626;'></i> Retirada</span></div><div style='overflow-x:auto;'><table class='pt-list-table'><thead><tr><th>" . __('Código') . "</th><th>" . __('Escola') . "</th><th>" . __('Status') . "</th><th>" . __('Pendência') . "</th><th></th></tr></thead><tbody>";
-if ($pendentes) {
-    foreach ($pendentes as $r) {
-        $amarelo = empty($r['rec_assinado']);
-        $vermelho = (!empty($r['ret_existe']) && empty($r['ret_assinado'])) || ($r['status'] === 'retirada' && empty($r['ret_existe']));
-        echo "<tr class='pt-list-row'><td><span class='pt-row-title'>" . htmlspecialchars($r['codigo']) . "</span></td><td>" . htmlspecialchars($r['escola_nome']) . "</td><td>" . Pasta::getStatusBadge($r['status']) . "</td><td>";
-        if ($amarelo) echo "<span class='pt-badge pt-badge-aguardando'><i class='ti ti-circle-filled'></i> Entrega</span> ";
-        if ($vermelho) echo "<span class='pt-badge pt-badge-warn'><i class='ti ti-circle-filled'></i> Retirada</span> ";
-        if (!$amarelo && !$vermelho) echo "<span class='pt-badge pt-badge-retirada'>OK</span>";
-        echo "</td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='pt-btn pt-btn-outline pt-btn-sm'><i class='ti ti-upload'></i> Resolver</a></td></tr>";
-    }
-} else {
-    echo "<tr class='pt-list-row'><td colspan='5'><div class='pt-empty-state pt-empty-small' style='color:#10b981;'><i class='ti ti-circle-check'></i><p>" . __('Nenhuma pendência! Todos os termos com upload em dia.', 'protocolo') . "</p></div></td></tr>";
-}
-echo "</tbody></table></div></div>";
-
-echo "<div class='pt-alert pt-alert-info'><div><strong>" . __('Fluxo do sistema:', 'protocolo') . "</strong> 1) " . __('Alguém deixa a pasta → Registrar Entrada → imprime Termo de Recebimento → assina e digitaliza (upload).', 'protocolo') . "<br>2) " . __('Escola vem buscar → abrir pasta → Registrar Retirada → imprime Termo de Entrega/Retirada → assina e digitaliza.', 'protocolo') . "</div></div>";
+echo "<div class='pt-alert pt-alert-info'><div><strong>" . __('Fluxo do sistema:', 'protocolo') . "</strong> 1) " . __('Alguém deixa a pasta → Registrar Entrada → assina no tablet → imprime o Termo de Recebimento.', 'protocolo') . "<br>2) " . __('Escola vem buscar → Retirar na grade → assina no tablet → imprime o Termo de Entrega/Retirada.', 'protocolo') . "</div></div>";
 
 echo "</div>"; // fim tab-resumo
 

@@ -581,59 +581,15 @@ class Pasta extends CommonDBTM
         if (!$termos) echo "<p class='text-muted'>" . __('Nenhum termo gerado', 'protocolo') . "</p>";
         foreach ($termos as $t) {
             $badge = $t['tipo'] === 'recebimento' ? "<span class='badge bg-primary'>RECEBIMENTO</span>" : "<span class='badge bg-success'>RETIRADA</span>";
-            $assinado = !empty($t['arquivo_assinado']) ? "<span class='badge bg-success'><i class='ti ti-check'></i> Assinado</span> <a class='btn btn-sm btn-success ms-2' href='" . htmlspecialchars($t['arquivo_assinado']) . "' target='_blank'><i class='ti ti-file'></i> Abrir assinado</a>" : "<span class='badge bg-warning text-dark'>Sem arquivo assinado</span>";
+            $sigOk = ($t['tipo'] === 'recebimento') ? !empty($this->fields['recebido_assinatura_image']) : !empty($this->fields['retirada_assinatura_image']);
+            $assinado = $sigOk ? "<span class='badge bg-success'><i class='ti ti-signature'></i> Assinado digitalmente</span>" : "<span class='badge bg-secondary'>Sem assinatura digital</span>";
             $imprimirUrl = Plugin::getWebDir('protocolo') . "/front/termo.php?id=$id&tipo=" . htmlspecialchars($t['tipo']);
-            echo "<div class='border rounded p-3 mb-3 " . (!empty($t['arquivo_assinado']) ? 'bg-light' : '') . "'>";
+            echo "<div class='border rounded p-3 mb-3'>";
             echo "<div class='d-flex justify-content-between'><div>$badge <code class='ms-2'>" . htmlspecialchars($t['codigo']) . "</code><br><small class='text-muted'>" . Html::convDateTime($t['date_creation']) . " · Hash " . htmlspecialchars(substr($t['hash_verificacao'] ?? '', 0, 12)) . "...</small><br>$assinado</div>";
             echo "<div><a href='$imprimirUrl' target='_blank' class='btn btn-sm btn-outline-primary'><i class='ti ti-printer'></i> Ver/Imprimir</a></div></div>";
-
-            // Form upload (GLPI style) - Enviar abre picker se sem arquivo
-            echo "<form method='post' enctype='multipart/form-data' action='" . self::getFormURL() . "' class='mt-3 d-flex gap-2 align-items-end termo-upload-form'>";
-            echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
-            echo "<input type='hidden' name='id' value='$id'>";
-            echo "<input type='hidden' name='action' value='upload'>";
-            echo "<input type='hidden' name='termo_id' value='" . (int)$t['id'] . "'>";
-            echo "<div class='flex-grow-1'><label class='form-label small mb-1'>" . __('Substituir por arquivo assinado (PDF/JPG/PNG, máx 10MB)', 'protocolo') . "</label>";
-            echo "<input type='file' name='arquivo' accept='.pdf,.jpg,.jpeg,.png' class='form-control form-control-sm termo-arquivo-input' required></div>";
-            echo "<button type='submit' class='btn btn-sm btn-dark termo-enviar-btn'><i class='ti ti-upload'></i> Enviar</button>";
-            echo "</form></div>";
+            echo "</div>";
         }
         echo "</div>";
-        // JS inline fallback: garante que Enviar abre picker se sem arquivo (funciona mesmo se app.js em cache ou tab via AJAX)
-        echo "<script>(function(){
-            if(window.__protocoloTermoPickerBound) return;
-            window.__protocoloTermoPickerBound = true;
-            function bind(){
-                document.addEventListener('click', function(e){
-                    var btn = e.target.closest && e.target.closest('.termo-enviar-btn');
-                    if(!btn) return;
-                    var form = btn.closest('.termo-upload-form');
-                    if(!form) return;
-                    var input = form.querySelector('.termo-arquivo-input');
-                    if(!input) return;
-                    if(!input.files || input.files.length===0){
-                        e.preventDefault(); e.stopPropagation();
-                        input.click();
-                    }
-                });
-                document.addEventListener('change', function(e){
-                    if(!e.target.classList.contains('termo-arquivo-input')) return;
-                    var input=e.target, form=input.closest('.termo-upload-form');
-                    if(!form) return;
-                    var btn=form.querySelector('.termo-enviar-btn');
-                    if(!btn) return;
-                    if(input.files && input.files.length>0){
-                        btn.classList.remove('btn-dark'); btn.classList.add('btn-success');
-                        btn.title=input.files[0].name;
-                        var hint=form.querySelector('.termo-arquivo-hint');
-                        if(!hint){ hint=document.createElement('small'); hint.className='termo-arquivo-hint text-success d-block mt-1'; input.parentElement.appendChild(hint); }
-                        hint.textContent='Selecionado: '+input.files[0].name+' — clique em Enviar novamente para enviar.';
-                        hint.style.display='';
-                    }
-                });
-            }
-            if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', bind); else bind();
-        })();</script>";
 
         // Timeline - histórico da pasta
         echo "<div class='spaced'><h3><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</h3>";
@@ -655,16 +611,14 @@ class Pasta extends CommonDBTM
         ];
         foreach ($termos as $t) {
             $isRec = $t['tipo'] === 'recebimento';
+            $sigEv = $isRec ? !empty($pasta->fields['recebido_assinatura_image']) : !empty($pasta->fields['retirada_assinatura_image']);
             $events[] = [
                 'date' => $t['date_creation'],
                 'icon' => $isRec ? 'ti ti-file-text' : 'ti ti-file-export',
                 'color' => $isRec ? 'bg-primary' : 'bg-success',
                 'title' => ($isRec ? __('Termo de Recebimento gerado', 'protocolo') : __('Termo de Retirada gerado', 'protocolo')) . " <code>" . htmlspecialchars($t['codigo']) . "</code>",
-                'desc' => Html::convDateTime($t['date_creation']) . " por " . htmlspecialchars(getUserName($t['users_id'] ?? 0)) . ($t['arquivo_assinado'] ? "<br><span class='badge bg-success'><i class='ti ti-check'></i> Assinado: " . htmlspecialchars($t['arquivo_assinado']) . "</span>" : "<br><span class='badge bg-warning text-dark'>Sem arquivo assinado</span>")
+                'desc' => Html::convDateTime($t['date_creation']) . " por " . htmlspecialchars(getUserName($t['users_id'] ?? 0)) . ($sigEv ? "<br><span class='badge bg-success'><i class='ti ti-signature'></i> Assinado digitalmente</span>" : '')
             ];
-            if (!empty($t['arquivo_assinado'])) {
-                // tenta achar data do upload? Não temos, usa mesma date_creation
-            }
         }
         if (!empty($pasta->fields['data_retirada'])) {
             $events[] = [
@@ -1897,7 +1851,7 @@ class Pasta extends CommonDBTM
         return $input;
     }
 
-    // Ações custom: retirar, cancelar, reabrir, upload (chamadas via front/pasta.form.php)
+    // Ações custom: retirar, cancelar, reabrir (chamadas via front/pasta.form.php)
     public function doRetirar(array $params): bool
     {
         global $DB;
@@ -1997,97 +1951,6 @@ class Pasta extends CommonDBTM
         if ($this->fields['status'] === 'aguardando') return false;
         $DB->update(self::getTable(), ['status' => 'aguardando', 'data_retirada' => null, 'retirado_por' => null, 'date_mod' => date('Y-m-d H:i:s')], ['id' => $this->getID()]);
         Session::addMessageAfterRedirect(__('Pasta reaberta para aguardando', 'protocolo'), false, INFO);
-        return true;
-    }
-
-    public function doUpload(int $termoId, array $file): bool
-    {
-        global $DB;
-        $termo = Termo::getByIdAndPasta($termoId, $this->getID());
-        if (!$termo) {
-            Session::addMessageAfterRedirect(__('Termo não encontrado', 'protocolo'), false, ERROR);
-            return false;
-        }
-        if (!isset($file) || $file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
-            $msg = match ($file['error'] ?? UPLOAD_ERR_NO_FILE) {
-                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => __('Arquivo excede o limite do servidor (upload_max_filesize)', 'protocolo'),
-                UPLOAD_ERR_PARTIAL => __('Upload incompleto', 'protocolo'),
-                UPLOAD_ERR_NO_FILE => __('Selecione um arquivo válido', 'protocolo'),
-                default => __('Falha no upload', 'protocolo'),
-            };
-            Session::addMessageAfterRedirect($msg, false, ERROR);
-            return false;
-        }
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['pdf', 'jpg', 'jpeg', 'png'])) {
-            Session::addMessageAfterRedirect(__('Apenas PDF, JPG ou PNG', 'protocolo'), false, ERROR);
-            return false;
-        }
-        // Valida MIME real com finfo (evita .php.jpg)
-        $mimeOk = false;
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $realMime = $finfo ? finfo_file($finfo, $file['tmp_name']) : null;
-        if ($finfo) finfo_close($finfo);
-        $allowedMimes = [
-            'pdf'  => ['application/pdf'],
-            'jpg'  => ['image/jpeg', 'image/jpg'],
-            'jpeg' => ['image/jpeg', 'image/jpg'],
-            'png'  => ['image/png'],
-        ];
-        if (isset($allowedMimes[$ext]) && in_array($realMime, $allowedMimes[$ext], true)) {
-            $mimeOk = true;
-        }
-        // Fallback para ambientes sem finfo: confia na extensão mas bloqueia double-extension
-        if (!$mimeOk && $realMime === null) {
-            $mimeOk = true;
-        }
-        if (!$mimeOk) {
-            Session::addMessageAfterRedirect(__('Tipo de arquivo não corresponde à extensão (mime inválido: ', 'protocolo') . htmlspecialchars($realMime ?? 'desconhecido') . ')', false, ERROR);
-            return false;
-        }
-        // Bloqueia double extension tipo .php.pdf
-        if (preg_match('/\.(php|phtml|exe|sh|js)$/i', $file['name'])) {
-            Session::addMessageAfterRedirect(__('Nome de arquivo não permitido', 'protocolo'), false, ERROR);
-            return false;
-        }
-        if ($file['size'] > 10 * 1024 * 1024) {
-            Session::addMessageAfterRedirect(__('Arquivo muito grande (máx 10MB)', 'protocolo'), false, ERROR);
-            return false;
-        }
-        // Nome único com random_bytes para evitar colisão/time() previsível
-        $novoNome = $termo['codigo'] . '-ASSINADO-' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
-        $destDir = GLPI_PLUGIN_DOC_DIR . '/protocolo/termos';
-        if (!is_dir($destDir)) @mkdir($destDir, 0775, true);
-        $dest = $destDir . '/' . $novoNome;
-
-        if (!move_uploaded_file($file['tmp_name'], $dest)) {
-            Session::addMessageAfterRedirect(__('Falha ao salvar arquivo', 'protocolo'), false, ERROR);
-            return false;
-        }
-        @chmod($dest, 0640);
-        // Remove antigo
-        if (!empty($termo['arquivo_assinado'])) {
-            // tenta resolver caminho: pode ser antigo uploads/termos/... ou novo doc
-            $oldPaths = [
-                GLPI_ROOT . '/' . $termo['arquivo_assinado'],
-                GLPI_PLUGIN_DOC_DIR . '/' . basename($termo['arquivo_assinado']),
-                $termo['arquivo_assinado']
-            ];
-            foreach ($oldPaths as $p) {
-                if (file_exists($p)) @unlink($p);
-            }
-        }
-        // Salva caminho relativo para URL: usar Plugin::getWebDir doc?
-        // Vamos salvar como caminho acessível via front/document
-        // Simples: salva como 'plugins/protocolo/files/termos/...' ou melhor usa GLPI doc: front/document? Para MVP salva caminho absoluto relativo a GLPI_PLUGIN_DOC_DIR e serve via termo.php download
-        $rel = 'termos/' . $novoNome; // será resolvido em termo.php
-        // Na verdade salvamos caminho relativo ao doc dir para servir
-        $dbPath = 'plugins/protocolo/termos/' . $novoNome; // fake web
-        // Vamos salvar o caminho físico relativo: usar GLPI_PLUGIN_DOC_DIR . '/protocolo/termos/...' mas para href usamos front/termo.download.php?
-        // Simplifica: salva 'termos/'.$novoNome e front resolve
-        $DB->update('glpi_plugin_protocolo_termos', ['arquivo_assinado' => 'termos/' . $novoNome], ['id' => $termoId]);
-
-        Session::addMessageAfterRedirect(__('Arquivo assinado enviado com sucesso!', 'protocolo'), false, INFO);
         return true;
     }
 

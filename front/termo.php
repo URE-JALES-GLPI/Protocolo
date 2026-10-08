@@ -235,7 +235,7 @@ body{ background:#eee; }
   </div>
 
   <div class="text-center mt-3 no-print">
-    <small class="text-muted"><?= __('Após imprimir e colher assinaturas, digitalize e faça upload em Pasta → Termos → "Enviar arquivo assinado".', 'protocolo') ?></small>
+    <small class="text-muted"><?= __('Assinaturas coletadas digitalmente no tablet.', 'protocolo') ?></small>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

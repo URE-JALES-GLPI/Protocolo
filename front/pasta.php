@@ -111,10 +111,7 @@ $offset = ($page - 1) * $perPage;
 
 // Lista — ESCOLA = ENTIDADE
 $sql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(e.id, oe.codigo) AS escola_codigo,
-               u.name AS criador,
-               (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='recebimento' ORDER BY id DESC LIMIT 1) AS rec_assinado,
-               (SELECT arquivo_assinado FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' ORDER BY id DESC LIMIT 1) AS ret_assinado,
-               (SELECT id FROM glpi_plugin_protocolo_termos WHERE plugin_protocolo_pastas_id=p.id AND tipo='retirada' LIMIT 1) AS ret_existe
+               u.name AS criador
         FROM glpi_plugin_protocolo_pastas p
         LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id
         LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id
@@ -157,9 +154,7 @@ echo "<button id='pt-theme-btn' onclick='ptToggleTheme()' class='pt-btn pt-btn-s
 echo "</div></div>";
 
 echo "<div class='pt-legend'>";
-echo "<span><span class='pt-dot' style='background:#d97706;'></span> Sem upload Termo Entrega/Recebimento</span>";
-echo "<span><span class='pt-dot' style='background:#dc2626;'></span> Sem upload Termo Retirada</span>";
-echo "<span class='text-muted'>— clique em Ver para fazer upload</span>";
+echo "<span><span class='pt-dot' style='background:#10b981;'></span> Assinatura digital coletada</span>";
 echo "<span class='ms-auto text-muted'>Ordenado por <b>$sort</b> $order</span>";
 echo "</div>";
 
@@ -203,7 +198,7 @@ echo "<th>" . sortLink('codigo','Código',$sort,$order) . "</th>";
 echo "<th>" . sortLink('escola','Escola',$sort,$order) . "</th>";
 echo "<th>" . sortLink('recebido','Recebido de',$sort,$order) . "</th>";
 echo "<th>" . sortLink('data','Recebimento',$sort,$order) . "</th>";
-echo "<th>Retirada</th><th>" . sortLink('status','Status',$sort,$order) . "</th><th>Termos</th><th></th>";
+echo "<th>Retirada</th><th>" . sortLink('status','Status',$sort,$order) . "</th><th>Assinatura</th><th></th>";
 echo "</tr></thead><tbody>";
 if ($lista) {
     foreach ($lista as $r) {
@@ -215,16 +210,12 @@ if ($lista) {
         $recebimento = Html::convDateTime($r['data_recebimento']);
         $retirada = !empty($r['data_retirada']) ? Html::convDateTime($r['data_retirada']) . "<br><small class='pt-row-sub'>" . htmlspecialchars($r['retirado_por'] ?? '') . "</small>" : '<span class="pt-row-sub">—</span>';
         $statusBadge = Pasta::getStatusBadge($r['status']);
-        $amarelo = empty($r['rec_assinado']);
-        $vermelho = !empty($r['ret_existe']) && empty($r['ret_assinado']);
-        if ($r['status'] === 'retirada' && empty($r['ret_existe'])) $vermelho = true;
+        $recSig = !empty($r['recebido_assinatura_image']);
+        $retSig = !empty($r['retirada_assinatura_image']);
         $termosHtml = '';
-        $termosHtml .= $amarelo ? "<i class='ti ti-circle-filled' style='color:#d97706;' title='Pendente upload Termo de Entrega/Recebimento'></i> " : "<i class='ti ti-circle-filled text-success' style='opacity:.25' title='Termo Entrega OK'></i> ";
-        if ($vermelho) $termosHtml .= "<i class='ti ti-circle-filled' style='color:#dc2626;' title='Pendente upload Termo de Retirada'></i>";
-        else {
-            if ($r['status'] === 'retirada') $termosHtml .= "<i class='ti ti-circle-filled text-success' style='opacity:.25' title='Termo Retirada OK'></i>";
-            else $termosHtml .= "<i class='ti ti-circle-filled' style='color:#ddd' title='Aguardando retirada'></i>";
-        }
+        $termosHtml .= $recSig ? "<i class='ti ti-circle-filled text-success' style='opacity:.55' title='Assinatura entrega coletada'></i> " : "<i class='ti ti-circle-filled' style='color:#d97706;' title='Sem assinatura de entrega'></i> ";
+        if ($r['status'] === 'retirada') $termosHtml .= $retSig ? "<i class='ti ti-circle-filled text-success' style='opacity:.55' title='Assinatura retirada coletada'></i>" : "<i class='ti ti-circle-filled' style='color:#dc2626;' title='Sem assinatura de retirada'></i>";
+        else $termosHtml .= "<i class='ti ti-circle-filled' style='color:#ddd' title='Aguardando retirada'></i>";
         $viewUrl = Pasta::getFormURLWithID($r['id']);
         echo "<tr class='pt-list-row'>";
         echo "<td><a href='$viewUrl' class='pt-row-title' style='color:#4f46e5;text-decoration:none;'>$codigo</a><br><small class='pt-row-sub'>por $criador</small></td>";
