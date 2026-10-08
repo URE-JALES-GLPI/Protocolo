@@ -518,6 +518,8 @@ window.ptOpenRetiradaModal = function(ids){
   if (nm) nm.value = '';
   var dc = document.getElementById('pt-ret-doc');
   if (dc) dc.value = '';
+  var dd = document.getElementById('pt-ret-doc-display');
+  if (dd) { dd.textContent = 'Toque nos números'; dd.style.color = '#9ca3af'; }
   var ob = document.getElementById('pt-ret-obs');
   if (ob) ob.value = '';
   window.__ptRetDocType = 'cpf';
@@ -573,6 +575,24 @@ window.ptRetDocType = function(t, silent){
 };
 window.ptRetPrintTermos = function(){
   (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
+};
+window.ptRetPress = function(d){
+  var h = document.getElementById('pt-ret-doc');
+  if (!h) return;
+  var t = window.__ptRetDocType || 'cpf';
+  var max = (t === 'rg') ? 9 : 11;
+  var v = (h.value || '').replace(/\D/g, '');
+  if (d === 'del') v = v.slice(0, -1);
+  else if (/^[0-9]$/.test(d) && v.length < max) v += d;
+  h.value = v;
+  var disp = document.getElementById('pt-ret-doc-display');
+  if (disp) { disp.textContent = v || 'Toque nos números'; disp.style.color = v ? '#1e1b4b' : '#9ca3af'; }
+};
+window.ptRetClearDoc = function(){
+  var h = document.getElementById('pt-ret-doc');
+  if (h) h.value = '';
+  var disp = document.getElementById('pt-ret-doc-display');
+  if (disp) { disp.textContent = 'Toque nos números'; disp.style.color = '#9ca3af'; }
 };
 function ptRetFitCanvas(){
   var c = document.getElementById('pt-ret-canvas');

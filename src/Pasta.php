@@ -415,14 +415,14 @@ class Pasta extends CommonDBTM
         $outro = $fields[$prefix . '_outro'] ?? '';
         $entId = (int)($fields[$prefix . '_entities_id'] ?? 0);
         if ($tipo === 'outro') {
-            return htmlspecialchars($outro ?: 'Outro') . " <span class='pt-badge pt-badge-outro'>Outro</span>";
+            return htmlspecialchars($outro ?: 'Outro');
         }
         if ($tipo === 'ure') {
-            return "URE <span class='pt-badge pt-badge-ure'>URE</span>";
+            return 'URE';
         }
         // escola
         $name = $entId ? self::getEscolaName($entId) : '—';
-        return htmlspecialchars($name) . " <span class='pt-badge pt-badge-escola'>Escola</span>";
+        return htmlspecialchars($name);
     }
 
     public static function getSpecificValueToSelect($field, $name = '', $values = '', array $options = [])
