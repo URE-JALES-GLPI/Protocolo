@@ -59,22 +59,33 @@ if ($categoriaFiltro && $hasCategoriaCol) {
     $categoriaWhereSqlPasta = " AND categoria='" . $categoriaFiltro . "'";
     $entityFilter['categoria'] = $categoriaFiltro;
 }
-// Stats - com filtro de entidade + categoria
-$totalAguardando = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'aguardando', 'is_deleted' => 0], $entityFilter));
-$totalRetiradas  = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'retirada', 'is_deleted' => 0], $entityFilter));
-$totalCanceladas = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'cancelada', 'is_deleted' => 0], $entityFilter));
+// Busca livre: código, recebido de, assunto, espécie
+$qFiltro = trim($_GET['q'] ?? '');
+$qWhereSql = '';
+$qWhereSqlPasta = '';
+$qLikeCond = [];
+if ($qFiltro !== '') {
+    $qLike = $DB->quoteValue('%' . $qFiltro . '%');
+    $qWhereSql = " AND (p.codigo LIKE $qLike OR p.recebido_de LIKE $qLike OR p.assunto LIKE $qLike OR p.categoria LIKE $qLike OR p.especie_outro LIKE $qLike)";
+    $qWhereSqlPasta = " AND (codigo LIKE $qLike OR recebido_de LIKE $qLike OR assunto LIKE $qLike OR categoria LIKE $qLike OR especie_outro LIKE $qLike)";
+    $qLikeCond = [new \QueryExpression("(codigo LIKE $qLike OR recebido_de LIKE $qLike OR assunto LIKE $qLike OR categoria LIKE $qLike OR especie_outro LIKE $qLike)")];
+}
+// Stats - com filtro de entidade + categoria + busca
+$totalAguardando = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'aguardando', 'is_deleted' => 0], $entityFilter, $qLikeCond));
+$totalRetiradas  = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'retirada', 'is_deleted' => 0], $entityFilter, $qLikeCond));
+$totalCanceladas = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'cancelada', 'is_deleted' => 0], $entityFilter, $qLikeCond));
 // Breakdown por espécie (para cards quando sem filtro)
 $especieCounts = [];
 if ($hasCategoriaCol && !$categoriaFiltro) {
     foreach ($especieKeys as $esp) {
         try {
-            $especieCounts[$esp] = countElementsInTable(Pasta::getTable(), array_merge(['categoria'=>$esp,'is_deleted'=>0], $entityFilterBase));
+            $especieCounts[$esp] = countElementsInTable(Pasta::getTable(), array_merge(['categoria'=>$esp,'is_deleted'=>0], $entityFilterBase, $qLikeCond));
         } catch (\Throwable $e) { $especieCounts[$esp] = 0; }
     }
 }
 $totalMes        = 0;
 try {
-    $whereMes = array_merge(['is_deleted' => 0, new \QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter);
+    $whereMes = array_merge(['is_deleted' => 0, new \QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter, $qLikeCond);
     $iterator = $DB->request([
         'COUNT' => 'cpt',
         'FROM'  => Pasta::getTable(),
@@ -87,7 +98,7 @@ try {
 $totalAtrasadas = 0;
 if ($alertaAtivo) {
     try {
-        $sql = "SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta;
+        $sql = "SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql $qWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta;
         $res = $DB->doQuery($sql);
         if ($res && $row = $DB->fetchAssoc($res)) $totalAtrasadas = (int)$row['cpt'];
     } catch (Throwable $e) { $totalAtrasadas = 0; }
@@ -106,7 +117,7 @@ try {
 }
 
 // Últimas aguardando — ESCOLA = ENTIDADE - com JOIN agregado para evitar N+1 + dias
-$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql ORDER BY p.data_recebimento DESC, p.id DESC LIMIT 12";
+$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql $qWhereSql ORDER BY p.data_recebimento DESC, p.id DESC LIMIT 12";
 $lastRows = [];
 $res = $DB->doQuery($lastSql);
 if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
@@ -137,7 +148,7 @@ if ($graficosAtivo) {
             $label = date('m/y', $ts);
             $months[$ym] = ['label' => $label, 'cpt' => 0];
         }
-        $sql = "SELECT DATE_FORMAT(data_recebimento, '%Y-%m') as ym, COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas WHERE is_deleted=0 $entityWhereSqlPasta $categoriaWhereSqlPasta AND data_recebimento >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
+        $sql = "SELECT DATE_FORMAT(data_recebimento, '%Y-%m') as ym, COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas WHERE is_deleted=0 $entityWhereSqlPasta $categoriaWhereSqlPasta $qWhereSqlPasta AND data_recebimento >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
         $res = $DB->doQuery($sql);
         if ($res) {
             while ($row = $DB->fetchAssoc($res)) {
@@ -155,7 +166,7 @@ if ($graficosAtivo) {
 
     // Tempo médio geral e por mês (últimos 6 meses por data_retirada)
     try {
-        $sql = "SELECT AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta $categoriaWhereSqlPasta";
+        $sql = "SELECT AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta $categoriaWhereSqlPasta $qWhereSqlPasta";
         $res = $DB->doQuery($sql);
         if ($res && $row = $DB->fetchAssoc($res)) $tempoMedioGeral = round((float)$row['media'], 1);
     } catch (Throwable $e) { $tempoMedioGeral = 0; }
@@ -168,7 +179,7 @@ if ($graficosAtivo) {
             $label = date('m/y', $ts);
             $months2[$ym] = ['label' => $label, 'media' => 0];
         }
-        $sql = "SELECT DATE_FORMAT(data_retirada, '%Y-%m') as ym, AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta $categoriaWhereSqlPasta AND data_retirada >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
+        $sql = "SELECT DATE_FORMAT(data_retirada, '%Y-%m') as ym, AVG(DATEDIFF(data_retirada, data_recebimento)) as media FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta $categoriaWhereSqlPasta $qWhereSqlPasta AND data_retirada >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
         $res = $DB->doQuery($sql);
         if ($res) {
             while ($row = $DB->fetchAssoc($res)) {
@@ -219,10 +230,18 @@ echo "</div>";
 echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
 echo "<button type='button' id='dash-filter-btn' class='pt-filter-toggle-btn' onclick=\"ptToggleFilter('dash-filter-content','dash-filter-btn','dash-filter-text','dash-filter-icon')\"><i class='ti ti-filter'></i> Filtros <span id='dash-filter-text'>Expandir</span> <i id='dash-filter-icon' class='ti ti-chevron-down ms-1'></i></button>";
 if ($categoriaFiltro) echo " <span class='pt-badge pt-badge-pasta ms-2'>Filtrando: " . htmlspecialchars(Pasta::getEspecieLabel($categoriaFiltro)) . "</span>";
+if ($qFiltro !== '') echo " <span class='pt-badge pt-badge-pasta ms-2'>Busca: " . htmlspecialchars($qFiltro) . "</span>";
 echo "<div id='dash-filter-content' class='collapsed' style='display:none;margin-top:12px;'>";
+echo "<form method='get' action='' style='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;'>";
+if ($categoriaFiltro) echo "<input type='hidden' name='categoria' value='" . htmlspecialchars($categoriaFiltro) . "'>";
+echo "<div class='pt-filter-search' style='flex:1;min-width:200px;'><input type='text' name='q' value='" . htmlspecialchars($qFiltro) . "' placeholder='Buscar por código, nome, assunto, tipo...' autocomplete='off'></div>";
+echo "<button class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-search'></i> Buscar</button>";
+if ($qFiltro !== '') echo "<a href='" . htmlspecialchars($clearUrl) . "' class='pt-btn pt-btn-secondary pt-btn-sm'>Limpar</a>";
+echo "</form>";
 echo "<div class='d-flex gap-2 flex-wrap align-items-center'>";
 echo "<span class='text-muted small'><i class='ti ti-filter'></i> Espécie:</span>";
 $baseUrl = strtok($_SERVER['REQUEST_URI'], '?');
+$clearUrl = $baseUrl . ($categoriaFiltro ? '?categoria=' . urlencode($categoriaFiltro) : '');
 $qBase = $_GET; unset($qBase['categoria']);
 $buildUrl = function($cat) use ($baseUrl, $qBase) {
     $q = $qBase;
