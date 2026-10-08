@@ -540,38 +540,36 @@ window.__ptRetWiz = 1;
 window.__ptRetTermos = [];
 window.ptRWizShow = function(n){
   window.__ptRetWiz = n;
-  [1, 2, 3, 4].forEach(function(i){
+  [1, 2, 3, 4, 5].forEach(function(i){
     var p = document.getElementById('pt-ret-w' + i);
     if (p) p.style.display = (i === n) ? '' : 'none';
   });
   var t = document.getElementById('pt-ret-wiz-title');
-  if (t) t.textContent = n === 4 ? 'Retirada concluída' : ('Retirada — Etapa ' + n + ' de 3');
+  if (t) t.textContent = n === 5 ? 'Retirada concluída' : ('Retirada — Etapa ' + n + ' de 4');
   var bar = document.getElementById('pt-ret-progress');
-  if (bar) bar.style.width = n === 4 ? '100%' : (n === 1 ? '33%' : (n === 2 ? '66%' : '100%'));
-  if (n === 3) setTimeout(ptRetFitCanvas, 60);
+  if (bar) bar.style.width = n === 5 ? '100%' : (['25%', '50%', '75%', '100%'][n - 1] || '25%');
+  if (n === 4) setTimeout(ptRetFitCanvas, 60);
 };
 window.ptRWizNext = function(cur){
   if (cur === 1) {
     var nm = document.getElementById('pt-ret-nome');
     if (!nm || !nm.value.trim()) { if (nm) nm.focus(); return; }
     ptRWizShow(2);
-  } else if (cur === 2) {
-    ptRWizShow(3);
+  } else if (cur === 3) {
+    ptRWizShow(4);
   }
+};
+window.ptRetChooseDoc = function(t){
+  window.__ptRetDocType = (t === 'rg') ? 'rg' : 'cpf';
+  var badge = document.getElementById('pt-ret-doc-badge');
+  if (badge) badge.textContent = window.__ptRetDocType.toUpperCase();
+  ptRetClearDoc();
+  ptRWizShow(3);
 };
 window.ptRetDocType = function(t, silent){
   window.__ptRetDocType = (t === 'rg') ? 'rg' : 'cpf';
-  document.querySelectorAll('.pt-ret-doctbtn').forEach(function(b){
-    var on = b.getAttribute('data-t') === window.__ptRetDocType;
-    b.style.borderColor = on ? '#4f46e5' : '';
-    b.style.background = on ? '#eef2ff' : '';
-    b.style.color = on ? '#4f46e5' : '';
-  });
-  var doc = document.getElementById('pt-ret-doc');
-  if (doc) {
-    doc.placeholder = window.__ptRetDocType === 'cpf' ? '000.000.000-00' : '00.000.000-0';
-    if (!silent) doc.focus();
-  }
+  var badge = document.getElementById('pt-ret-doc-badge');
+  if (badge) badge.textContent = window.__ptRetDocType.toUpperCase();
 };
 window.ptRetPrintTermos = function(){
   (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
@@ -671,9 +669,9 @@ window.ptSubmitRetirada = function(){
       if (btn) { btn.disabled = false; }
       if (d && d.ok) {
         window.__ptRetTermos = d.termos || [];
-        var info = document.getElementById('pt-ret-w4-info');
+        var info = document.getElementById('pt-ret-w5-info');
         if (info) info.textContent = d.done + ' pasta(s) retirada(s) com 1 assinatura. Os termos abrirão para impressão.';
-        ptRWizShow(4);
+        ptRWizShow(5);
         (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
       }
     })
