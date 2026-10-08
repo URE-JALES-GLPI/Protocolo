@@ -798,6 +798,15 @@ class Pasta extends CommonDBTM
         }
         $origemOutro = $this->fields['origem_outro'] ?? '';
         $origemEnt = (int)($this->fields['origem_entities_id'] ?? 0);
+        $escolaRestrict = [];
+        try {
+            if (function_exists('getSonsOf')) {
+                foreach (getSonsOf('glpi_entities', 1) as $eid) {
+                    $eid = (int)$eid;
+                    if ($eid !== 1) $escolaRestrict[] = $eid;
+                }
+            }
+        } catch (\Throwable $e) { $escolaRestrict = []; }
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Origem/Interessado', 'protocolo') . " <span class='required'>*</span> <small class='text-muted'>(de onde vem)</small></label></td>";
         echo "<td colspan='3'>";
@@ -819,7 +828,7 @@ class Pasta extends CommonDBTM
                 'comments' => false,
                 'entity' => 0,
                 'entity_sons' => true,
-            ]);
+            ] + (!empty($escolaRestrict) ? ['entity_restrict' => $escolaRestrict] : []));
         } catch (\Throwable $e) {
             echo "<select name='origem_entities_id' class='form-select' style='width:100%'><option value=''>-- Selecione --</option>";
             if ($origemEnt) { $n = self::getEscolaName($origemEnt); echo "<option value='$origemEnt' selected>" . htmlspecialchars($n) . "</option>"; }
@@ -859,7 +868,7 @@ class Pasta extends CommonDBTM
                 'comments' => false,
                 'entity' => 0,
                 'entity_sons' => true,
-            ]);
+            ] + (!empty($escolaRestrict) ? ['entity_restrict' => $escolaRestrict] : []));
         } catch (\Throwable $e) {
             echo "<select name='destino_entities_id' class='form-select' style='width:100%'><option value=''>-- Selecione --</option>";
             if ($destinoEnt) { $n = self::getEscolaName($destinoEnt); echo "<option value='$destinoEnt' selected>" . htmlspecialchars($n) . "</option>"; }
@@ -1099,7 +1108,7 @@ class Pasta extends CommonDBTM
                                     for(var oi=0; oi<allOpts.length; oi++){
                                         var oTxt = allOpts[oi].textContent.toLowerCase();
                                         if(oTxt.indexOf('--')===0) continue;
-                                        if(oTxt.indexOf('unidade regional')!==-1){ ureOpt=allOpts[oi]; break; }
+                                        if(oTxt.indexOf('unidade regional')!==-1 || allOpts[oi].value==='1'){ ureOpt=allOpts[oi]; break; }
                                     }
                                     if(ureOpt){
                                         escSel.dataset.ureBackup = ureOpt.outerHTML;
