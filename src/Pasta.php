@@ -918,7 +918,7 @@ class Pasta extends CommonDBTM
             echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='rg' onclick='ptRecDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='cpf' onclick='ptRecDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
-            echo "</div><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
+            echo "</div><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
             echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
             foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"$nk\")'>$nk</button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"clr\")'>C</button>";
@@ -951,7 +951,7 @@ class Pasta extends CommonDBTM
             echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='rg' onclick='ptRecbDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='cpf' onclick='ptRecbDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
-            echo "</div><div class='input-group'><input type='text' name='recebedor_documento' id='recebedor_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebedor_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
+            echo "</div><div class='input-group'><input type='text' name='recebedor_documento' id='recebedor_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebedor_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
             echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
             foreach (['7','8','9','4','5','6','1','2','3'] as $nkB) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"$nkB\")'>$nkB</button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"clr\")'>C</button>";
@@ -1135,18 +1135,17 @@ class Pasta extends CommonDBTM
             if(retDt) retDt.value = localVal;
 
             function formatCPF(v){
-                v=v.replace(/\\D/g,'').slice(0,11);
-                v=v.replace(/(\\d{3})(\\d)/,'\$1.\$2');
-                v=v.replace(/(\\d{3})(\\d)/,'\$1.\$2');
-                v=v.replace(/(\\d{3})(\\d{1,2})\$/,'\$1-\$2');
+                v=(''+(v||'')).replace(/\\D/g,'').slice(0,11);
+                if(v.length>9) return v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);
+                if(v.length>6) return v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);
+                if(v.length>3) return v.slice(0,3)+'.'+v.slice(3);
                 return v;
             }
             function formatRG(v){
-                v=v.replace(/[^0-9xX]/g,'').slice(0,9).toUpperCase();
-                if(v.length>2) v=v.replace(/^(\\d{2})(\\d)/,'\$1.\$2');
-                if(v.length>6) v=v.replace(/^(\\d{2})\\.(\\d{3})(\\d)/,'\$1.\$2.\$3');
-                if(v.length>9) v=v.replace(/^(\\d{2})\\.(\\d{3})\\.(\\d{3})([\\dX])/,'\$1.\$2.\$3-\$4');
-                else if(v.length>8) v=v.replace(/\\.(\\d{3})([\\dX])\$/,'.\$1-\$2');
+                v=(''+(v||'')).replace(/[^0-9xX]/g,'').slice(0,9).toUpperCase();
+                if(v.length>8) return v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5,8)+'-'+v.slice(8);
+                if(v.length>5) return v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5);
+                if(v.length>2) return v.slice(0,2)+'.'+v.slice(2);
                 return v;
             }
             function setupDoc(tipoSel, docInput, hint){
