@@ -1151,7 +1151,8 @@ class Pasta extends CommonDBTM
             function setupDoc(tipoSel, docInput, hint){
                 if(!tipoSel || !docInput) return;
                 function update(){
-                    var tipo=tipoSel.value;
+                    var tipo=(tipoSel.value === 'rg') ? 'rg' : 'cpf';
+                    tipoSel.value = tipo;
                     if(tipo==='cpf'){
                         docInput.placeholder='000.000.000-00';
                         docInput.maxLength=14;
@@ -1166,8 +1167,8 @@ class Pasta extends CommonDBTM
                 }
                 tipoSel.addEventListener('change', update);
                 docInput.addEventListener('input', function(){
-                    if(tipoSel.value==='cpf') this.value=formatCPF(this.value);
-                    else this.value=formatRG(this.value);
+                    if(tipoSel.value==='rg') this.value=formatRG(this.value);
+                    else this.value=formatCPF(this.value);
                 });
                 update();
             }
@@ -1532,7 +1533,7 @@ class Pasta extends CommonDBTM
                 if(ov) ov.style.display = 'none';
                 ptWizShow(6);
             };
-            if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); }
+            if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; var dh1=document.getElementById('recebedor_documento_tipo'); if(dh1 && dh1.value!=='rg') dh1.value='cpf'; ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); }
             function ptSchoolEnsure(){
                 var ov = document.getElementById('pt-school-overlay');
                 if(ov) return ov;
