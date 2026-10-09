@@ -693,11 +693,7 @@ class Pasta extends CommonDBTM
         // Usa layout GLPI padrão: tab_cadre_fixe
         echo "<div class='spaced'><table class='tab_cadre_fixe'>";
         if ($isNew) {
-            echo "<div id='pt-wiz-ind' style='display:flex;align-items:center;gap:10px;margin:2px 8px 12px;flex-wrap:wrap;'>";
-            echo "<span style='font-size:.8rem;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;'>Registrar Entrada</span>";
-            echo "<span style='color:#cbd5e1;'>•</span>";
-            echo "<span id='pt-wiz-steptitle' style='font-size:1rem;font-weight:800;color:#1e1b4b;'>Etapa 1 de 9 — Quem recebe</span>";
-            echo "</div>";
+            echo "<div id='pt-wiz-ind' style='display:none' aria-hidden='true'></div>";
             echo "<tbody data-ptstep='1'>";
             echo "<tr class='tab_bg_1'><td colspan='4'>";
             echo "<div style='font-weight:800;font-size:1rem;margin-bottom:4px;'>Quem vai receber?</div>";
@@ -991,28 +987,30 @@ class Pasta extends CommonDBTM
         // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
             echo "<div data-ptstep='9' style='display:none'>";
+            echo "<div class='spaced'><div class='pt-s9-card'>";
+            echo "<div class='pt-s9-head'><span class='pt-s9-ico'><i class='ti ti-list-check'></i></span><div><div class='pt-s9-title'>" . __('Itens da pasta', 'protocolo') . "</div><div class='pt-s9-sub'>" . __('Marque os tipos e confira os itens gerados', 'protocolo') . "</div></div></div>";
+            echo "<div class='pt-s9-summary' role='status'><i class='ti ti-info-circle'></i><span id='pt-itens-count'>0 item(ns)</span><span class='pt-s9-dot'>•</span><span><span id='pt-tipos-count'>0</span> " . __('tipo(s) selecionado(s)', 'protocolo') . "</span></div>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
             $lastTipos = array_map('intval', (array)$lastTipos);
-            echo "<div class='spaced'><div class='card border-warning mb-3'><div class='card-header bg-warning bg-opacity-10 d-flex align-items-center justify-content-between flex-wrap gap-2'><div class='d-flex align-items-center gap-2'><span class='fw-bold'><i class='ti ti-tags'></i> " . __('Quais tipos de arquivos', 'protocolo') . " <span class='text-danger'>*</span></span><span class='badge bg-light text-muted border fw-normal'> " . __('marque as caixinhas', 'protocolo') . "</span></div><a href='" . TipoArquivo::getSearchURL() . "' target='_blank' class='btn btn-sm btn-outline-secondary'><i class='ti ti-settings'></i> " . __('Gerenciar tipos', 'protocolo') . "</a></div>";
-            echo "<div class='card-body'>";
+            echo "<div class='pt-s9-sec'><div class='pt-s9-sec-head'><span class='pt-s9-sec-title'><i class='ti ti-tags'></i> " . __('Quais tipos de arquivos', 'protocolo') . " <span class='required'>*</span></span><span class='pt-s9-actions'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptTiposAll(true)'>Marcar todos</button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptTiposAll(false)'>Limpar</button><a href='" . TipoArquivo::getSearchURL() . "' target='_blank' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-settings'></i> " . __('Gerenciar tipos', 'protocolo') . "</a></span></div>";
             if (!$tipos) {
                 echo "<div class='alert alert-warning small'>" . __('Nenhum tipo cadastrado', 'protocolo') . " <a href='" . TipoArquivo::getSearchURL() . "'>" . __('Cadastre', 'protocolo') . "</a></div>";
             } else {
-                echo "<div class='row g-2'>";
+                echo "<div class='pt-tipo-chips'>";
                 foreach ($tipos as $t) {
                     $checked = in_array((int)$t['id'], $lastTipos) ? 'checked' : '';
-                    echo "<div class='col-md-4 col-sm-6'><div class='form-check'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . Html::cleanInputText($t['name']) . "' $checked><label class='form-check-label' for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></div></div>";
+                    echo "<span class='pt-tipo-chip'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . Html::cleanInputText($t['name']) . "' $checked><label for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></span>";
                 }
                 echo "</div>";
                 echo "<div class='form-text mt-2'>" . __('Selecione pelo menos 1. Os itens abaixo são preenchidos automaticamente', 'protocolo') . "</div>";
             }
-            echo "</div></div></div>";
+            echo "</div>";
 
             $lastItens = $lastInput['itens'] ?? [];
-            echo "<div class='spaced'><div class='d-flex justify-content-between align-items-center mb-2'><h3 class='mb-0'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " *</h3><span id='pt-itens-count' class='badge bg-secondary'>0 item(ns)</span></div>";
-            echo "<div class='row g-2 mb-1 text-muted small' style='font-weight:700;'><div class='col-md-7'>Descrição</div><div class='col-md-2'>Qtd</div><div class='col-md-2'>Obs.</div><div class='col-md-1'></div></div>";
+            echo "<div class='pt-s9-sec'><div class='pt-s9-sec-head'><span class='pt-s9-sec-title'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " <span class='required'>*</span></span><button type='button' id='btnAddItem' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-plus'></i> " . __('Adicionar item', 'protocolo') . "</button></div>";
+            echo "<div class='row g-2 mb-1 pt-s9-cols' aria-hidden='true'><div class='col-md-7'>Descrição</div><div class='col-md-2'>Qtd</div><div class='col-md-2'>Obs.</div><div class='col-md-1'></div></div>";
             if (!empty($lastItens) && is_array($lastItens)) {
                 echo "<div id='itensWrap'>";
                 foreach ($lastItens as $idx => $it) {
@@ -1026,7 +1024,8 @@ class Pasta extends CommonDBTM
             } else {
                 echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div></div>";
             }
-            echo "<div class='form-text mb-3'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
+            echo "<div class='form-text mb-0'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
+            echo "</div></div>";
             echo "</div>";
         }
 
@@ -1524,6 +1523,27 @@ class Pasta extends CommonDBTM
                 if(cc) cc.textContent = n + ' item(ns)';
             }
             if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; var dh1=document.getElementById('recebedor_documento_tipo'); if(dh1 && dh1.value!=='rg') dh1.value='cpf'; ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); ptNRecBind(); ptRecebLoad(); var iw0=document.getElementById('itensWrap'); if(iw0){ iw0.addEventListener('input', ptItensCount); iw0.addEventListener('click', function(){ setTimeout(ptItensCount, 60); }); try { new MutationObserver(ptItensCount).observe(iw0, {childList: true, subtree: true}); } catch(e1) {} ptItensCount(); } }
+            window.ptTiposCount = function(){
+                try{
+                    var el = document.getElementById('pt-tipos-count');
+                    if(el) el.textContent = String(document.querySelectorAll('.tipo-check:checked').length);
+                }catch(eTC){}
+            };
+            window.ptTiposAll = function(on){
+                try{
+                    var want = !!on;
+                    document.querySelectorAll('.tipo-check').forEach(function(c){ if(c.checked !== want){ c.checked = want; c.dispatchEvent(new Event('change', {bubbles: true})); } });
+                    ptTiposCount();
+                }catch(eTA){}
+            };
+            function ptTiposCountInit(){
+                try{
+                    var f = document.getElementById('plugin_protocolo_pasta_form');
+                    if(f) f.addEventListener('change', function(e){ if(e.target && e.target.classList && e.target.classList.contains('tipo-check')) ptTiposCount(); });
+                    ptTiposCount();
+                }catch(eTI){}
+            }
+            if(document.getElementById('pt-wiz-ind')){ try{ ptTiposCountInit(); }catch(eTCI){} }
             window.__ptRecebId = null;
             window.__ptNRecDrawn = false;
             window.__ptNRecDoc = 'cpf';

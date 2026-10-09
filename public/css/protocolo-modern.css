@@ -161,8 +161,45 @@ a.pt-dash-card:hover{box-shadow:0 4px 16px rgba(79,70,229,.12);border-color:#c7d
 .pt-modal-lg{max-width:960px}
 @keyframes ptModalIn{from{opacity:0;transform:translateY(-20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .pt-modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border-radius:20px 20px 0 0;flex-shrink:0}
-.pt-modal-title{display:flex;align-items:center;gap:12px;font-size:1.05rem;font-weight:700}
+.pt-modal-title{display:flex;align-items:center;gap:12px;font-size:1.05rem;font-weight:700;flex-wrap:wrap}
 .pt-modal-title .ti{font-size:1.3rem;background:rgba(255,255,255,.2);padding:7px;border-radius:10px}
+/* ---- Etapa do wizard junto ao título (pílula sobre o cabeçalho verde) ---- */
+.pt-step-badge{display:inline-flex;align-items:center;font-size:.78rem;font-weight:700;line-height:1;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;white-space:nowrap;letter-spacing:.2px}
+@media (max-width:768px){
+  .pt-step-badge{font-size:.72rem;padding:4px 10px;white-space:normal}
+}
+/* ---- Etapa 9 (Itens): cartão, resumo, chips de tipos, linhas de itens ---- */
+.pt-s9-card{background:#fff;border:1.5px solid #e8eaf0;border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.pt-s9-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.pt-s9-ico{width:44px;height:44px;flex-shrink:0;border-radius:12px;background:linear-gradient(135deg,#16a34a,#059669);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem}
+.pt-s9-title{font-weight:800;font-size:1.05rem;color:#1e1b4b}
+.pt-s9-sub{font-size:.82rem;color:#6b7280}
+.pt-s9-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#f0fdf4;border:1px solid #bbf7d0;color:#065f46;border-radius:10px;padding:8px 12px;font-size:.85rem;font-weight:700;margin-bottom:14px}
+.pt-s9-summary .pt-s9-dot{color:#6ee7b7}
+.pt-s9-sec{margin-bottom:16px}
+.pt-s9-sec:last-child{margin-bottom:0}
+.pt-s9-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pt-s9-sec-title{font-weight:800;font-size:.95rem;color:#1e1b4b;display:flex;align-items:center;gap:8px}
+.pt-s9-sec-title .ti{color:#059669}
+.pt-s9-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pt-tipo-chips{display:flex;flex-wrap:wrap;gap:8px}
+.pt-tipo-chip{position:relative;display:inline-flex}
+.pt-tipo-chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.pt-tipo-chip label{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;border:1.5px solid #e5e7eb;background:#f8fafc;color:#374151;font-size:.85rem;font-weight:600;cursor:pointer;min-height:40px}
+.pt-tipo-chip label::before{content:'';width:8px;height:8px;border-radius:50%;background:#cbd5e1;flex-shrink:0}
+.pt-tipo-chip label:hover{border-color:#6ee7b7;background:#f0fdf4}
+.pt-tipo-chip input:checked+label{background:#059669;border-color:#059669;color:#fff;box-shadow:0 2px 8px rgba(5,150,105,.35)}
+.pt-tipo-chip input:checked+label::before{background:#fff}
+.pt-tipo-chip input:focus-visible+label{outline:2px solid #059669;outline-offset:2px}
+.pt-s9-cols{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#9ca3af}
+#itensWrap .item-row{align-items:center}
+#itensWrap .item-row:nth-child(even){background:#f8fafc;border-radius:10px}
+#itensWrap .item-row .btnRemove{min-height:40px;min-width:44px}
+@media (max-width:768px){
+  .pt-s9-card{padding:12px}
+  .pt-s9-cols{display:none}
+  .pt-s9-summary{font-size:.8rem}
+}
 .pt-modal-close{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:1rem;transition:background .15s;line-height:1}
 .pt-modal-close:hover{background:rgba(255,255,255,.3)}
 .pt-modal-body{padding:20px 24px;overflow-y:auto;max-height:70vh}
