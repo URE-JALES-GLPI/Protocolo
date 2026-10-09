@@ -426,6 +426,42 @@ window.ptDashTab = function(ev, tab) {
   return false;
 };
 
+window.ptFormatDoc = function(v, tipo){
+  var t = (tipo === 'rg') ? 'rg' : 'cpf';
+  if (t === 'rg') {
+    v = ('' + (v || '')).replace(/[^0-9xX]/g, '').slice(0, 9).toUpperCase();
+    if (v.length > 8) return v.slice(0, 2) + '.' + v.slice(2, 5) + '.' + v.slice(5, 8) + '-' + v.slice(8);
+    if (v.length > 5) return v.slice(0, 2) + '.' + v.slice(2, 5) + '.' + v.slice(5);
+    if (v.length > 2) return v.slice(0, 2) + '.' + v.slice(2);
+    return v;
+  }
+  v = ('' + (v || '')).replace(/\D/g, '').slice(0, 11);
+  if (v.length > 9) return v.slice(0, 3) + '.' + v.slice(3, 6) + '.' + v.slice(6, 9) + '-' + v.slice(9);
+  if (v.length > 6) return v.slice(0, 3) + '.' + v.slice(3, 6) + '.' + v.slice(6);
+  if (v.length > 3) return v.slice(0, 3) + '.' + v.slice(3);
+  return v;
+};
+
+function ptRetBindDocInput(){
+  var inp = document.getElementById('pt-ret-doc-input');
+  if (!inp || inp.dataset.maskBound) return;
+  inp.dataset.maskBound = '1';
+  inp.addEventListener('input', function(){
+    var t = window.__ptRetDocType || 'cpf';
+    var isRg = (t === 'rg');
+    var raw = isRg
+      ? ('' + (inp.value || '')).replace(/[^0-9xX]/g, '').toUpperCase().slice(0, 9)
+      : ('' + (inp.value || '')).replace(/\D/g, '').slice(0, 11);
+    var h = document.getElementById('pt-ret-doc');
+    if (h) h.value = raw;
+    var fmt = window.ptFormatDoc(raw, t);
+    if (inp.value !== fmt) inp.value = fmt;
+  });
+}
+document.addEventListener('focusin', function(e){
+  if (e.target && e.target.id === 'pt-ret-doc-input') ptRetBindDocInput();
+});
+
 window.__ptRetIds = [];
 window.__ptRetDrawn = false;
 function ptRetSelected(){
@@ -470,14 +506,15 @@ window.ptOpenRetiradaModal = function(ids){
   if (nm) nm.value = '';
   var dc = document.getElementById('pt-ret-doc');
   if (dc) dc.value = '';
-  var dd = document.getElementById('pt-ret-doc-display');
-  if (dd) { dd.textContent = 'Toque nos números'; dd.style.color = '#9ca3af'; }
+  var di = document.getElementById('pt-ret-doc-input');
+  if (di) di.value = '';
   var ob = document.getElementById('pt-ret-obs');
   if (ob) ob.value = '';
   window.__ptRetDocType = 'cpf';
   ptRetDocType('cpf', true);
   ptRetClearCanvas();
   ptRWizShow(1);
+  ptRetBindDocInput();
   ov.classList.add('open');
   document.body.style.overflow = 'hidden';
   setTimeout(ptRetFitCanvas, 60);
@@ -530,19 +567,24 @@ window.ptRetPress = function(d){
   var h = document.getElementById('pt-ret-doc');
   if (!h) return;
   var t = window.__ptRetDocType || 'cpf';
-  var max = (t === 'rg') ? 9 : 11;
-  var v = (h.value || '').replace(/\D/g, '');
+  var isRg = (t === 'rg');
+  var max = isRg ? 9 : 11;
+  var v = isRg
+    ? ('' + (h.value || '')).replace(/[^0-9xX]/g, '').toUpperCase().slice(0, 9)
+    : ('' + (h.value || '')).replace(/\D/g, '').slice(0, 11);
   if (d === 'del') v = v.slice(0, -1);
-  else if (/^[0-9]$/.test(d) && v.length < max) v += d;
+  else if (isRg ? /^[0-9xX]$/i.test(d) : /^[0-9]$/.test(d)) {
+    if (v.length < max) v += String(d).toUpperCase();
+  }
   h.value = v;
-  var disp = document.getElementById('pt-ret-doc-display');
-  if (disp) { disp.textContent = v || 'Toque nos números'; disp.style.color = v ? '#1e1b4b' : '#9ca3af'; }
+  var vis = document.getElementById('pt-ret-doc-input');
+  if (vis) vis.value = window.ptFormatDoc(v, t);
 };
 window.ptRetClearDoc = function(){
   var h = document.getElementById('pt-ret-doc');
   if (h) h.value = '';
-  var disp = document.getElementById('pt-ret-doc-display');
-  if (disp) { disp.textContent = 'Toque nos números'; disp.style.color = '#9ca3af'; }
+  var vis = document.getElementById('pt-ret-doc-input');
+  if (vis) vis.value = '';
 };
 function ptRetFitCanvas(){
   var c = document.getElementById('pt-ret-canvas');
@@ -678,6 +720,7 @@ window.ptSetInvView = function(v){
 };
 document.addEventListener('DOMContentLoaded', function(){
   ptRetBindCanvas();
+  ptRetBindDocInput();
   ptRetRefreshBar();
   var cur = null;
   var tw = document.getElementById('pt-aguard-table');

@@ -702,7 +702,7 @@ class Pasta extends CommonDBTM
             echo "<tr class='tab_bg_1'><td colspan='4'>";
             echo "<div style='font-weight:800;font-size:1rem;margin-bottom:4px;'>Quem vai receber?</div>";
             echo "<div class='text-muted small' style='margin-bottom:10px;'>Selecione o atendente responsável. A assinatura cadastrada será usada no termo.</div>";
-            echo "<div id='pt-receb-list' style='display:flex;flex-direction:column;gap:8px;'></div>";
+            echo "<select id='pt-receb-select' class='form-select' style='font-size:1.05rem;padding:12px;'><option value=''>-- " . __('Carregando recebedores...', 'protocolo') . " --</option></select>";
             echo "<button type='button' class='pt-btn pt-btn-secondary' style='margin-top:10px;' onclick='ptRecNewOpen()'><i class='ti ti-plus'></i> Novo recebedor</button>";
             echo "<input type='hidden' name='recebedor_nome' id='recebedor_nome' value='" . Html::cleanInputText($this->fields['recebedor_nome'] ?? '') . "'>";
             echo "<input type='hidden' name='recebedor_documento' id='recebedor_documento_h' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "'>";
@@ -718,6 +718,12 @@ class Pasta extends CommonDBTM
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-nrecdoct-btn' data-t='rg' onclick='ptNRecDocType(\"rg\")' style='flex:1;'>RG</button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-nrecdoct-btn' data-t='cpf' onclick='ptNRecDocType(\"cpf\")' style='flex:1;'>CPF</button>";
             echo "</div><input type='text' id='pt-nrec-doc' class='form-control' placeholder='Somente números' maxlength='14' inputmode='numeric'><input type='hidden' id='pt-nrec-doctipo' value='cpf'></div>";
+            echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;margin-bottom:12px;'>";
+            foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"$nk\")'>$nk</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"clr\")'>C</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"0\")'>0</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
+            echo "</div>";
             echo "<div style='margin-bottom:12px;'><label class='form-label'>Assinatura *</label><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-nrec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='text-align:right;margin-top:6px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptNRecClear()'>Limpar</button></div></div>";
             echo "<div id='pt-nrec-err' style='display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.85rem;'></div>";
             echo "<button type='button' id='pt-nrec-save' class='pt-btn pt-btn-green' style='width:100%;' onclick='ptNRecSave()'><i class='ti ti-check'></i> Salvar recebedor</button>";
@@ -1082,7 +1088,13 @@ class Pasta extends CommonDBTM
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='retirar'>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Retirado por', 'protocolo') . " *</label><input name='retirado_por' class='form-control' required placeholder='" . __('Nome de quem retirou', 'protocolo') . "'></div>";
-                echo "<div class='mb-2'><label class='form-label'>" . __('Documento', 'protocolo') . "</label><div class='input-group'><select name='retirado_documento_tipo' id='retirado_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'>CPF</option><option value='rg'>RG</option></select><input name='retirado_documento' id='retirado_documento' class='form-control' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='retirado_doc_hint'>CPF: 11 dígitos | RG: 7-9 dígitos</small></div>";
+                echo "<div class='mb-2'><label class='form-label'>" . __('Documento', 'protocolo') . "</label><div class='input-group'><select name='retirado_documento_tipo' id='retirado_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'>CPF</option><option value='rg'>RG</option></select><input name='retirado_documento' id='retirado_documento' class='form-control' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='retirado_doc_hint'>CPF: 11 dígitos | RG: 7-9 dígitos</small>";
+                echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
+                foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"retirado_documento\",\"retirado_documento_tipo\",\"$nk\")'>$nk</button>";
+                echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"retirado_documento\",\"retirado_documento_tipo\",\"clr\")'>C</button>";
+                echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"retirado_documento\",\"retirado_documento_tipo\",\"0\")'>0</button>";
+                echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"retirado_documento\",\"retirado_documento_tipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
+                echo "</div></div>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Data/hora retirada', 'protocolo') . "</label><input type='datetime-local' name='data_retirada' id='data_retirada_field' class='form-control' value='" . date('Y-m-d\TH:i') . "'></div>";
                 echo "<div class='mb-3'><label class='form-label'>" . __('Observação', 'protocolo') . "</label><textarea name='observacao_retirada' class='form-control' rows='2'></textarea></div>";
                 echo "<button class='pt-btn pt-btn-green w-100'><i class='ti ti-check'></i> " . __('Confirmar retirada', 'protocolo') . "</button>";
@@ -1162,6 +1174,14 @@ class Pasta extends CommonDBTM
             setupDoc(document.getElementById('recebido_documento_tipo'), document.getElementById('recebido_documento'), document.getElementById('recebido_doc_hint'));
             setupDoc(document.getElementById('recebedor_documento_tipo'), document.getElementById('recebedor_documento'), document.getElementById('recebedor_doc_hint'));
             setupDoc(document.getElementById('retirado_documento_tipo'), document.getElementById('retirado_documento'), document.getElementById('retirado_doc_hint'));
+            var ptNrecDocEl = document.getElementById('pt-nrec-doc');
+            if(ptNrecDocEl && !ptNrecDocEl.dataset.mask){
+                ptNrecDocEl.dataset.mask = '1';
+                ptNrecDocEl.addEventListener('input', function(){
+                    if(window.__ptNRecDoc === 'rg') this.value = formatRG(this.value);
+                    else this.value = formatCPF(this.value);
+                });
+            }
 
             // Origem/Destino toggle + compat escola_id
             function setupOrigemDestino(){
@@ -1291,7 +1311,7 @@ class Pasta extends CommonDBTM
                 if(d > 0){
                     if(cur === 1){
                         var rpk = document.getElementById('recebedor_nome');
-                        if(!rpk || !rpk.value.trim()){ ptWizAlertMsg('Selecione quem vai receber.', document.getElementById('pt-receb-list')); return; }
+                        if(!rpk || !rpk.value.trim()){ ptWizAlertMsg('Selecione quem vai receber.', document.getElementById('pt-receb-select')); return; }
                     } else if(cur === 2){
                         var esp = document.getElementById('especieSelect');
                         if(!esp || !esp.value){ ptWizAlertMsg('Selecione a Espécie.', esp); return; }
@@ -1513,71 +1533,78 @@ class Pasta extends CommonDBTM
                 return m ? m[1] : '/plugins/protocolo';
             }
             function ptRecebLoad(selectedId){
-                var box = document.getElementById('pt-receb-list');
-                if(!box) return;
-                box.innerHTML = '<div class=\"text-muted small\">Carregando...</div>';
+                var sel = document.getElementById('pt-receb-select');
+                if(!sel) return;
+                sel.innerHTML = '';
+                var lo = document.createElement('option');
+                lo.value = '';
+                lo.textContent = '-- Carregando... --';
+                sel.appendChild(lo);
                 fetch(ptRecebBase() + '/ajax/recebedor.php?action=list', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
                     .then(function(r){ return r.json(); })
                     .then(function(d){
-                        box.innerHTML = '';
+                        window.__ptRecebData = {};
+                        sel.innerHTML = '';
+                        var first = document.createElement('option');
+                        first.value = '';
+                        first.textContent = '-- Selecione o recebedor --';
+                        sel.appendChild(first);
                         var items = (d && d.items) || [];
-                        if(!items.length) box.innerHTML = '<div class=\"text-muted small\">Nenhum recebedor cadastrado. Cadastre o primeiro abaixo.</div>';
                         items.forEach(function(t){
-                            var b = document.createElement('button');
-                            b.type = 'button';
-                            b.className = 'pt-receb-opt';
-                            b.dataset.id = t.id;
-                            b.style.cssText = 'display:flex;align-items:center;gap:10px;text-align:left;background:#fff;border:1.5px solid #e8eaf0;border-radius:12px;padding:12px;cursor:pointer;width:100%;';
-                            var ini = document.createElement('span');
-                            ini.style.cssText = 'width:44px;height:44px;border-radius:50%;background:#eef2ff;color:#4f46e5;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;';
-                            ini.textContent = ((t.name || '?').trim().charAt(0) || '?').toUpperCase();
-                            var tx = document.createElement('span');
-                            tx.style.cssText = 'flex:1;min-width:0;';
-                            var nm = document.createElement('div');
-                            nm.style.cssText = 'font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-                            nm.textContent = t.name;
-                            tx.appendChild(nm);
-                            if(t.doc){
-                                var dc = document.createElement('div');
-                                dc.className = 'text-muted small';
-                                dc.textContent = ((t.doc_tipo || '').toUpperCase()) + ' ' + t.doc;
-                                tx.appendChild(dc);
-                            }
-                            b.appendChild(ini);
-                            b.appendChild(tx);
-                            if(t.image){
-                                var im = document.createElement('img');
-                                im.src = t.image;
-                                im.alt = '';
-                                im.style.cssText = 'height:36px;max-width:90px;object-fit:contain;background:#fff;border:1px solid #e8eaf0;border-radius:6px;flex-shrink:0;';
-                                b.appendChild(im);
-                            }
-                            b.addEventListener('click', function(){ ptRecebPick(t); });
-                            box.appendChild(b);
+                            var id = t.id;
+                            var nome = t.nome || t.name || '';
+                            var doc = t.documento || t.doc || '';
+                            var tipo = t.tipo || t.doc_tipo || 'cpf';
+                            var img = t.image || '';
+                            window.__ptRecebData[String(id)] = {nome: nome, documento: doc, tipo: tipo, image: img};
+                            var o = document.createElement('option');
+                            o.value = String(id);
+                            o.textContent = doc ? (nome + ' (' + doc + ')') : nome;
+                            sel.appendChild(o);
                         });
-                        ptRecebPaint(selectedId);
+                        if(selectedId) sel.value = String(selectedId);
+                        else sel.value = '';
+                        if(selectedId && sel.value){
+                            var row0 = window.__ptRecebData[sel.value];
+                            if(row0){
+                                var n0 = document.getElementById('recebedor_nome');
+                                if(n0) n0.value = row0.nome || '';
+                                var d0 = document.getElementById('recebedor_documento_h');
+                                if(d0) d0.value = row0.documento || '';
+                                var t0 = document.getElementById('recebedor_documento_tipo_h');
+                                if(t0) t0.value = row0.tipo || 'cpf';
+                                var i0 = document.getElementById('pt-recb-image');
+                                if(i0) i0.value = row0.image || '';
+                                window.__ptRecebId = sel.value;
+                            }
+                        }
+                        if(!sel.dataset.bound){
+                            sel.dataset.bound = '1';
+                            sel.addEventListener('change', function(){
+                                var row = window.__ptRecebData ? window.__ptRecebData[sel.value] : null;
+                                if(row){
+                                    window.__ptRecebId = sel.value;
+                                    var n = document.getElementById('recebedor_nome');
+                                    if(n) n.value = row.nome || '';
+                                    var dd = document.getElementById('recebedor_documento_h');
+                                    if(dd) dd.value = row.documento || '';
+                                    var dt = document.getElementById('recebedor_documento_tipo_h');
+                                    if(dt) dt.value = row.tipo || 'cpf';
+                                    var im = document.getElementById('pt-recb-image');
+                                    if(im) im.value = row.image || '';
+                                } else {
+                                    window.__ptRecebId = null;
+                                }
+                            });
+                        }
                     })
-                    .catch(function(){ box.innerHTML = '<div class=\"text-muted small\">Falha ao carregar. Recarregue a página.</div>'; });
-            }
-            function ptRecebPaint(selectedId){
-                var cur = selectedId || window.__ptRecebId || null;
-                document.querySelectorAll('.pt-receb-opt').forEach(function(b){
-                    var on = cur && String(b.dataset.id) === String(cur);
-                    b.style.borderColor = on ? '#16a34a' : '#e8eaf0';
-                    b.style.background = on ? '#f0fdf4' : '#fff';
-                });
-            }
-            function ptRecebPick(t){
-                window.__ptRecebId = t.id;
-                var n = document.getElementById('recebedor_nome');
-                if(n) n.value = t.name || '';
-                var d = document.getElementById('recebedor_documento_h');
-                if(d) d.value = t.doc || '';
-                var dt = document.getElementById('recebedor_documento_tipo_h');
-                if(dt) dt.value = t.doc_tipo || 'cpf';
-                var im = document.getElementById('pt-recb-image');
-                if(im) im.value = t.image || '';
-                ptRecebPaint(t.id);
+                    .catch(function(){
+                        sel.innerHTML = '';
+                        var e = document.createElement('option');
+                        e.value = '';
+                        e.textContent = '-- Falha ao carregar --';
+                        sel.appendChild(e);
+                    });
             }
             window.ptRecNewOpen = function(){
                 var ov = document.getElementById('pt-recnew-overlay');
@@ -1605,6 +1632,15 @@ class Pasta extends CommonDBTM
                     b.style.background = on ? '#f0fdf4' : '';
                     b.style.color = on ? '#16a34a' : '';
                 });
+                var ht = document.getElementById('pt-nrec-doctipo');
+                if(ht) ht.value = (window.__ptNRecDoc === 'rg' ? 'rg' : 'cpf');
+                var dc = document.getElementById('pt-nrec-doc');
+                if(dc){
+                    dc.placeholder = (window.__ptNRecDoc === 'rg' ? '00.000.000-0' : '000.000.000-00');
+                    dc.maxLength = (window.__ptNRecDoc === 'rg' ? 12 : 14);
+                    if(window.__ptNRecDoc === 'rg') dc.value = formatRG(dc.value);
+                    else dc.value = formatCPF(dc.value);
+                }
             };
             function ptNRecFit(){
                 var c = document.getElementById('pt-nrec-canvas');

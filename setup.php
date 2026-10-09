@@ -72,6 +72,7 @@ function plugin_init_protocolo(): void
         'addtabon' => ['Central']
     ]);
     Plugin::registerClass(\GlpiPlugin\Protocolo\Escola::class);
+    Plugin::registerClass(\GlpiPlugin\Protocolo\Recebedor::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\TipoArquivo::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\Termo::class);
     Plugin::registerClass(\GlpiPlugin\Protocolo\Notificacao::class);

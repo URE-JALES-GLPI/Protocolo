@@ -355,7 +355,7 @@ echo "<button type='button' class='pt-btn pt-btn-secondary' style='width:100%;' 
 echo "</div>";
 echo "<div id='pt-ret-w3' class='pt-modal-body' style='display:none;'>";
 echo "<div style='text-align:center;margin-bottom:12px;'><div style='font-weight:800;font-size:1.05rem;color:#1e1b4b;'>3. Número do documento</div><button type='button' id='pt-ret-doc-badge' onclick='ptRWizShow(2)' title='Trocar tipo' style='background:#4f46e5;color:#fff;padding:4px 12px;border-radius:8px;font-weight:700;font-size:.8rem;border:0;cursor:pointer;'>CPF</button></div>";
-echo "<div id='pt-ret-doc-display' style='background:#f8fafc;border:2px solid #e8eaf0;border-radius:10px;padding:12px;font-size:1.4rem;font-weight:700;text-align:center;letter-spacing:3px;min-height:62px;color:#9ca3af;'>Toque nos números</div>";
+echo "<input id='pt-ret-doc-input' type='text' inputmode='numeric' autocomplete='off' class='form-control' placeholder='Digite ou toque nos números' style='background:#f8fafc;border:2px solid #e8eaf0;border-radius:10px;padding:12px;font-size:1.4rem;font-weight:700;text-align:center;letter-spacing:3px;color:#1e1b4b;'>";
 echo "<input type='hidden' id='pt-ret-doc' value=''>";
 echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
 foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:14px;font-size:1.2rem;font-weight:700;' onclick='ptRetPress(\"$nk\")'>$nk</button>";
