@@ -703,18 +703,10 @@ class Pasta extends CommonDBTM
             echo "<span class='pt-wiz-dot' data-s='7' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>7</span> Recebedor</span>";
             echo "<span class='pt-wiz-dot' data-s='8' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>8</span> Doc</span>";
             echo "<span class='pt-wiz-dot' data-s='9' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>9</span> Assinatura</span>";
-            echo "<span class='pt-wiz-dot' data-s='10' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>10</span> Itens</span>";
+            echo "<span class='pt-wiz-dot' data-s='10' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>10</span> Devolver</span>";
+            echo "<span class='pt-wiz-dot' data-s='11' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>11</span> Itens</span>";
             echo "</div>";
             echo "<tbody data-ptstep='1'>";
-        }
-        if ($isNew) {
-            echo "<div id='pt-dev-overlay' style='display:none;position:fixed;inset:0;background:rgba(17,24,39,.6);z-index:10090;align-items:center;justify-content:center;padding:20px;'>";
-            echo "<div style='background:#fff;border-radius:16px;max-width:420px;width:100%;padding:28px 24px;text-align:center;'>";
-            echo "<div style='width:64px;height:64px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;'><i class='ti ti-device-tablet' style='font-size:1.8rem;color:#fff;'></i></div>";
-            echo "<div style='font-weight:800;font-size:1.1rem;margin-bottom:8px;'>Devolva o tablet ao responsável</div>";
-            echo "<p style='font-size:.9rem;color:#6b7280;'>Para finalizar a entrega, devolva o equipamento ao responsável do protocolo e continue.</p>";
-            echo "<button type='button' class='pt-btn pt-btn-green' style='width:100%;' onclick='ptDevOk()'>Entendi, continuar</button>";
-            echo "</div></div>";
         }
 
         if (!$isNew) {
@@ -961,6 +953,12 @@ class Pasta extends CommonDBTM
             echo "<tr class='tab_bg_1'><td><label>Assinatura de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente assina no tablet</small></td>";
             echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-recb-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-recb-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''></td></tr>";
             echo "</tbody><tbody data-ptstep='10' style='display:none'>";
+            echo "<tr class='tab_bg_1'><td colspan='4' style='text-align:center;padding:36px 16px;'>";
+            echo "<div style='width:84px;height:84px;background:linear-gradient(135deg,#16a34a,#059669);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'><i class='ti ti-device-tablet' style='font-size:2.4rem;color:#fff;'></i></div>";
+            echo "<div style='font-weight:800;font-size:1.5rem;color:#065f46;margin-bottom:10px;'>DEVOLVA O TABLET AO RESPONSÁVEL</div>";
+            echo "<p style='font-size:1rem;color:#374151;'>Para finalizar a entrega, devolva o equipamento ao responsável do protocolo e continue.</p>";
+            echo "</td></tr>";
+            echo "</tbody><tbody data-ptstep='11' style='display:none'>";
         }
 
         echo "<tr class='tab_bg_1'>";
@@ -996,7 +994,7 @@ class Pasta extends CommonDBTM
 
         // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
-            echo "<div data-ptstep='10' style='display:none'>";
+            echo "<div data-ptstep='11' style='display:none'>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
@@ -1295,18 +1293,12 @@ class Pasta extends CommonDBTM
                 var bF = document.getElementById('pt-wiz-fechar');
                 if(bF) bF.style.display = n === 1 ? '' : 'none';
                 var bN = document.getElementById('pt-wiz-next');
-                if(bN) bN.style.display = n === 10 ? 'none' : '';
+                if(bN) bN.style.display = n === 11 ? 'none' : '';
                 var bS = document.getElementById('pt-reg-submit');
-                if(bS) bS.style.display = n === 10 ? '' : 'none';
+                if(bS) bS.style.display = n === 11 ? '' : 'none';
                 if(n === 5) setTimeout(ptRecFit, 60);
                 if(n === 9) setTimeout(ptRecbFit, 60);
             }
-            window.__ptDevShown = false;
-            window.ptDevOk = function(){
-                var ov = document.getElementById('pt-dev-overlay');
-                if(ov) ov.style.display = 'none';
-                ptWizShow(10);
-            };
             window.ptWizNav = function(d){
                 var cur = window.__ptWizStep || 1;
                 if(d > 0){
@@ -1350,13 +1342,7 @@ class Pasta extends CommonDBTM
                         if(!window.__ptRecbDrawn){ ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', document.getElementById('pt-recb-canvas')); return; }
                     }
                 }
-                if(d > 0 && cur === 9 && !window.__ptDevShown){
-                    window.__ptDevShown = true;
-                    var dov = document.getElementById('pt-dev-overlay');
-                    if(dov) dov.style.display = 'flex';
-                    return;
-                }
-                ptWizShow(Math.min(10, Math.max(1, cur + d)));
+                ptWizShow(Math.min(11, Math.max(1, cur + d)));
             };
             function ptRecFit(){
                 var c = document.getElementById('pt-rec-canvas');
@@ -1662,7 +1648,7 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
-                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 10){ e.preventDefault(); ptWizNav(1); return; }
+                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 11){ e.preventDefault(); ptWizNav(1); return; }
                         try{
                             var upEls=form.querySelectorAll('input[type=\"text\"]');
                             for(var ui=0;ui<upEls.length;ui++){
