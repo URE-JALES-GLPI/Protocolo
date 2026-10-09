@@ -24,7 +24,7 @@ $status = $_GET['status'] ?? '';
 $q = trim($_GET['q'] ?? '');
 $escola_filtro = (int)($_GET['escola'] ?? 0);
 $minhas = !empty($_GET['minhas']);
-$histView = 'grid';
+$histView = 'list';
 if ($minhas) {
     try {
         $uidH = (int)Session::getLoginUserID();
