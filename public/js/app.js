@@ -301,8 +301,8 @@ window.ptSubmitRegisterAjax = function(form) {
             + '<div class="pt-modal-header"><div class="pt-modal-title"><i class="ti ti-check"></i><span>Pasta registrada!</span></div></div>'
             + '<div class="pt-modal-body"><p style="margin:0;font-size:.9rem;">O termo de entrada foi gerado.' + (data.id ? ' Imprima a via de quem está deixando o item.' : '') + '</p></div>'
             + '<div style="padding:12px 24px;border-top:1px solid #f0f2f8;display:flex;gap:8px;justify-content:flex-end;background:#fafbff;border-radius:0 0 20px 20px;">'
-            + '<a class="pt-btn pt-btn-green pt-btn-sm" target="_blank" href="' + termoUrl + '"><i class="ti ti-printer"></i> Imprimir termo</a>'
-            + '<a class="pt-btn pt-btn-secondary pt-btn-sm" href="' + dashUrl + '">Fechar</a></div></div>';
+            + '<a class="pt-btn pt-btn-secondary pt-btn-sm" href="' + dashUrl + '">Fechar</a>'
+            + '<a class="pt-btn pt-btn-green pt-btn-sm" target="_blank" href="' + termoUrl + '"><i class="ti ti-printer"></i> Gerar termo</a></div></div>';
           document.body.appendChild(ov);
           return;
         }

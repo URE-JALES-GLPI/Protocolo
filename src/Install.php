@@ -598,6 +598,24 @@ class Install
                     error_log("[protocolo] migrateEntities: tabela view_prefs criada");
                 } catch (\Throwable $e) { error_log("[protocolo] migrate view_prefs falhou: " . $e->getMessage()); }
             }
+            if (!$DB->tableExists('glpi_plugin_protocolo_recebedores')) {
+                try {
+                    $DB->doQuery("CREATE TABLE `glpi_plugin_protocolo_recebedores` (
+                      `id` INT AUTO_INCREMENT PRIMARY KEY,
+                      `name` VARCHAR(255) NOT NULL,
+                      `document_type` ENUM('cpf','rg') DEFAULT 'cpf',
+                      `document` VARCHAR(30) DEFAULT NULL,
+                      `assinatura_image` LONGTEXT DEFAULT NULL,
+                      `assinatura_data` DATETIME DEFAULT NULL,
+                      `users_id` INT DEFAULT NULL,
+                      `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                      `date_creation` DATETIME DEFAULT CURRENT_TIMESTAMP,
+                      `date_mod` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                      KEY `is_active` (`is_active`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC");
+                    error_log("[protocolo] migrateEntities: tabela recebedores criada");
+                } catch (\Throwable $e) { error_log("[protocolo] migrate recebedores falhou: " . $e->getMessage()); }
+            }
             // Nova tabela entity_emails
             if (!$DB->tableExists('glpi_plugin_protocolo_entity_emails')) {
                 try {

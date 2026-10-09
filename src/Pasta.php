@@ -693,19 +693,35 @@ class Pasta extends CommonDBTM
         // Usa layout GLPI padrão: tab_cadre_fixe
         echo "<div class='spaced'><table class='tab_cadre_fixe'>";
         if ($isNew) {
-            echo "<div id='pt-wiz-ind' style='display:flex;gap:6px;align-items:center;margin:2px 8px 12px;flex-wrap:wrap;'>";
-            echo "<span class='pt-wiz-dot' data-s='1' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #16a34a;background:#f0fdf4;color:#16a34a;'><span>1</span> Dados</span>";
-            echo "<span class='pt-wiz-dot' data-s='2' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>2</span> Origem</span>";
-            echo "<span class='pt-wiz-dot' data-s='3' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>3</span> Entregador</span>";
-            echo "<span class='pt-wiz-dot' data-s='4' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>4</span> Doc</span>";
-            echo "<span class='pt-wiz-dot' data-s='5' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>5</span> Assinatura</span>";
-            echo "<span class='pt-wiz-dot' data-s='6' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>6</span> Devolver</span>";
-            echo "<span class='pt-wiz-dot' data-s='7' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>7</span> Recebedor</span>";
-            echo "<span class='pt-wiz-dot' data-s='8' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>8</span> Doc</span>";
-            echo "<span class='pt-wiz-dot' data-s='9' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>9</span> Assinatura</span>";
-            echo "<span class='pt-wiz-dot' data-s='10' style='display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.82rem;font-weight:700;border:1.5px solid #e8eaf0;background:#fff;color:#9ca3af;'><span>10</span> Itens</span>";
+            echo "<div id='pt-wiz-ind' style='display:flex;align-items:center;gap:10px;margin:2px 8px 12px;flex-wrap:wrap;'>";
+            echo "<span style='font-size:.8rem;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em;'>Registrar Entrada</span>";
+            echo "<span style='color:#cbd5e1;'>•</span>";
+            echo "<span id='pt-wiz-steptitle' style='font-size:1rem;font-weight:800;color:#1e1b4b;'>Etapa 1 de 9 — Quem recebe</span>";
             echo "</div>";
             echo "<tbody data-ptstep='1'>";
+            echo "<tr class='tab_bg_1'><td colspan='4'>";
+            echo "<div style='font-weight:800;font-size:1rem;margin-bottom:4px;'>Quem vai receber?</div>";
+            echo "<div class='text-muted small' style='margin-bottom:10px;'>Selecione o atendente responsável. A assinatura cadastrada será usada no termo.</div>";
+            echo "<div id='pt-receb-list' style='display:flex;flex-direction:column;gap:8px;'></div>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='margin-top:10px;' onclick='ptRecNewOpen()'><i class='ti ti-plus'></i> Novo recebedor</button>";
+            echo "<input type='hidden' name='recebedor_nome' id='recebedor_nome' value='" . Html::cleanInputText($this->fields['recebedor_nome'] ?? '') . "'>";
+            echo "<input type='hidden' name='recebedor_documento' id='recebedor_documento_h' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "'>";
+            echo "<input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo_h' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'>";
+            echo "<input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''>";
+            echo "</td></tr>";
+            echo "</tbody><tbody data-ptstep='2' style='display:none'>";
+            echo "<div id='pt-recnew-overlay' style='display:none;position:fixed;inset:0;background:rgba(17,24,39,.6);z-index:10080;align-items:center;justify-content:center;padding:20px;'>";
+            echo "<div style='background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:20px;'>";
+            echo "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'><strong style='font-size:1rem;'>Novo recebedor</strong><button type='button' onclick='ptRecNewClose()' style='background:#f3f4f6;border:0;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:800;'>X</button></div>";
+            echo "<div style='margin-bottom:10px;'><label class='form-label'>Nome completo *</label><input type='text' id='pt-nrec-nome' class='form-control' placeholder='Ex: Maria Souza' autocomplete='off'></div>";
+            echo "<div style='margin-bottom:10px;'><label class='form-label'>Documento</label><div style='display:flex;gap:8px;margin-bottom:8px;'>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-nrecdoct-btn' data-t='rg' onclick='ptNRecDocType(\"rg\")' style='flex:1;'>RG</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-nrecdoct-btn' data-t='cpf' onclick='ptNRecDocType(\"cpf\")' style='flex:1;'>CPF</button>";
+            echo "</div><input type='text' id='pt-nrec-doc' class='form-control' placeholder='Somente números' maxlength='14' inputmode='numeric'><input type='hidden' id='pt-nrec-doctipo' value='cpf'></div>";
+            echo "<div style='margin-bottom:12px;'><label class='form-label'>Assinatura *</label><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-nrec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='text-align:right;margin-top:6px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptNRecClear()'>Limpar</button></div></div>";
+            echo "<div id='pt-nrec-err' style='display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.85rem;'></div>";
+            echo "<button type='button' id='pt-nrec-save' class='pt-btn pt-btn-green' style='width:100%;' onclick='ptNRecSave()'><i class='ti ti-check'></i> Salvar recebedor</button>";
+            echo "</div></div>";
         }
 
         if (!$isNew) {
@@ -755,7 +771,7 @@ class Pasta extends CommonDBTM
         echo "<td width='15%'><label>" . __('Assunto', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td colspan='3'><input type='text' name='assunto' id='assunto_field' class='form-control' required maxlength='255' style='width:100%' value='" . Html::cleanInputText($this->fields['assunto'] ?? '') . "' placeholder='Ex: Ofício nº 123/2026 — matrícula'></td>";
         echo "</tr>";
-        if ($isNew) echo "</tbody><tbody data-ptstep='2' style='display:none'>";
+        if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
 
         // Origem/Interessado (Escola ou Outros; URE só aparece em registros antigos)
         $origemTipoRaw = $this->fields['origem_tipo'] ?? '';
@@ -888,20 +904,25 @@ class Pasta extends CommonDBTM
         // compat: mantém plugin_protocolo_escolas_id escondido para buscas antigas (espelha destino quando escola)
         echo "<input type='hidden' name='plugin_protocolo_escolas_id' id='compat_escola_id' value='$destinoEnt'>";
         echo "</td></tr>";
-        if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
+        if ($isNew) echo "</tbody><tbody data-ptstep='4' style='display:none'>";
 
         if ($isNew) {
             echo "<tr class='tab_bg_1'>";
             echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para a pessoa preencher</small></td>";
             echo "<td colspan='3'><input type='text' name='recebido_de' id='recebido_de_field' class='form-control' required value='" . Html::cleanInputText($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria' style='font-size:1.05rem;padding:12px;'></td>";
             echo "</tr>";
-            echo "</tbody><tbody data-ptstep='4' style='display:none'>";
+            echo "</tbody><tbody data-ptstep='5' style='display:none'>";
             echo "<tr class='tab_bg_1'>";
-            echo "<td><label>" . __('Documento de quem deixou', 'protocolo') . "</label></td>";
-            echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='rg' onclick='ptRecDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='cpf' onclick='ptRecDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
-            echo "</div><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
+            echo "<td><label>" . __('Documento de quem deixou', 'protocolo') . "</label><br><small class='text-muted'>Toque em RG ou CPF</small></td>";
+            echo "<td colspan='3'><div style='display:flex;gap:10px;'>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='rg' onclick='ptRecDocChoose(\"rg\")' style='flex:1;padding:18px 14px;'><i class='ti ti-id' style='font-size:1.8rem;'></i><br><span style='font-weight:800;font-size:1.05rem;'>RG</span></button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='cpf' onclick='ptRecDocChoose(\"cpf\")' style='flex:1;padding:18px 14px;'><i class='ti ti-id-badge-2' style='font-size:1.8rem;'></i><br><span style='font-weight:800;font-size:1.05rem;'>CPF</span></button>";
+            echo "</div></td>";
+            echo "</tr>";
+            echo "</tbody><tbody data-ptstep='6' style='display:none'>";
+            echo "<tr class='tab_bg_1'>";
+            echo "<td><label>Número do documento</label></td>";
+            echo "<td colspan='3'><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
             echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
             foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"$nk\")'>$nk</button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"clr\")'>C</button>";
@@ -909,7 +930,7 @@ class Pasta extends CommonDBTM
             echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
             echo "</div></td>";
             echo "</tr>";
-            echo "</tbody><tbody data-ptstep='5' style='display:none'>";
+            echo "</tbody><tbody data-ptstep='7' style='display:none'>";
         } else {
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label></td>";
@@ -921,37 +942,13 @@ class Pasta extends CommonDBTM
         if ($isNew) {
             echo "<tr class='tab_bg_1'><td><label>Assinatura de quem deixou <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para assinatura</small></td>";
             echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-rec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-rec-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebido_assinatura_image' id='pt-rec-image' value=''></td></tr>";
-            echo "</tbody><tbody data-ptstep='6' style='display:none'>";
+            echo "</tbody><tbody data-ptstep='8' style='display:none'>";
             echo "<tr class='tab_bg_1'><td colspan='4' style='text-align:center;padding:36px 16px;'>";
             echo "<div style='width:84px;height:84px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'><i class='ti ti-device-tablet' style='font-size:2.4rem;color:#fff;'></i></div>";
             echo "<div style='font-weight:800;font-size:1.5rem;color:#92400e;margin-bottom:10px;'>DEVOLVA O APARELHO AO FUNCIONÁRIO</div>";
             echo "<p style='font-size:1rem;color:#374151;'>A assinatura de quem deixou foi coletada.<br>Passe o tablet de volta ao responsável para continuar.</p>";
             echo "</td></tr>";
-            echo "</tbody><tbody data-ptstep='7' style='display:none'>";
-        }
-        if ($isNew) {
-            echo "<tr class='tab_bg_1'>";
-            echo "<td><label>Nome completo de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente que recebe a pasta</small></td>";
-            echo "<td colspan='3'><input type='text' name='recebedor_nome' id='recebedor_nome_field' class='form-control' required value='" . Html::cleanInputText($this->fields['recebedor_nome'] ?? '') . "' placeholder='Ex: Maria Souza' style='font-size:1.05rem;padding:12px;'></td>";
-            echo "</tr>";
-            echo "</tbody><tbody data-ptstep='8' style='display:none'>";
-            echo "<tr class='tab_bg_1'>";
-            echo "<td><label>Documento de quem recebe</label></td>";
-            echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='rg' onclick='ptRecbDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='cpf' onclick='ptRecbDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
-            echo "</div><div class='input-group'><input type='text' name='recebedor_documento' id='recebedor_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebedor_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
-            echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
-            foreach (['7','8','9','4','5','6','1','2','3'] as $nkB) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"$nkB\")'>$nkB</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"clr\")'>C</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"0\")'>0</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
-            echo "</div></td>";
-            echo "</tr>";
             echo "</tbody><tbody data-ptstep='9' style='display:none'>";
-            echo "<tr class='tab_bg_1'><td><label>Assinatura de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente assina no tablet</small></td>";
-            echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-recb-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-recb-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''></td></tr>";
-            echo "</tbody><tbody data-ptstep='10' style='display:none'>";
         }
 
         echo "<tr class='tab_bg_1'>";
@@ -987,7 +984,7 @@ class Pasta extends CommonDBTM
 
         // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
-            echo "<div data-ptstep='10' style='display:none'>";
+            echo "<div data-ptstep='9' style='display:none'>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
@@ -1008,7 +1005,8 @@ class Pasta extends CommonDBTM
             echo "</div></div></div>";
 
             $lastItens = $lastInput['itens'] ?? [];
-            echo "<div class='spaced'><div class='d-flex justify-content-between align-items-center mb-2'><h3 class='mb-0'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " *</h3></div>";
+            echo "<div class='spaced'><div class='d-flex justify-content-between align-items-center mb-2'><h3 class='mb-0'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " *</h3><span id='pt-itens-count' class='badge bg-secondary'>0 item(ns)</span></div>";
+            echo "<div class='row g-2 mb-1 text-muted small' style='font-weight:700;'><div class='col-md-7'>Descrição</div><div class='col-md-2'>Qtd</div><div class='col-md-2'>Obs.</div><div class='col-md-1'></div></div>";
             if (!empty($lastItens) && is_array($lastItens)) {
                 echo "<div id='itensWrap'>";
                 foreach ($lastItens as $idx => $it) {
@@ -1275,27 +1273,26 @@ class Pasta extends CommonDBTM
                 document.querySelectorAll('[data-ptstep]').forEach(function(el){
                     el.style.display = (el.getAttribute('data-ptstep') === String(n)) ? '' : 'none';
                 });
-                document.querySelectorAll('#pt-wiz-ind .pt-wiz-dot').forEach(function(d){
-                    var on = d.getAttribute('data-s') === String(n);
-                    d.style.borderColor = on ? '#16a34a' : '#e8eaf0';
-                    d.style.background = on ? '#f0fdf4' : '#fff';
-                    d.style.color = on ? '#16a34a' : '#9ca3af';
-                });
+                var names = {1:'Quem recebe',2:'Dados da pasta',3:'Origem e destino',4:'Quem entrega',5:'Documento',6:'Número do documento',7:'Assinatura',8:'Devolver aparelho',9:'Itens'};
+                var ttl = document.getElementById('pt-wiz-steptitle');
+                if(ttl) ttl.textContent = 'Etapa ' + n + ' de 9 — ' + (names[n] || '');
                 var bV = document.getElementById('pt-wiz-back');
                 if(bV) bV.style.display = n === 1 ? 'none' : '';
                 var bF = document.getElementById('pt-wiz-fechar');
                 if(bF) bF.style.display = n === 1 ? '' : 'none';
                 var bN = document.getElementById('pt-wiz-next');
-                if(bN) bN.style.display = n === 10 ? 'none' : '';
+                if(bN) bN.style.display = n === 9 ? 'none' : '';
                 var bS = document.getElementById('pt-reg-submit');
-                if(bS) bS.style.display = n === 10 ? '' : 'none';
-                if(n === 5) setTimeout(ptRecFit, 60);
-                if(n === 9) setTimeout(ptRecbFit, 60);
+                if(bS) bS.style.display = n === 9 ? '' : 'none';
+                if(n === 7) setTimeout(ptRecFit, 60);
             }
             window.ptWizNav = function(d){
                 var cur = window.__ptWizStep || 1;
                 if(d > 0){
                     if(cur === 1){
+                        var rpk = document.getElementById('recebedor_nome');
+                        if(!rpk || !rpk.value.trim()){ ptWizAlertMsg('Selecione quem vai receber.', document.getElementById('pt-receb-list')); return; }
+                    } else if(cur === 2){
                         var esp = document.getElementById('especieSelect');
                         if(!esp || !esp.value){ ptWizAlertMsg('Selecione a Espécie.', esp); return; }
                         if(esp.value === 'outro'){
@@ -1304,7 +1301,7 @@ class Pasta extends CommonDBTM
                         }
                         var asf = document.getElementById('assunto_field');
                         if(!asf || !asf.value.trim()){ ptWizAlertMsg('Preencha o Assunto.', asf); return; }
-                    } else if(cur === 2){
+                    } else if(cur === 3){
                         var os = document.querySelector('input[name=\"origem_tipo\"]:checked');
                         if(!os){ ptWizAlertMsg('Selecione a Origem/Interessado (Escola, URE ou Outros).', document.getElementById('origem_escola')); return; }
                         if(os.value === 'outro'){
@@ -1324,18 +1321,16 @@ class Pasta extends CommonDBTM
                             if(!dse || !dse.value){ ptWizAlertMsg('Destino = Escola: selecione a escola.', dse); return; }
                         }
                     } else if(cur === 3){
-                        var rn3 = document.querySelector('input[name=\"recebido_de\"]');
-                        if(!rn3 || !rn3.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn3); return; }
-                    } else if(cur === 5){
-                        if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
+                        var rn3 = document.querySelector('input[name=\"origem_tipo\"]:checked');
+                        if(!rn3){ ptWizAlertMsg('Selecione a Origem/Interessado (Escola, URE ou Outros).', document.getElementById('origem_escola')); return; }
+                    } else if(cur === 4){
+                        var rn4 = document.querySelector('input[name=\"recebido_de\"]');
+                        if(!rn4 || !rn4.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn4); return; }
                     } else if(cur === 7){
-                        var rb4 = document.querySelector('input[name=\"recebedor_nome\"]');
-                        if(!rb4 || !rb4.value.trim()){ ptWizAlertMsg('Preencha o nome de quem recebe.', rb4); return; }
-                    } else if(cur === 9){
-                        if(!window.__ptRecbDrawn){ ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', document.getElementById('pt-recb-canvas')); return; }
+                        if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
                     }
                 }
-                ptWizShow(Math.min(10, Math.max(1, cur + d)));
+                ptWizShow(Math.min(9, Math.max(1, cur + d)));
             };
             function ptRecFit(){
                 var c = document.getElementById('pt-rec-canvas');
@@ -1402,6 +1397,10 @@ class Pasta extends CommonDBTM
                 var hint = document.getElementById('recebido_doc_hint');
                 if(hint) hint.textContent = window.__ptRecDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
                 ptRecDocPaint();
+            };
+            window.ptRecDocChoose = function(t){
+                window.ptRecDocType(t);
+                if((window.__ptWizStep || 1) === 5) ptWizShow(6);
             };
             function ptRecDocPaint(){
                 document.querySelectorAll('.pt-recdoc-btn').forEach(function(b){
@@ -1498,7 +1497,187 @@ class Pasta extends CommonDBTM
                 doc.value = v;
                 doc.dispatchEvent(new Event('input', {bubbles: true}));
             };
-            if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; var dh1=document.getElementById('recebedor_documento_tipo'); if(dh1 && dh1.value!=='rg') dh1.value='cpf'; ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); }
+            function ptItensCount(){
+                var n = 0;
+                document.querySelectorAll('#itensWrap input[name*=\"[descricao]\"]').forEach(function(i){ if(i.value.trim()) n++; });
+                var cc = document.getElementById('pt-itens-count');
+                if(cc) cc.textContent = n + ' item(ns)';
+            }
+            if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; var dh1=document.getElementById('recebedor_documento_tipo'); if(dh1 && dh1.value!=='rg') dh1.value='cpf'; ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); ptNRecBind(); ptRecebLoad(); var iw0=document.getElementById('itensWrap'); if(iw0){ iw0.addEventListener('input', ptItensCount); iw0.addEventListener('click', function(){ setTimeout(ptItensCount, 60); }); try { new MutationObserver(ptItensCount).observe(iw0, {childList: true, subtree: true}); } catch(e1) {} ptItensCount(); } }
+            window.__ptRecebId = null;
+            window.__ptNRecDrawn = false;
+            window.__ptNRecDoc = 'cpf';
+            function ptRecebBase(){
+                try { if(typeof ptPluginBase === 'function') return ptPluginBase(); } catch(e0) {}
+                var m = window.location.pathname.match(/^(.*\/(?:plugins|marketplace)\/protocolo)/);
+                return m ? m[1] : '/plugins/protocolo';
+            }
+            function ptRecebLoad(selectedId){
+                var box = document.getElementById('pt-receb-list');
+                if(!box) return;
+                box.innerHTML = '<div class="text-muted small">Carregando...</div>';
+                fetch(ptRecebBase() + '/ajax/recebedor.php?action=list', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                    .then(function(r){ return r.json(); })
+                    .then(function(d){
+                        box.innerHTML = '';
+                        var items = (d && d.items) || [];
+                        if(!items.length) box.innerHTML = '<div class="text-muted small">Nenhum recebedor cadastrado. Cadastre o primeiro abaixo.</div>';
+                        items.forEach(function(t){
+                            var b = document.createElement('button');
+                            b.type = 'button';
+                            b.className = 'pt-receb-opt';
+                            b.dataset.id = t.id;
+                            b.style.cssText = 'display:flex;align-items:center;gap:10px;text-align:left;background:#fff;border:1.5px solid #e8eaf0;border-radius:12px;padding:12px;cursor:pointer;width:100%;';
+                            var ini = document.createElement('span');
+                            ini.style.cssText = 'width:44px;height:44px;border-radius:50%;background:#eef2ff;color:#4f46e5;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;';
+                            ini.textContent = ((t.name || '?').trim().charAt(0) || '?').toUpperCase();
+                            var tx = document.createElement('span');
+                            tx.style.cssText = 'flex:1;min-width:0;';
+                            var nm = document.createElement('div');
+                            nm.style.cssText = 'font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+                            nm.textContent = t.name;
+                            tx.appendChild(nm);
+                            if(t.doc){
+                                var dc = document.createElement('div');
+                                dc.className = 'text-muted small';
+                                dc.textContent = ((t.doc_tipo || '').toUpperCase()) + ' ' + t.doc;
+                                tx.appendChild(dc);
+                            }
+                            b.appendChild(ini);
+                            b.appendChild(tx);
+                            if(t.image){
+                                var im = document.createElement('img');
+                                im.src = t.image;
+                                im.alt = '';
+                                im.style.cssText = 'height:36px;max-width:90px;object-fit:contain;background:#fff;border:1px solid #e8eaf0;border-radius:6px;flex-shrink:0;';
+                                b.appendChild(im);
+                            }
+                            b.addEventListener('click', function(){ ptRecebPick(t); });
+                            box.appendChild(b);
+                        });
+                        ptRecebPaint(selectedId);
+                    })
+                    .catch(function(){ box.innerHTML = '<div class="text-muted small">Falha ao carregar. Recarregue a página.</div>'; });
+            }
+            function ptRecebPaint(selectedId){
+                var cur = selectedId || window.__ptRecebId || null;
+                document.querySelectorAll('.pt-receb-opt').forEach(function(b){
+                    var on = cur && String(b.dataset.id) === String(cur);
+                    b.style.borderColor = on ? '#16a34a' : '#e8eaf0';
+                    b.style.background = on ? '#f0fdf4' : '#fff';
+                });
+            }
+            function ptRecebPick(t){
+                window.__ptRecebId = t.id;
+                var n = document.getElementById('recebedor_nome');
+                if(n) n.value = t.name || '';
+                var d = document.getElementById('recebedor_documento_h');
+                if(d) d.value = t.doc || '';
+                var dt = document.getElementById('recebedor_documento_tipo_h');
+                if(dt) dt.value = t.doc_tipo || 'cpf';
+                var im = document.getElementById('pt-recb-image');
+                if(im) im.value = t.image || '';
+                ptRecebPaint(t.id);
+            }
+            window.ptRecNewOpen = function(){
+                var ov = document.getElementById('pt-recnew-overlay');
+                if(!ov) return;
+                var nm = document.getElementById('pt-nrec-nome');
+                if(nm) nm.value = '';
+                var dc = document.getElementById('pt-nrec-doc');
+                if(dc) dc.value = '';
+                window.__ptNRecDrawn = false;
+                var er = document.getElementById('pt-nrec-err');
+                if(er) er.style.display = 'none';
+                ov.style.display = 'flex';
+                setTimeout(ptNRecFit, 60);
+                ptNRecDocType('cpf');
+            };
+            window.ptRecNewClose = function(){
+                var ov = document.getElementById('pt-recnew-overlay');
+                if(ov) ov.style.display = 'none';
+            };
+            window.ptNRecDocType = function(t){
+                window.__ptNRecDoc = (t === 'rg') ? 'rg' : 'cpf';
+                document.querySelectorAll('.pt-nrecdoct-btn').forEach(function(b){
+                    var on = b.getAttribute('data-t') === window.__ptNRecDoc;
+                    b.style.borderColor = on ? '#16a34a' : '';
+                    b.style.background = on ? '#f0fdf4' : '';
+                    b.style.color = on ? '#16a34a' : '';
+                });
+            };
+            function ptNRecFit(){
+                var c = document.getElementById('pt-nrec-canvas');
+                if(!c) return;
+                var r = c.getBoundingClientRect();
+                c.width = Math.max(280, Math.floor(r.width));
+                c.height = 180;
+            }
+            function ptNRecBind(){
+                var c = document.getElementById('pt-nrec-canvas');
+                if(!c || c.dataset.bound) return;
+                c.dataset.bound = '1';
+                var ctx = c.getContext('2d');
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = '#111827';
+                var dw = false;
+                function pp(ev){
+                    var r = c.getBoundingClientRect();
+                    var x = (ev.touches && ev.touches.length) ? ev.touches[0].clientX : ev.clientX;
+                    var y = (ev.touches && ev.touches.length) ? ev.touches[0].clientY : ev.clientY;
+                    return [(x - r.left) * (c.width / r.width), (y - r.top) * (c.height / r.height)];
+                }
+                function st(ev){ dw = true; var p = pp(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if(ev.preventDefault) ev.preventDefault(); }
+                function mv(ev){ if(!dw) return; var p = pp(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptNRecDrawn = true; if(ev.preventDefault) ev.preventDefault(); }
+                function en(){ dw = false; }
+                c.addEventListener('mousedown', st);
+                c.addEventListener('mousemove', mv);
+                document.addEventListener('mouseup', en);
+                c.addEventListener('touchstart', st, {passive: false});
+                c.addEventListener('touchmove', mv, {passive: false});
+                c.addEventListener('touchend', en);
+            }
+            window.ptNRecClear = function(){
+                var c = document.getElementById('pt-nrec-canvas');
+                if(!c) return;
+                ptNRecFit();
+                var cx = c.getContext('2d');
+                cx.clearRect(0, 0, c.width, c.height);
+                window.__ptNRecDrawn = false;
+            };
+            window.ptNRecErr = function(msg){
+                var e = document.getElementById('pt-nrec-err');
+                if(e){ e.textContent = msg; e.style.display = 'block'; }
+            };
+            window.ptNRecSave = function(){
+                var er0 = document.getElementById('pt-nrec-err');
+                if(er0) er0.style.display = 'none';
+                var nmEl = document.getElementById('pt-nrec-nome');
+                var nome = nmEl ? nmEl.value.trim().toUpperCase() : '';
+                if(!nome){ window.ptNRecErr('Informe o nome.'); if(nmEl) nmEl.focus(); return; }
+                if(!window.__ptNRecDrawn){ window.ptNRecErr('Faça a assinatura no quadro.'); return; }
+                var dcEl = document.getElementById('pt-nrec-doc');
+                var c = document.getElementById('pt-nrec-canvas');
+                var img = '';
+                try { img = c.toDataURL('image/png'); } catch(eimg) { window.ptNRecErr('Falha na assinatura. Tente de novo.'); return; }
+                var csrfEl = document.querySelector('#plugin_protocolo_pasta_form input[name="_glpi_csrf_token"]');
+                var tok = csrfEl ? csrfEl.value : '';
+                var btn = document.getElementById('pt-nrec-save');
+                if(btn) btn.disabled = true;
+                fetch(ptRecebBase() + '/ajax/recebedor.php', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-Glpi-Csrf-Token': tok},
+                    body: JSON.stringify({action: 'save', nome: nome, doc_tipo: window.__ptNRecDoc || 'cpf', doc: dcEl ? dcEl.value : '', image: img, _glpi_csrf_token: tok})
+                }).then(function(r){ return r.json(); })
+                    .then(function(d){
+                        if(btn) btn.disabled = false;
+                        if(d && d.ok){ window.ptRecNewClose(); ptRecebLoad(d.id); }
+                        else window.ptNRecErr((d && d.error) || 'Falha ao salvar.');
+                    })
+                    .catch(function(){ if(btn) btn.disabled = false; window.ptNRecErr('Falha de conexão.'); });
+            };
             function ptSchoolEnsure(){
                 var ov = document.getElementById('pt-school-overlay');
                 if(ov) return ov;
@@ -1641,7 +1820,7 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
-                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 10){ e.preventDefault(); ptWizNav(1); return; }
+                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 9){ e.preventDefault(); ptWizNav(1); return; }
                         try{
                             var upEls=form.querySelectorAll('input[type=\"text\"]');
                             for(var ui=0;ui<upEls.length;ui++){
@@ -1662,7 +1841,7 @@ class Pasta extends CommonDBTM
                             if(rbv && bhi && window.__ptRecbDrawn){ bhi.value = rbv.toDataURL('image/png'); }
                         }catch(bce){}
                         var rcv2 = document.getElementById('pt-rec-canvas');
-                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(5); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
+                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(7); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
                         var rcb2 = document.getElementById('pt-recb-canvas');
                         if(rcb2 && !window.__ptRecbDrawn){ e.preventDefault(); ptWizShow(9); ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', rcb2); return; }
                         var espSel = form.querySelector('select[name=\"categoria\"]');
