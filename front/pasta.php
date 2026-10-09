@@ -24,6 +24,16 @@ $status = $_GET['status'] ?? '';
 $q = trim($_GET['q'] ?? '');
 $escola_filtro = (int)($_GET['escola'] ?? 0);
 $minhas = !empty($_GET['minhas']);
+$histView = 'grid';
+if ($minhas) {
+    try {
+        $uidH = (int)Session::getLoginUserID();
+        if ($uidH > 0 && $DB->tableExists('glpi_plugin_protocolo_view_prefs')) {
+            $itH = $DB->request(['SELECT' => ['view'], 'FROM' => 'glpi_plugin_protocolo_view_prefs', 'WHERE' => ['users_id' => $uidH], 'LIMIT' => 1]);
+            foreach ($itH as $rowH) { if (in_array($rowH['view'], ['grid', 'list'], true)) $histView = $rowH['view']; break; }
+        }
+    } catch (\Throwable $e) {}
+}
 $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = (int)($_GET['per_page'] ?? 20);
 if (!in_array($perPage, [10,20,50,100])) $perPage = 20;
@@ -172,6 +182,10 @@ echo "<div class='pt-tabs' style='margin-bottom:12px;'>";
 echo "<a href='" . buildUrl(['minhas'=>'','page'=>1]) . "' class='pt-tab" . (!$minhas?' active':'') . "'><i class='ti ti-apps'></i> Todas</a>";
 echo "<a href='" . buildUrl(['minhas'=>1,'page'=>1]) . "' class='pt-tab" . ($minhas?' active':'') . "'><i class='ti ti-history'></i> Histórico</a>";
 echo "</div>";
+if ($minhas) {
+    echo "<div style='display:flex;justify-content:flex-end;margin-bottom:10px;'><span style='display:inline-flex;gap:4px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-hview-btn' data-v='list' onclick='ptSetHistView(\"list\")' title='Lista'><i class='ti ti-list'></i></button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-hview-btn' data-v='grid' onclick='ptSetHistView(\"grid\")' title='Grade'><i class='ti ti-layout-grid'></i></button></span></div>";
+    echo "<style>.pt-hview-btn.on{border-color:#4f46e5!important;color:#4f46e5!important;background:#eef2ff!important;}#pt-hist-cards{display:none;}@media (max-width:768px){#pt-hist-table{display:none;}#pt-hist-cards{display:grid;grid-template-columns:1fr;gap:14px;padding:4px 12px 16px;}}</style>";
+}
 echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
 echo "<div style='display:flex;align-items:center;gap:8px;'>";
 echo "<button type='button' id='pasta-filter-toggle-btn' class='pt-filter-toggle-btn' onclick=\"ptToggleFilter('pasta-filter-content','pasta-filter-toggle-btn','pasta-filter-text','pasta-filter-icon')\"><i class='ti ti-filter'></i> Filtros";
@@ -200,7 +214,7 @@ echo "</div></form>";
 echo "</div>";
 echo "</div>";
 
-echo "<div class='pt-card'><div style='overflow-x:auto;'><table class='pt-list-table'><thead><tr>";
+echo "<div class='pt-card'><div id='pt-hist-table' style='overflow-x:auto;" . ($minhas && $histView === 'grid' ? 'display:none;' : '') . "'><table class='pt-list-table'><thead><tr>";
 if ($minhas) {
 echo "<th>Código</th>";
 echo "<th>Categoria</th>";
@@ -215,6 +229,7 @@ echo "<th>" . sortLink('data','Recebimento',$sort,$order) . "</th>";
 echo "<th>Retirada</th><th>" . sortLink('status','Status',$sort,$order) . "</th><th>Assinatura</th><th></th>";
 }
 echo "</tr></thead><tbody>";
+$histCards = '';
 if ($lista) {
     foreach ($lista as $r) {
         $codigo = htmlspecialchars($r['codigo']);
@@ -241,6 +256,13 @@ if ($lista) {
             echo "<td>$statusBadge</td>";
             echo "<td class='text-end'><a href='$viewUrl' class='pt-btn pt-btn-outline pt-btn-sm'><i class='ti ti-eye'></i> Ver</a></td>";
             echo "</tr>";
+            $histCards .= "<div style='background:#fff;border:1px solid #e8eaf0;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 8px rgba(17,24,39,.06);'>";
+            $histCards .= "<div style='display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid #f0f2f8;'><span class='pt-row-title' style='font-size:.95rem;flex:1;min-width:0;'>" . htmlspecialchars($r['codigo']) . "</span><span style='flex-shrink:0;'>$statusBadge</span></div>";
+            $histCards .= "<div style='display:flex;gap:6px;align-items:center;flex-wrap:wrap;'>$catBadgeH</div>";
+            $histCards .= "<div style='display:flex;flex-direction:column;gap:6px;background:#f8fafc;border-radius:10px;padding:10px 12px;font-size:.82rem;'><div><span style='font-size:.68rem;font-weight:800;color:#9ca3af;'>DE </span>" . Pasta::getOrigemDestinoDisplay($r, 'origem') . "</div><div><span style='font-size:.68rem;font-weight:800;color:#4f46e5;'>PARA </span><span style='color:#1e40af;'>" . Pasta::getOrigemDestinoDisplay($r, 'destino') . "</span></div></div>";
+            $histCards .= "<div style='display:flex;gap:10px;font-size:.78rem;color:#6b7280;flex-wrap:wrap;'><span>Rec: $dataRecH</span><span>Ret: $dataRetH</span></div>";
+            $histCards .= "<div><a href='$viewUrl' class='pt-btn pt-btn-outline pt-btn-sm' style='width:100%;min-height:42px;'><i class='ti ti-eye'></i> Ver</a></div>";
+            $histCards .= "</div>";
             continue;
         }
         $recSig = !empty($r['recebido_assinatura_image']);
@@ -265,6 +287,11 @@ if ($lista) {
     echo "<tr class='pt-list-row'><td colspan='8'><div class='pt-empty-state pt-empty-small'><i class='ti ti-folder-off'></i><p>" . ($minhas ? 'Você ainda não registrou nenhuma pasta.' : 'Nenhum resultado.') . " <a href='" . Pasta::getFormURL() . "'>Registrar a primeira pasta</a>?</p><small class='pt-row-sub'>Filtros: q=" . htmlspecialchars($q) . " escola=$escola_filtro status=$status" . ($minhas ? ' minhas=1' : '') . "</small></div></td></tr>";
 }
 echo "</tbody></table></div>";
+if ($minhas) {
+    echo "<div id='pt-hist-cards' style='gap:14px;padding:4px 12px 16px;" . ($histView === 'grid' ? 'display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));' : 'display:none;') . "'>" . $histCards . "</div>";
+    echo "<script>function ptSetHistView(v){if(v!=='grid'&&v!=='list')return;var tw=document.getElementById('pt-hist-table');var cw=document.getElementById('pt-hist-cards');if(tw)tw.style.display=(v==='list')?'':'none';if(cw){cw.style.display=(v==='grid')?'grid':'none';if(v==='grid'){cw.style.gridTemplateColumns='repeat(auto-fill,minmax(300px,1fr))';cw.style.gap='14px';cw.style.padding='4px 12px 16px';}}document.querySelectorAll('.pt-hview-btn').forEach(function(b){if(b.getAttribute('data-v')===v)b.classList.add('on');else b.classList.remove('on');});try{localStorage.setItem('pt_hist_view',v);}catch(e){}try{var base='/plugins/protocolo';try{if(typeof ptPluginBase==='function')base=ptPluginBase();}catch(e2){}fetch(base+'/ajax/view.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},body:JSON.stringify({view:v})}).catch(function(){});}catch(e){}}document.addEventListener('DOMContentLoaded',function(){var cur=null;var tw=document.getElementById('pt-hist-table');if(tw)cur=(tw.style.display==='none')?'grid':'list';if(cur){document.querySelectorAll('.pt-hview-btn').forEach(function(b){if(b.getAttribute('data-v')===cur)b.classList.add('on');});}});</script>";
+}
+echo "</div>";
 
 // Paginação
 if ($totalPages > 1) {
