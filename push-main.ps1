@@ -2,5 +2,5 @@ $env:GIT_MASTER='1'
 Set-Location -LiteralPath 'C:\Users\Administrador\Desktop\Projetos\Protocolo'
 git status --short
 git add front/dashboard.php front/pasta.php front/termo.php src/Pasta.php src/Install.php public/js/app.js public/css/protocolo-modern.css ajax/version.php ajax/retirada_save.php ajax/view.php setup.php
-git commit -m "feat: wizard 9 etapas retas entregador e recebedor"
+git commit -m "feat: numpad nos docs e interstitial devolucao apos assinatura"
 git push origin main

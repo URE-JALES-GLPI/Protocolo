@@ -715,6 +715,15 @@ class Pasta extends CommonDBTM
             echo "<button type='button' class='pt-btn pt-btn-green' style='width:100%;' onclick='ptDevOk()'>Entendi, continuar</button>";
             echo "</div></div>";
         }
+        if ($isNew) {
+            echo "<div id='pt-dev2-overlay' style='display:none;position:fixed;inset:0;background:rgba(17,24,39,.75);z-index:10090;align-items:center;justify-content:center;padding:20px;'>";
+            echo "<div style='background:#fff;border-radius:16px;max-width:440px;width:100%;padding:32px 24px;text-align:center;border:3px solid #f59e0b;'>";
+            echo "<div style='width:72px;height:72px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;'><i class='ti ti-device-tablet' style='font-size:2.2rem;color:#fff;'></i></div>";
+            echo "<div style='font-weight:800;font-size:1.25rem;margin-bottom:10px;color:#92400e;'>DEVOLVA O APARELHO AO FUNCIONÁRIO</div>";
+            echo "<p style='font-size:.95rem;color:#374151;'>A assinatura de quem deixou foi coletada. Passe o tablet de volta ao responsável para continuar.</p>";
+            echo "<button type='button' class='pt-btn pt-btn-green' style='width:100%;font-size:1rem;padding:12px;' onclick='ptDev2Ok()'>Entendi, continuar</button>";
+            echo "</div></div>";
+        }
 
         if (!$isNew) {
             $catBadge = self::getCategoriaBadge($this->fields['categoria'] ?? 'pasta', $this->fields['especie_outro'] ?? null);
@@ -909,7 +918,13 @@ class Pasta extends CommonDBTM
             echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='rg' onclick='ptRecDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='cpf' onclick='ptRecDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
-            echo "</div><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small></td>";
+            echo "</div><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
+            echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
+            foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"$nk\")'>$nk</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"clr\")'>C</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"0\")'>0</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
+            echo "</div></td>";
             echo "</tr>";
             echo "</tbody><tbody data-ptstep='5' style='display:none'>";
         } else {
@@ -936,8 +951,15 @@ class Pasta extends CommonDBTM
             echo "<td colspan='3'><div style='display:flex;gap:10px;margin-bottom:12px;'>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='rg' onclick='ptRecbDocType(\"rg\")' style='flex:1;padding:14px;'><i class='ti ti-id' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>RG</span></button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary pt-recbdoc-btn' data-t='cpf' onclick='ptRecbDocType(\"cpf\")' style='flex:1;padding:14px;'><i class='ti ti-id-badge-2' style='font-size:1.6rem;'></i><br><span style='font-weight:800;'>CPF</span></button>";
-            echo "</div><div class='input-group'><input type='text' name='recebedor_documento' id='recebedor_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebedor_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small></td>";
+            echo "</div><div class='input-group'><input type='text' name='recebedor_documento' id='recebedor_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.05rem;padding:12px;'></div><input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebedor_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
+            echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
+            foreach (['7','8','9','4','5','6','1','2','3'] as $nkB) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"$nkB\")'>$nkB</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"clr\")'>C</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"0\")'>0</button>";
+            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"recebedor_documento\",\"recebedor_documento_tipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
+            echo "</div></td>";
             echo "</tr>";
+            echo "</tbody><tbody data-ptstep='8' style='display:none'>";
             echo "<tr class='tab_bg_1'><td><label>Assinatura de quem recebe <span class='required'>*</span></label><br><small class='text-muted'>Atendente assina no tablet</small></td>";
             echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-recb-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-recb-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''></td></tr>";
             echo "</tbody><tbody data-ptstep='9' style='display:none'>";
@@ -1330,6 +1352,12 @@ class Pasta extends CommonDBTM
                         if(!window.__ptRecbDrawn){ ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', document.getElementById('pt-recb-canvas')); return; }
                     }
                 }
+                if(d > 0 && cur === 5 && !window.__ptDev2Shown){
+                    window.__ptDev2Shown = true;
+                    var dov2 = document.getElementById('pt-dev2-overlay');
+                    if(dov2) dov2.style.display = 'flex';
+                    return;
+                }
                 if(d > 0 && cur === 8 && !window.__ptDevShown){
                     window.__ptDevShown = true;
                     var dov = document.getElementById('pt-dev-overlay');
@@ -1486,6 +1514,25 @@ class Pasta extends CommonDBTM
                 var cl = document.getElementById('pt-recb-clear');
                 if(cl) cl.addEventListener('click', function(){ ptRecbFit(); var cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); window.__ptRecbDrawn = false; var hi = document.getElementById('pt-recb-image'); if(hi) hi.value = ''; });
             }
+            window.ptNumPress = function(docId, tipoId, k){
+                var doc = document.getElementById(docId);
+                if(!doc) return;
+                var tEl = tipoId ? document.getElementById(tipoId) : null;
+                var t = (tEl && tEl.value === 'rg') ? 'rg' : 'cpf';
+                var max = (t === 'rg') ? 9 : 11;
+                var v = (doc.value || '').replace(/\D/g, '');
+                if(k === 'del') v = v.slice(0, -1);
+                else if(k === 'clr') v = '';
+                else if(/^[0-9]$/.test(k) && v.length < max) v += k;
+                doc.value = v;
+                doc.dispatchEvent(new Event('input', {bubbles: true}));
+            };
+            window.__ptDev2Shown = false;
+            window.ptDev2Ok = function(){
+                var ov = document.getElementById('pt-dev2-overlay');
+                if(ov) ov.style.display = 'none';
+                ptWizShow(6);
+            };
             if(document.getElementById('pt-wiz-ind')){ ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); }
             function ptSchoolEnsure(){
                 var ov = document.getElementById('pt-school-overlay');
