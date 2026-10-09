@@ -1515,13 +1515,13 @@ class Pasta extends CommonDBTM
             function ptRecebLoad(selectedId){
                 var box = document.getElementById('pt-receb-list');
                 if(!box) return;
-                box.innerHTML = '<div class="text-muted small">Carregando...</div>';
+                box.innerHTML = '<div class=\"text-muted small\">Carregando...</div>';
                 fetch(ptRecebBase() + '/ajax/recebedor.php?action=list', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
                     .then(function(r){ return r.json(); })
                     .then(function(d){
                         box.innerHTML = '';
                         var items = (d && d.items) || [];
-                        if(!items.length) box.innerHTML = '<div class="text-muted small">Nenhum recebedor cadastrado. Cadastre o primeiro abaixo.</div>';
+                        if(!items.length) box.innerHTML = '<div class=\"text-muted small\">Nenhum recebedor cadastrado. Cadastre o primeiro abaixo.</div>';
                         items.forEach(function(t){
                             var b = document.createElement('button');
                             b.type = 'button';
@@ -1557,7 +1557,7 @@ class Pasta extends CommonDBTM
                         });
                         ptRecebPaint(selectedId);
                     })
-                    .catch(function(){ box.innerHTML = '<div class="text-muted small">Falha ao carregar. Recarregue a página.</div>'; });
+                    .catch(function(){ box.innerHTML = '<div class=\"text-muted small\">Falha ao carregar. Recarregue a página.</div>'; });
             }
             function ptRecebPaint(selectedId){
                 var cur = selectedId || window.__ptRecebId || null;
@@ -1661,7 +1661,7 @@ class Pasta extends CommonDBTM
                 var c = document.getElementById('pt-nrec-canvas');
                 var img = '';
                 try { img = c.toDataURL('image/png'); } catch(eimg) { window.ptNRecErr('Falha na assinatura. Tente de novo.'); return; }
-                var csrfEl = document.querySelector('#plugin_protocolo_pasta_form input[name="_glpi_csrf_token"]');
+                var csrfEl = document.querySelector('#plugin_protocolo_pasta_form input[name=\"_glpi_csrf_token\"]');
                 var tok = csrfEl ? csrfEl.value : '';
                 var btn = document.getElementById('pt-nrec-save');
                 if(btn) btn.disabled = true;
