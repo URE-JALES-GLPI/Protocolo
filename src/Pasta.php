@@ -1294,7 +1294,7 @@ class Pasta extends CommonDBTM
                 });
                 var names = {1:'Quem recebe',2:'Dados da pasta',3:'Origem e destino',4:'Quem entrega',5:'Documento',6:'Número do documento',7:'Assinatura',8:'Devolver aparelho',9:'Itens'};
                 var ttl = document.getElementById('pt-wiz-steptitle');
-                if(ttl) ttl.textContent = 'Etapa ' + n + ' de 9 — ' + (names[n] || '');
+                if(ttl) ttl.textContent = 'Etapa ' + n + ' de 9';
                 var bV = document.getElementById('pt-wiz-back');
                 if(bV) bV.style.display = n === 1 ? 'none' : '';
                 var bF = document.getElementById('pt-wiz-fechar');
