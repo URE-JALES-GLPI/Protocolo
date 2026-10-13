@@ -85,7 +85,7 @@ class TipoArquivo extends CommonDBTM
         $this->showFormHeader($options);
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Nome') . " <span class='required'>*</span></label></td>";
-        echo "<td><input type='text' name='name' value='" . Html::cleanInputText($this->fields['name'] ?? '') . "' class='form-control' required></td>";
+        echo "<td><input type='text' name='name' value='" . htmlspecialchars($this->fields['name'] ?? '') . "' class='form-control' required></td>";
         echo "<td><label>" . __('Ativo') . "</label></td>";
         echo "<td>";
         \Dropdown::showYesNo('is_active', $this->fields['is_active'] ?? 1);
@@ -93,7 +93,7 @@ class TipoArquivo extends CommonDBTM
         echo "</tr>";
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Descrição') . "</label></td>";
-        echo "<td colspan='3'><input type='text' name='comment' value='" . Html::cleanInputText($this->fields['comment'] ?? '') . "' class='form-control' placeholder='Opcional'></td>";
+        echo "<td colspan='3'><input type='text' name='comment' value='" . htmlspecialchars($this->fields['comment'] ?? '') . "' class='form-control' placeholder='Opcional'></td>";
         echo "</tr>";
         $this->showFormButtons($options);
         return true;

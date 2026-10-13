@@ -184,14 +184,14 @@ class Recebedor extends \CommonDBTM
 
         echo '<tr class=\'tab_bg_1\'>';
         echo '<td><label for=\'name\'>' . __('Nome') . ' <span class=\'required\'>*</span></label></td>';
-        echo '<td><input type=\'text\' name=\'name\' id=\'name\' value=\'' . Html::cleanInputText($this->fields['name'] ?? '') . '\' class=\'form-control\' required style=\'width:100%\' placeholder=\'Ex: Maria Souza\'></td>';
+        echo '<td><input type=\'text\' name=\'name\' id=\'name\' value=\'' . htmlspecialchars($this->fields['name'] ?? '') . '\' class=\'form-control\' required style=\'width:100%\' placeholder=\'Ex: Maria Souza\'></td>';
         echo '<td><label for=\'pt-recebedor-doctipo\'>' . __('Tipo de documento', 'protocolo') . '</label></td>';
         echo '<td><select name=\'document_type\' id=\'pt-recebedor-doctipo\' class=\'form-select\'><option value=\'cpf\'' . $selCpf . '>CPF</option><option value=\'rg\'' . $selRg . '>RG</option></select></td>';
         echo '</tr>';
 
         echo '<tr class=\'tab_bg_1\'>';
         echo '<td><label for=\'pt-recebedor-doc\'>' . __('Documento', 'protocolo') . '</label></td>';
-        echo '<td colspan=\'3\'><input type=\'text\' name=\'document\' id=\'pt-recebedor-doc\' class=\'form-control\' value=\'' . Html::cleanInputText($this->fields['document'] ?? '') . '\' placeholder=\'Somente números\' maxlength=\'14\' inputmode=\'numeric\' style=\'font-size:1.2rem;padding:10px;text-align:center;letter-spacing:2px;\'>';
+        echo '<td colspan=\'3\'><input type=\'text\' name=\'document\' id=\'pt-recebedor-doc\' class=\'form-control\' value=\'' . htmlspecialchars($this->fields['document'] ?? '') . '\' placeholder=\'Somente números\' maxlength=\'14\' inputmode=\'numeric\' style=\'font-size:1.2rem;padding:10px;text-align:center;letter-spacing:2px;\'>';
         echo '<small class=\'text-muted\' id=\'pt-recebedor-doc-hint\'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>';
         echo '<div style=\'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;\'>';
         foreach (['7', '8', '9', '4', '5', '6', '1', '2', '3'] as $nk) {

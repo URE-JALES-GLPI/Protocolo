@@ -700,8 +700,8 @@ class Pasta extends CommonDBTM
             echo "<div class='text-muted small' style='margin-bottom:10px;'>Selecione o atendente responsável. A assinatura cadastrada será usada no termo.</div>";
             echo "<select id='pt-receb-select' class='form-select' style='font-size:1.05rem;padding:12px;'><option value=''>-- " . __('Carregando recebedores...', 'protocolo') . " --</option></select>";
             echo "<button type='button' class='pt-btn pt-btn-secondary' style='margin-top:10px;' onclick='ptRecNewOpen()'><i class='ti ti-plus'></i> Novo recebedor</button>";
-            echo "<input type='hidden' name='recebedor_nome' id='recebedor_nome' value='" . Html::cleanInputText($this->fields['recebedor_nome'] ?? '') . "'>";
-            echo "<input type='hidden' name='recebedor_documento' id='recebedor_documento_h' value='" . Html::cleanInputText($this->fields['recebedor_documento'] ?? '') . "'>";
+            echo "<input type='hidden' name='recebedor_nome' id='recebedor_nome' value='" . htmlspecialchars($this->fields['recebedor_nome'] ?? '') . "'>";
+            echo "<input type='hidden' name='recebedor_documento' id='recebedor_documento_h' value='" . htmlspecialchars($this->fields['recebedor_documento'] ?? '') . "'>";
             echo "<input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo_h' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'>";
             echo "<input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''>";
             echo "</td></tr>";
@@ -764,14 +764,14 @@ class Pasta extends CommonDBTM
             echo "<option value='$ev' $sel>" . htmlspecialchars($el) . "</option>";
         }
         echo "</select>";
-        echo "<div id='especie_outro_wrap' style='display:" . ($espVal==='outro'?'block':'none') . ";margin-top:6px;'><input type='text' name='especie_outro' id='especie_outro_input' class='form-control' value='" . Html::cleanInputText($espOutro) . "' placeholder='Descreva a espécie'></div>";
+        echo "<div id='especie_outro_wrap' style='display:" . ($espVal==='outro'?'block':'none') . ";margin-top:6px;'><input type='text' name='especie_outro' id='especie_outro_input' class='form-control' value='" . htmlspecialchars($espOutro) . "' placeholder='Descreva a espécie'></div>";
         echo "<small class='text-muted'>Separa gráficos e filtros</small>";
         echo "</div>";
         echo "</div></td>";
         echo "</tr>";
         echo "<tr class='tab_bg_1'>";
         echo "<td width='15%'><label>" . __('Assunto', 'protocolo') . " <span class='required'>*</span></label></td>";
-        echo "<td colspan='3'><input type='text' name='assunto' id='assunto_field' class='form-control' required maxlength='255' style='width:100%' value='" . Html::cleanInputText($this->fields['assunto'] ?? '') . "' placeholder='Ex: Ofício nº 123/2026 — matrícula'></td>";
+        echo "<td colspan='3'><input type='text' name='assunto' id='assunto_field' class='form-control' required maxlength='255' style='width:100%' value='" . htmlspecialchars($this->fields['assunto'] ?? '') . "' placeholder='Ex: Ofício nº 123/2026 — matrícula'></td>";
         echo "</tr>";
         if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
 
@@ -816,7 +816,7 @@ class Pasta extends CommonDBTM
         echo "<div class='form-check'><input class='form-check-input origem-tipo' type='radio' name='origem_tipo' id='origem_outro' value='outro' " . ($origemTipo==='outro'?'checked':'') . "><label class='form-check-label' for='origem_outro'>Outros</label></div>";
         echo "</div>";
         echo "<div id='origem_locked_wrap' style='display:" . ($origemTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo'></div>";
-        echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . Html::cleanInputText($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
+        echo "<div id='origem_outro_wrap' style='display:" . ($origemTipo==='outro'?'block':'none') . "'><input type='text' name='origem_outro' id='origem_outro_input' class='form-control' value='" . htmlspecialchars($origemOutro) . "' placeholder='Escreva a origem (ex: Correios, Secretaria...)'></div>";
         echo "<div id='origem_ure_wrap' style='display:" . ($origemTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='origem_entities_id_ure' value='0'></div>";
         echo "<div id='origem_escola_wrap' style='display:" . ($origemTipo==='escola'?'block':'none') . "'>";
         if (!empty($filhasURE)) {
@@ -870,7 +870,7 @@ class Pasta extends CommonDBTM
         echo "<div class='form-check'><input class='form-check-input destino-tipo' type='radio' name='destino_tipo' id='destino_outro' value='outro' " . ($destinoTipo==='outro'?'checked':'') . "><label class='form-check-label' for='destino_outro'>Outros</label></div>";
         echo "</div>";
         echo "<div id='destino_locked_wrap' style='display:" . ($destinoTipo===''?'block':'none') . "'><input type='text' class='form-control' disabled value='Selecione o tipo'></div>";
-        echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . Html::cleanInputText($destinoOutro) . "' placeholder='Escreva o destino'></div>";
+        echo "<div id='destino_outro_wrap' style='display:" . ($destinoTipo==='outro'?'block':'none') . "'><input type='text' name='destino_outro' id='destino_outro_input' class='form-control' value='" . htmlspecialchars($destinoOutro) . "' placeholder='Escreva o destino'></div>";
         echo "<div id='destino_ure_wrap' style='display:" . ($destinoTipo==='ure'?'block':'none') . "'><input type='text' class='form-control' disabled value='Unidade Regional de Ensino de Jales - URE'><input type='hidden' name='destino_entities_id_ure' value='0'></div>";
         echo "<div id='destino_escola_wrap' style='display:" . ($destinoTipo==='escola'?'block':'none') . "'>";
         if (!empty($filhasURE)) {
@@ -911,7 +911,7 @@ class Pasta extends CommonDBTM
         if ($isNew) {
             echo "<tr class='tab_bg_1'>";
             echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para a pessoa preencher</small></td>";
-            echo "<td colspan='3'><input type='text' name='recebido_de' id='recebido_de_field' class='form-control' required value='" . Html::cleanInputText($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria' style='font-size:1.05rem;padding:12px;'></td>";
+            echo "<td colspan='3'><input type='text' name='recebido_de' id='recebido_de_field' class='form-control' required value='" . htmlspecialchars($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria' style='font-size:1.05rem;padding:12px;'></td>";
             echo "</tr>";
             echo "</tbody><tbody data-ptstep='5' style='display:none'>";
             echo "<tr class='tab_bg_1'>";
@@ -924,7 +924,7 @@ class Pasta extends CommonDBTM
             echo "</tbody><tbody data-ptstep='6' style='display:none'>";
             echo "<tr class='tab_bg_1'>";
             echo "<td><label>Número do documento</label></td>";
-            echo "<td colspan='3'><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
+            echo "<td colspan='3'><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . htmlspecialchars($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
             echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
             foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"$nk\")'>$nk</button>";
             echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"clr\")'>C</button>";
@@ -936,9 +936,9 @@ class Pasta extends CommonDBTM
         } else {
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label></td>";
-        echo "<td><input type='text' name='recebido_de' class='form-control' required value='" . Html::cleanInputText($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria'></td>";
+        echo "<td><input type='text' name='recebido_de' class='form-control' required value='" . htmlspecialchars($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria'></td>";
         echo "<td><label>" . __('Documento', 'protocolo') . "</label></td>";
-        echo "<td><div class='input-group'><select name='recebido_documento_tipo' id='recebido_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='cpf')?' selected':'') . ">CPF</option><option value='rg'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='rg')?' selected':'') . ">RG</option></select><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . Html::cleanInputText($this->fields['recebido_documento'] ?? '') . "' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos (000.000.000-00) | RG: 7-9 dígitos</small></td>";
+        echo "<td><div class='input-group'><select name='recebido_documento_tipo' id='recebido_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='cpf')?' selected':'') . ">CPF</option><option value='rg'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='rg')?' selected':'') . ">RG</option></select><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . htmlspecialchars($this->fields['recebido_documento'] ?? '') . "' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos (000.000.000-00) | RG: 7-9 dígitos</small></td>";
         echo "</tr>";
         }
         if ($isNew) {
@@ -955,7 +955,7 @@ class Pasta extends CommonDBTM
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Código', 'protocolo') . "</label></td>";
-        echo "<td><input class='form-control' disabled placeholder='PROT-YYYY-0001' value='" . Html::cleanInputText($this->fields['codigo'] ?? '') . "'>";
+        echo "<td><input class='form-control' disabled placeholder='PROT-YYYY-0001' value='" . htmlspecialchars($this->fields['codigo'] ?? '') . "'>";
         if (!$isNew) echo "<small class='text-muted'>" . __('Gerado automaticamente', 'protocolo') . "</small>";
         echo "</td>";
         echo "<td><label>" . __('Status', 'protocolo') . "</label></td>";
@@ -964,7 +964,7 @@ class Pasta extends CommonDBTM
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Observação', 'protocolo') . "</label></td>";
-        echo "<td colspan='3'><textarea name='observacao' class='form-control' rows='2' placeholder='" . __('Observações gerais', 'protocolo') . "'>" . Html::cleanInputText($this->fields['observacao'] ?? '') . "</textarea></td>";
+        echo "<td colspan='3'><textarea name='observacao' class='form-control' rows='2' placeholder='" . __('Observações gerais', 'protocolo') . "'>" . htmlspecialchars($this->fields['observacao'] ?? '') . "</textarea></td>";
         echo "</tr>";
 
         if (!$isNew && !empty($this->fields['recebedor_nome'])) {
@@ -977,7 +977,7 @@ class Pasta extends CommonDBTM
             $docRet = htmlspecialchars($this->fields['retirado_documento'] ?? '');
             echo "<tr class='tab_bg_1'><td colspan='4' class='center bg-success bg-opacity-10'><strong>" . __('Retirada registrada', 'protocolo') . "</strong> " . Html::convDateTime($this->fields['data_retirada']) . " por " . htmlspecialchars($this->fields['retirado_por'] ?? '') . ($docRet ? " ($tipoRet: $docRet)" : "") . "</td></tr>";
             if (!empty($this->fields['observacao_retirada'])) {
-                echo "<tr class='tab_bg_1'><td>" . __('Obs. retirada', 'protocolo') . "</td><td colspan='3'>" . nl2br(Html::cleanInputText($this->fields['observacao_retirada'])) . "</td></tr>";
+                echo "<tr class='tab_bg_1'><td>" . __('Obs. retirada', 'protocolo') . "</td><td colspan='3'>" . nl2br(htmlspecialchars($this->fields['observacao_retirada'])) . "</td></tr>";
             }
         }
 
@@ -1001,7 +1001,7 @@ class Pasta extends CommonDBTM
                 echo "<div class='pt-tipo-chips'>";
                 foreach ($tipos as $t) {
                     $checked = in_array((int)$t['id'], $lastTipos) ? 'checked' : '';
-                    echo "<span class='pt-tipo-chip'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . Html::cleanInputText($t['name']) . "' $checked><label for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></span>";
+                    echo "<span class='pt-tipo-chip'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . htmlspecialchars($t['name']) . "' $checked><label for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></span>";
                 }
                 echo "</div>";
                 echo "<div class='form-text mt-2'>" . __('Selecione pelo menos 1. Os itens abaixo são preenchidos automaticamente', 'protocolo') . "</div>";
@@ -1014,9 +1014,9 @@ class Pasta extends CommonDBTM
             if (!empty($lastItens) && is_array($lastItens)) {
                 echo "<div id='itensWrap'>";
                 foreach ($lastItens as $idx => $it) {
-                    $desc = Html::cleanInputText($it['descricao'] ?? '');
+                    $desc = htmlspecialchars($it['descricao'] ?? '');
                     $qtd = max(1, (int)($it['quantidade'] ?? 1));
-                    $obs = Html::cleanInputText($it['observacao'] ?? '');
+                    $obs = htmlspecialchars($it['observacao'] ?? '');
                     if ($desc === '' && $qtd === 1 && $obs === '' && $idx !== 0) continue;
                     echo "<div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[$idx][descricao]' class='form-control' value='$desc' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[$idx][quantidade]' type='number' min='1' value='$qtd' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[$idx][observacao]' class='form-control' value='$obs' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div>";
                 }

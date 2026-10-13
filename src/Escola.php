@@ -233,14 +233,14 @@ class Escola extends CommonDBTM
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label for='name'>" . __('Nome') . " <span class='required'>*</span></label></td>";
-        echo "<td><input type='text' name='name' id='name' value='" . Html::cleanInputText($this->fields['name'] ?? '') . "' class='form-control' required style='width:100%'></td>";
+        echo "<td><input type='text' name='name' id='name' value='" . htmlspecialchars($this->fields['name'] ?? '') . "' class='form-control' required style='width:100%'></td>";
         echo "<td><label for='codigo'>" . __('Código', 'protocolo') . "</label></td>";
-        echo "<td><input type='text' name='codigo' id='codigo' value='" . Html::cleanInputText($this->fields['codigo'] ?? '') . "' class='form-control' placeholder='ESC001'></td>";
+        echo "<td><input type='text' name='codigo' id='codigo' value='" . htmlspecialchars($this->fields['codigo'] ?? '') . "' class='form-control' placeholder='ESC001'></td>";
         echo "</tr>";
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label for='responsavel'>" . __('Responsável', 'protocolo') . "</label></td>";
-        echo "<td><input type='text' name='responsavel' id='responsavel' value='" . Html::cleanInputText($this->fields['responsavel'] ?? '') . "' class='form-control'></td>";
+        echo "<td><input type='text' name='responsavel' id='responsavel' value='" . htmlspecialchars($this->fields['responsavel'] ?? '') . "' class='form-control'></td>";
         echo "<td><label for='is_active'>" . __('Ativo', 'protocolo') . "</label></td>";
         echo "<td>";
         Dropdown::showYesNo('is_active', $this->fields['is_active'] ?? 1);
@@ -249,14 +249,14 @@ class Escola extends CommonDBTM
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label for='email'>" . __('E-mail', 'protocolo') . "</label></td>";
-        echo "<td><input type='email' name='email' id='email' value='" . Html::cleanInputText($this->fields['email'] ?? '') . "' class='form-control'></td>";
+        echo "<td><input type='email' name='email' id='email' value='" . htmlspecialchars($this->fields['email'] ?? '') . "' class='form-control'></td>";
         echo "<td><label for='phone'>" . __('Telefone') . "</label></td>";
-        echo "<td><input type='text' name='phone' id='phone' value='" . Html::cleanInputText($this->fields['phone'] ?? '') . "' class='form-control'></td>";
+        echo "<td><input type='text' name='phone' id='phone' value='" . htmlspecialchars($this->fields['phone'] ?? '') . "' class='form-control'></td>";
         echo "</tr>";
 
         echo "<tr class='tab_bg_1'>";
         echo "<td><label for='address'>" . __('Endereço') . "</label></td>";
-        echo "<td colspan='3'><textarea name='address' id='address' class='form-control' rows='2'>" . Html::cleanInputText($this->fields['address'] ?? '') . "</textarea></td>";
+        echo "<td colspan='3'><textarea name='address' id='address' class='form-control' rows='2'>" . htmlspecialchars($this->fields['address'] ?? '') . "</textarea></td>";
         echo "</tr>";
 
         // --- ENTIDADE ---
