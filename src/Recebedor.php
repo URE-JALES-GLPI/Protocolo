@@ -9,7 +9,7 @@ use Plugin;
 
 class Recebedor extends \CommonDBTM
 {
-    public static $rightname = 'plugin_protocolo_use';
+    public static string $rightname = 'plugin_protocolo_use';
 
     public function isEntityAssign()
     {

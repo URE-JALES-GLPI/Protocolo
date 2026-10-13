@@ -15,7 +15,7 @@ class Pasta extends CommonDBTM
 {
     // Direito único do plugin (ver Profile::getRights). Usa 31 (todos os bits)
     // para que o núcleo do GLPI (Session::haveRight) também passe em CREATE/UPDATE.
-    public static $rightname = 'plugin_protocolo_use';
+    public static string $rightname = 'plugin_protocolo_use';
 
     // Registra criação/alterações em glpi_logs → aba "Histórico"/Log da ficha
     // (quem mudou, quando, campo, valor antigo → novo).

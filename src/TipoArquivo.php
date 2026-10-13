@@ -9,7 +9,7 @@ use Plugin;
 
 class TipoArquivo extends CommonDBTM
 {
-    public static $rightname = 'plugin_protocolo_use';
+    public static string $rightname = 'plugin_protocolo_use';
 
     public static function getTypeName($nb = 0)
     {
