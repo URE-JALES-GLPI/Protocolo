@@ -7,7 +7,7 @@ use GlpiPlugin\Protocolo\Pasta;
 
 Html::header("Debug Protocolo", $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 
-global $DB;
+global $DB, $CFG_GLPI;
 
 $uid = Session::getLoginUserID();
 $uname = $_SESSION['glpiname'] ?? 'unknown';

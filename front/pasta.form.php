@@ -4,6 +4,8 @@ require_once __DIR__ . '/../src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 
+global $DB, $CFG_GLPI;
+
 $pasta = new Pasta();
 
 /** Coleta mensagens de erro da sessão para resposta AJAX (aponta o erro exato). */

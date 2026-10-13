@@ -8,6 +8,8 @@ use GlpiPlugin\Protocolo\EntityMail;
 use GlpiPlugin\Protocolo\Escola;
 use GlpiPlugin\Protocolo\TipoArquivo;
 
+global $DB, $CFG_GLPI;
+
 Session::checkLoginUser();
 
 if (!Config::canEdit()) {

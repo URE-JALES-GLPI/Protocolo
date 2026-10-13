@@ -22,7 +22,7 @@ if (!$profile->getFromDB($profiles_id)) {
     Html::displayErrorAndDie(__('Perfil não encontrado', 'protocolo'));
 }
 
-global $DB;
+global $DB, $CFG_GLPI;
 $rights = ProtoProfile::getRightsStatic();
 
 // Calcula valores enviados: suporta dropdown sequencial (valor único 0..255) e legado checkboxes (array bit=>1)

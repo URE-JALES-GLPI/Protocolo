@@ -8,6 +8,8 @@ Session::checkLoginUser();
 
 use GlpiPlugin\Protocolo\Escola;
 
+global $DB;
+
 // Para dropdown ajax GLPI (Select2) — ESCOLA = ENTIDADE (TODAS)
 if (isset($_POST['searchText'])) {
     $search = $_POST['searchText'];

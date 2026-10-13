@@ -19,8 +19,8 @@ class Pasta extends CommonDBTM
 
     // Registra criação/alterações em glpi_logs → aba "Histórico"/Log da ficha
     // (quem mudou, quando, campo, valor antigo → novo).
-    // Sem tipo de propósito: o CommonDBTM desta versão declara sem tipo.
-    public $dohistory = true;
+    // GLPI 12 tipou como bool no CommonDBTM — declara com tipo para não dar fatal.
+    public bool $dohistory = true;
 
     public function isEntityAssign()
     {

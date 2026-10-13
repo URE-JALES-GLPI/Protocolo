@@ -9,6 +9,8 @@ require_once __DIR__ . '/../src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 
+global $DB;
+
 Session::checkLoginUser();
 
 header('Content-Type: application/json; charset=utf-8');
