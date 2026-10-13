@@ -3,6 +3,7 @@
  * front/export.php - Exporta dashboards para XLSX (ou CSV fallback)
  */
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;

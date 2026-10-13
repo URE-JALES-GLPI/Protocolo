@@ -6,9 +6,11 @@
  * License: GPLv2+
  */
 
-define('PLUGIN_PROTOCOLO_VERSION', '2.4.1');
+require_once __DIR__ . '/src/compat.php';
+
+define('PLUGIN_PROTOCOLO_VERSION', '2.5.0');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
-define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.0');
+define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.99');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
 
 /**
@@ -28,7 +30,7 @@ function plugin_version_protocolo(): array
                 'max' => PLUGIN_PROTOCOLO_MAX_GLPI,
             ],
             'php' => [
-                'min' => '8.1',
+                'min' => '8.2',
                 'exts' => ['mysqli', 'gd', 'curl']
             ]
         ]
@@ -83,16 +85,20 @@ function plugin_init_protocolo(): void
     Plugin::registerClass(\GlpiPlugin\Protocolo\Profile::class, ['addtabon' => Profile::class]);
     $PLUGIN_HOOKS['change_profile']['protocolo'] = [\GlpiPlugin\Protocolo\Profile::class, 'changeProfile'];
 
-    // CSRF compliance - deve ser true para proteger POST
-    $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = true;
+    // CSRF compliance - no GLPI 12 o hook foi removido (CheckCsrfListener cuida);
+    // mantém true apenas no GLPI <12 para proteger POST (mesmo esquema do kanpro).
+    if (!protocolo_is_glpi12_plus()) {
+        $PLUGIN_HOOKS['csrf_compliant']['protocolo'] = true;
+    }
 
     // Menu GLPI 10/11 - apenas em Ferramentas (evita duplicar em Plug-ins)
     $PLUGIN_HOOKS['menu_toadd']['protocolo'] = [
         'tools' => \GlpiPlugin\Protocolo\Pasta::class,
     ];
     $PLUGIN_HOOKS['menu_entry']['protocolo'] = 'front/dashboard.php';
-    // Usa Plugin::getWebDir para suportar plugins/ ou marketplace/ sem duplicar root_doc
-    $protocolo_webdir = \Plugin::getWebDir('protocolo');
+    // Usa protocolo_web_dir para suportar plugins/ ou marketplace/ sem duplicar root_doc.
+    // No GLPI 12 Plugin::getWebDir foi removido — helper faz fallback via root_doc.
+    $protocolo_webdir = protocolo_web_dir('protocolo');
     // Submenu espera caminho sem root_doc (GLPI prepend root_doc internamente), então remove se já contém
     $protocolo_webdir_noroot = $protocolo_webdir;
     if (isset($CFG_GLPI['root_doc']) && $CFG_GLPI['root_doc'] !== '' && str_starts_with($protocolo_webdir, $CFG_GLPI['root_doc'])) {

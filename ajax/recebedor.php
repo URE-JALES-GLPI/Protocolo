@@ -18,6 +18,7 @@ ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 
@@ -77,7 +78,7 @@ if ($action === 'save') {
         $data = $_POST;
     }
     $csrf = $data['_glpi_csrf_token'] ?? '';
-    if ($csrf === '' || !Session::validateCSRF(['_glpi_csrf_token' => $csrf])) {
+    if ($csrf === '' || !protocolo_validate_csrf(['_glpi_csrf_token' => $csrf])) {
         http_response_code(403);
         echo json_encode(['ok' => false, 'error' => 'Sessão expirada. Recarregue a página (F5).']);
         exit;

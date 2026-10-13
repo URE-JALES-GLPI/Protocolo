@@ -117,7 +117,7 @@ class Termo extends CommonDBTM
 
     public static function getFormURL($full = true)
     {
-        $web = Plugin::getWebDir('protocolo');
+        $web = protocolo_web_dir('protocolo');
         if ($web === '' || $web === null) $web = '/plugins/protocolo';
         $root = $GLOBALS['CFG_GLPI']['root_doc'] ?? '';
         // Se web já contém root, não duplica

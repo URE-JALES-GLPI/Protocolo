@@ -1,5 +1,6 @@
 <?php
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Profile as ProtoProfile;
 
@@ -7,7 +8,7 @@ Session::checkLoginUser();
 if (!Session::haveRight('profile', UPDATE) && !Session::haveRight('config', UPDATE)) {
     Html::displayRightError();
 }
-if (!Session::validateCSRF($_POST)) {
+if (!protocolo_validate_csrf($_POST)) {
     error_log("[protocolo] CSRF falhou em profile save, seguindo com save");
 }
 

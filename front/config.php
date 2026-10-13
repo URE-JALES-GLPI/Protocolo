@@ -1,5 +1,6 @@
 <?php
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Config;
 use GlpiPlugin\Protocolo\Pasta;
@@ -15,8 +16,11 @@ if (!Config::canEdit()) {
 
 $config = Config::getAll();
 
-// Helper CSRF
+// Helper CSRF com gate GLPI 12 (no 12 o CheckCsrfListener do core valida; aqui é no-op)
 function protocolo_check_csrf_or_bypass(): bool {
+    if (protocolo_is_glpi12_plus()) {
+        return true;
+    }
     $csrfToken = $_POST['_glpi_csrf_token'] ?? '';
     $tokens = $_SESSION['glpicsrftokens'] ?? [];
     $csrfOk = !empty($csrfToken) && isset($tokens[$csrfToken]);
@@ -25,14 +29,14 @@ function protocolo_check_csrf_or_bypass(): bool {
         // Não bloqueia, apenas loga
         try {
             if (!empty($csrfToken) && isset($tokens[$csrfToken])) {
-                Session::checkCSRF($_POST);
+                protocolo_check_csrf($_POST);
             }
         } catch (Throwable $e) {
-            error_log("[protocolo] Session::checkCSRF exception ignorada: " . $e->getMessage());
+            error_log("[protocolo] protocolo_check_csrf exception ignorada: " . $e->getMessage());
         }
         return false;
     }
-    Session::checkCSRF($_POST);
+    protocolo_check_csrf($_POST);
     return true;
 }
 
@@ -49,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_entity_email'])) 
         if ($id) Session::addMessageAfterRedirect(__('E-mail adicionado para entidade', 'protocolo') . " " . htmlspecialchars(EntityMail::getEntityName($eid)), false, INFO);
         else Session::addMessageAfterRedirect(__('Falha ao adicionar e-mail (duplicado ou erro)', 'protocolo'), false, ERROR);
     }
-    Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php#entity-emails');
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#entity-emails');
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_entity_email'])) {
     protocolo_check_csrf_or_bypass();
@@ -59,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_entity_email']
         EntityMail::delete($id);
         Session::addMessageAfterRedirect(__('E-mail removido', 'protocolo'), false, INFO);
     }
-    Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php#entity-emails');
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#entity-emails');
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_entity_email'])) {
     protocolo_check_csrf_or_bypass();
@@ -69,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_entity_email']
         EntityMail::toggle($id);
         Session::addMessageAfterRedirect(__('Status alterado', 'protocolo'), false, INFO);
     }
-    Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php#entity-emails');
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#entity-emails');
 }
 
 // Enviar teste e-mail (3 modelos)
@@ -93,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_test_email'])) {
             Session::addMessageAfterRedirect(__('Erro no teste: ', 'protocolo') . $e->getMessage(), false, ERROR);
         }
     }
-    Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php#test-email');
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#test-email');
 }
 
 // Save config geral (inclui templates)
@@ -125,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         }
         if (!$valid) {
             Session::addMessageAfterRedirect(__('E-mail de cópia inválido', 'protocolo'), false, ERROR);
-            Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php');
+            Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php');
         }
     }
     $ok = Config::set($toSet);
@@ -134,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     } else {
         Session::addMessageAfterRedirect(__('Falha ao salvar configuração. Verifique logs.', 'protocolo'), false, ERROR);
     }
-    Html::redirect(Plugin::getWebDir('protocolo') . '/front/config.php');
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php');
 }
 
 Html::header(__('Configuração - Protocolo', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
@@ -147,8 +151,8 @@ echo "<button id='pt-theme-btn' onclick='ptToggleTheme()' class='pt-btn pt-btn-s
 echo "</div>";
 echo "</div>";
 
-echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php'>";
-echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php'>";
+echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
 echo "<div class='card shadow-sm'><div class='card-header bg-white'><strong><i class='ti ti-adjustments'></i> " . __('Parâmetros gerais', 'protocolo') . "</strong></div><div class='card-body'>";
 
 // Prazo alerta
@@ -295,8 +299,8 @@ try {
 } catch (Throwable $e) {}
 echo "<div id='test-email' class='card shadow-sm mt-4'><div class='card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2'><strong><i class='ti ti-mail-forward'></i> " . __('Testar envio — enviar os 3 modelos', 'protocolo') . "</strong><span class='badge bg-info'>" . __('Envia Entrada + Retirada + Atraso', 'protocolo') . "</span></div><div class='card-body'>";
 echo "<p class='small text-muted mb-2'><i class='ti ti-info-circle'></i> " . __('Envia os 3 templates (Entrada, Retirada, Atraso) com dados de exemplo para o e-mail informado. Use para validar seu HTML antes de ativar. O e-mail é enviado via fila GLPI (mesmo mecanismo real).', 'protocolo') . "</p>";
-echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#test-email' class='row g-2 align-items-end'>";
-echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php#test-email' class='row g-2 align-items-end'>";
+echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
 echo "<div class='col-md-6'><label class='form-label fw-semibold small'>" . __('E-mail de teste', 'protocolo') . " <span class='text-danger'>*</span></label><input type='email' name='test_email' class='form-control' placeholder='seu@email.com' required value='" . htmlspecialchars($testDefault) . "'><div class='form-text' style='font-size:11px'>" . __('Receberá os modelos com [TESTE] no assunto.', 'protocolo') . "</div></div>";
 echo "<div class='col-md-3'><label class='form-label small fw-semibold'>" . __('Modelos', 'protocolo') . "</label><select name='test_evento' class='form-select'><option value='all'>" . __('Todos (3) — Entrada, Retirada, Atraso', 'protocolo') . "</option><option value='entrada'>" . __('Apenas Entrada', 'protocolo') . "</option><option value='retirada'>" . __('Apenas Retirada', 'protocolo') . "</option><option value='atraso'>" . __('Apenas Atraso', 'protocolo') . "</option></select></div>";
 echo "<div class='col-md-3'><button type='submit' name='send_test_email' value='1' class='btn btn-primary w-100'><i class='ti ti-send'></i> " . __('Enviar teste', 'protocolo') . "</button></div>";
@@ -397,8 +401,8 @@ if ($grouped) {
         echo "<td class='small text-muted d-none d-md-table-cell'>{$dateCre}</td>";
         echo "<td class='text-end'><div class='d-inline-flex gap-1'>";
         // Toggle
-        echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
-        echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+        echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
+        echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
         echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
         $toggleLabel = $active ? __('Desativar', 'protocolo') : __('Ativar', 'protocolo');
         $toggleIcon = $active ? 'ti ti-player-pause' : 'ti ti-player-play';
@@ -407,8 +411,8 @@ if ($grouped) {
         echo "<button type='submit' name='toggle_entity_email' value='1' class='btn btn-sm $toggleClass' title='{$toggleTitle}'><i class='$toggleIcon'></i> <span class='d-none d-lg-inline'>{$toggleLabel}</span></button>";
         echo "</form>";
         // Delete
-        echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover {$emailEsc} da entidade {$entityName} (#{$eid})?')\">";
-        echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+        echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover {$emailEsc} da entidade {$entityName} (#{$eid})?')\">";
+        echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
         echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
         echo "<button type='submit' name='delete_entity_email' value='1' class='btn btn-sm btn-outline-danger' title='" . __('Remover definitivamente', 'protocolo') . "'><i class='ti ti-trash'></i></button>";
         echo "</form>";
@@ -457,16 +461,16 @@ if ($grouped) {
             $dateCre = htmlspecialchars($em['date_creation'] ?? '-');
             try { if (!empty($em['date_creation']) && $em['date_creation'] !== '-') $dateCre = date('d/m/Y H:i', strtotime($em['date_creation'])); } catch (Throwable $e) {}
             echo "<tr class='protocolo-group-row $rowBg' data-email='" . htmlspecialchars(strtolower($em['email']), ENT_QUOTES) . "' data-active='{$active}'><td><code>{$email}</code> <button type='button' class='btn btn-xs btn-ghost-secondary ms-1 py-0 px-1 protocolo-copy-btn' data-email='{$email}' title='" . __('Copiar', 'protocolo') . "'><i class='ti ti-copy' style='font-size:12px'></i></button></td><td>{$badge}</td><td class='small text-muted d-none d-md-table-cell'>{$dateCre}</td><td class='text-end'><div class='d-inline-flex gap-1'>";
-            echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
-            echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+            echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php#entity-emails' class='d-inline'>";
+            echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
             echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
             $toggleLabel = $active ? __('Desativar') : __('Ativar');
             $toggleIcon = $active ? 'ti ti-player-pause' : 'ti ti-player-play';
             $toggleClass = $active ? 'btn-outline-warning' : 'btn-outline-success';
             echo "<button type='submit' name='toggle_entity_email' value='1' class='btn btn-sm $toggleClass py-0 px-2' style='font-size:12px'><i class='$toggleIcon'></i> {$toggleLabel}</button>";
             echo "</form>";
-            echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover {$email} da entidade {$entityEsc}?')\">";
-            echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+            echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php#entity-emails' class='d-inline' onsubmit=\"return confirm('Remover {$email} da entidade {$entityEsc}?')\">";
+            echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
             echo "<input type='hidden' name='id' value='" . (int)$em['id'] . "'>";
             echo "<button type='submit' name='delete_entity_email' value='1' class='btn btn-sm btn-outline-danger py-0 px-2' style='font-size:12px'><i class='ti ti-trash'></i></button>";
             echo "</form>";
@@ -620,8 +624,8 @@ JS;
 }
 
 // Form add — melhorado
-echo "<form method='post' action='" . Plugin::getWebDir('protocolo') . "/front/config.php#entity-emails' class='row g-2 align-items-end mt-4 p-3 bg-light rounded border'>";
-echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php#entity-emails' class='row g-2 align-items-end mt-4 p-3 bg-light rounded border'>";
+echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
 echo "<div class='col-md-5'><label class='form-label fw-semibold'><i class='ti ti-building'></i> " . __('Entidade', 'protocolo') . " <span class='text-danger'>*</span></label>";
 try {
     echo "<div class='entity-dropdown-wrapper'>";
@@ -649,7 +653,7 @@ echo "<ul class='mb-0'>";
 echo "<li><a href='" . Pasta::getSearchURL() . "'>" . __('Pastas', 'protocolo') . "</a> - " . __('Registro de entrada/retirada', 'protocolo') . "</li>";
 echo "<li><a href='" . Escola::getSearchURL() . "'>" . __('Escolas', 'protocolo') . "</a></li>";
 echo "<li><a href='" . TipoArquivo::getSearchURL() . "'>" . __('Tipos de Arquivo', 'protocolo') . "</a></li>";
-echo "<li><a href='" . Plugin::getWebDir('protocolo') . "/front/dashboard.php'>" . __('Dashboard', 'protocolo') . "</a></li>";
+echo "<li><a href='" . protocolo_web_dir('protocolo') . "/front/dashboard.php'>" . __('Dashboard', 'protocolo') . "</a></li>";
 echo "</ul>";
 echo "<div class='alert alert-info mt-3 mb-0'><strong>" . __('Fluxo:', 'protocolo') . "</strong> " . __('Registrar Entrada → Termo Recebimento → Upload assinado → Retirada → Termo Retirada → Upload.', 'protocolo') . "</div>";
 echo "</div><div class='card-footer bg-white'>";

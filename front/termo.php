@@ -4,6 +4,7 @@
  * Usa autenticação GLPI (Session::checkLoginUser)
  */
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;
@@ -90,7 +91,7 @@ if (empty($criadorNome) || $criadorNome === 'N/A') $criadorNome = $_SESSION['glp
 <title><?= htmlspecialchars($titulo) ?> - <?= htmlspecialchars($pasta->fields['codigo']) ?></title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="<?= $CFG_GLPI['root_doc'] ?>/public/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-<link href="<?= Plugin::getWebDir('protocolo') ?>/public/css/protocolo-modern.css" rel="stylesheet">
+<link href="<?= protocolo_web_dir('protocolo') ?>/public/css/protocolo-modern.css" rel="stylesheet">
 <style>
 body{ background:#eee; }
 .termo{ background:white; max-width:800px; margin:20px auto; padding:28px 30px; box-shadow:0 0 15px rgba(0,0,0,.1); font-family:"Times New Roman", serif; color:#111; display:flex; flex-direction:column; }
@@ -132,13 +133,13 @@ body{ background:#eee; }
 <div class="termo" id="termo">
   <div class="cab">
     <?php
-    $logoPath = Plugin::getWebDir('protocolo') . '/assets/img/logo.png';
+    $logoPath = protocolo_web_dir('protocolo') . '/assets/img/logo.png';
     // fallback para logo do GLPI se não existir - tenta ambos plugins/ e marketplace/
     $logoFile = GLPI_ROOT . '/plugins/protocolo/assets/img/logo.png';
     if (!file_exists($logoFile)) $logoFile = GLPI_ROOT . '/marketplace/protocolo/assets/img/logo.png';
     if (!file_exists($logoFile)) $logoFile = GLPI_ROOT . '/pics/logo.png';
     ?>
-    <img src="<?= Plugin::getWebDir('protocolo') ?>/assets/img/logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+    <img src="<?= protocolo_web_dir('protocolo') ?>/assets/img/logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
     <div class="org">UNIDADE REGIONAL DE ENSINO - JALES</div>
     <div class="setor">Setor de Protocolo</div>
   </div>
@@ -269,7 +270,7 @@ body{ background:#eee; }
   document.addEventListener('DOMContentLoaded', function(){
     var codigo = "<?= addslashes($termo['codigo']) ?>";
     var hash = "<?= addslashes($termo['hash_verificacao'] ?? '') ?>";
-    var base = "<?= Plugin::getWebDir('protocolo') ?>";
+    var base = "<?= protocolo_web_dir('protocolo') ?>";
     var verifyUrl = window.location.origin + base + "/front/verify.php?codigo=" + encodeURIComponent(codigo) + "&hash=" + encodeURIComponent(hash);
     var el = document.getElementById('verifyUrlText');
     if (el) el.textContent = verifyUrl;

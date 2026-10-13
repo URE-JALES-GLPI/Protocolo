@@ -116,9 +116,9 @@ class Profile extends \CommonDBTM
         $id = $profile->getID();
         $rights = self::getRightsStatic();
 
-        $action = Plugin::getWebDir('protocolo') . "/front/profile.php";
+        $action = protocolo_web_dir('protocolo') . "/front/profile.php";
         echo "<form method='post' action='$action' id='protocoloProfileSaveForm'>";
-        echo Html::hidden('_glpi_csrf_token', ['value' => Session::getNewCSRFToken()]);
+        echo Html::hidden('_glpi_csrf_token', ['value' => protocolo_csrf_token()]);
         echo "<input type='hidden' name='profiles_id' value='$id'>";
         echo "<div class='spaced' id='protocoloProfileForm'>";
         echo "<table class='tab_cadre_fixe'>";

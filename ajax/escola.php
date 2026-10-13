@@ -1,5 +1,6 @@
 <?php
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 header("Content-Type: text/html; charset=UTF-8");
 Html::header_nocache();
 

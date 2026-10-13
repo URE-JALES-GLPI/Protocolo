@@ -209,7 +209,7 @@ class Notificacao
     {
         global $CFG_GLPI, $DB;
         // Usa webdir correto (marketplace ou plugins) sem duplicar root_doc
-        $link = \Plugin::getWebDir('protocolo') . "/front/pasta.form.php?id=" . $pasta->getID();
+        $link = protocolo_web_dir('protocolo') . "/front/pasta.form.php?id=" . $pasta->getID();
         // Se webdir não inclui root_doc (GLPI antigo), prepend
         $root = $CFG_GLPI['root_doc'] ?? '';
         if ($root !== '' && !str_starts_with($link, $root) && str_starts_with($link, '/')) {
@@ -330,7 +330,7 @@ class Notificacao
     public static function getTestVars(string $evento): array
     {
         global $CFG_GLPI;
-        $web = \Plugin::getWebDir('protocolo');
+        $web = protocolo_web_dir('protocolo');
         $root = $CFG_GLPI['root_doc'] ?? '';
         $link = $web . "/front/pasta.form.php?id=0";
         if ($root !== '' && !str_starts_with($link, $root) && str_starts_with($link, '/')) {

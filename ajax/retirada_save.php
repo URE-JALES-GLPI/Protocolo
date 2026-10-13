@@ -18,6 +18,7 @@ ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 
@@ -45,7 +46,7 @@ if (!is_array($data)) {
 }
 
 $csrf = $data['_glpi_csrf_token'] ?? '';
-if ($csrf === '' || !Session::validateCSRF(['_glpi_csrf_token' => $csrf])) {
+if ($csrf === '' || !protocolo_validate_csrf(['_glpi_csrf_token' => $csrf])) {
     pt_retirada_answer(['ok' => false, 'code' => 'SESSION_DEAD', 'error' => 'Sessão expirada. Recarregue a página (F5) e tente de novo.'], 403);
 }
 
@@ -123,7 +124,7 @@ foreach ($ids as $pid) {
                 'LIMIT' => 1,
             ]);
             foreach ($termIt as $tr) {
-                $termos[] = ['pasta_id' => $pid, 'url' => Plugin::getWebDir('protocolo') . '/front/termo.php?id=' . $pid . '&tipo=retirada'];
+                $termos[] = ['pasta_id' => $pid, 'url' => protocolo_web_dir('protocolo') . '/front/termo.php?id=' . $pid . '&tipo=retirada'];
                 break;
             }
         } catch (\Throwable $e) {

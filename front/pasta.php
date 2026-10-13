@@ -7,6 +7,7 @@
  * - Bolinhas amarelo/vermelho para pendências
  */
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;
@@ -160,7 +161,7 @@ if ($minhas) {
 }
 echo "<div class='pt-page-actions'>";
 if ($minhas) {
-    echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/dashboard.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-arrow-left'></i> Voltar</a>";
+    echo "<a href='" . protocolo_web_dir('protocolo') . "/front/dashboard.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-arrow-left'></i> Voltar</a>";
 }
 if (Pasta::canCreate()) {
     echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-primary pt-btn-sm'><i class='ti ti-folder-plus'></i> Nova</a>";
@@ -369,7 +370,7 @@ echo "<div id='pt-ret-w4' class='pt-modal-body' style='display:none;'>";
 echo "<div style='text-align:center;margin-bottom:10px;'><div style='font-weight:800;font-size:1.05rem;color:#1e1b4b;'>4. Assinatura</div><div style='font-size:.85rem;color:#6b7280;'>Use o dedo ou caneta no quadro</div></div>";
 echo "<div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-ret-canvas' style='width:100%;height:200px;display:block;touch-action:none;cursor:crosshair;'></canvas></div>";
 echo "<div class='text-muted' style='font-size:.78rem;margin:6px 0;'>Desenhe acima. Use Limpar para refazer.</div>";
-echo "<input type='hidden' id='pt-ret-csrf' value='" . Session::getNewCSRFToken() . "'>";
+echo "<input type='hidden' id='pt-ret-csrf' value='" . protocolo_csrf_token() . "'>";
 echo "<div style='display:flex;gap:8px;margin-top:12px;'><button type='button' class='pt-btn pt-btn-secondary' style='flex:1;' onclick='ptRWizShow(3)'><i class='ti ti-arrow-left'></i> Voltar</button><button type='button' class='pt-btn pt-btn-secondary' style='flex:1;' onclick='ptRetClearCanvas()'><i class='ti ti-eraser'></i> Limpar</button></div>";
 echo "<div id='pt-ret-err' style='display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.85rem;'></div>";
 echo "<button type='button' id='pt-ret-confirm' class='pt-btn pt-btn-green' style='width:100%;margin-top:8px;' onclick='ptSubmitRetirada()'><i class='ti ti-check'></i> Assinar e concluir</button>";

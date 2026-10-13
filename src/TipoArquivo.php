@@ -110,7 +110,7 @@ class TipoArquivo extends CommonDBTM
 
     private static function getProtocoloWebDir(): string
     {
-        $web = Plugin::getWebDir('protocolo');
+        $web = protocolo_web_dir('protocolo');
         if ($web === '' || $web === null) {
             $web = '/plugins/protocolo';
         }

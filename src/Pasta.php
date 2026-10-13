@@ -583,7 +583,7 @@ class Pasta extends CommonDBTM
             $badge = $t['tipo'] === 'recebimento' ? "<span class='badge bg-primary'>RECEBIMENTO</span>" : "<span class='badge bg-success'>RETIRADA</span>";
             $sigOk = ($t['tipo'] === 'recebimento') ? !empty($this->fields['recebido_assinatura_image']) : !empty($this->fields['retirada_assinatura_image']);
             $assinado = $sigOk ? "<span class='badge bg-success'><i class='ti ti-signature'></i> Assinado digitalmente</span>" : "<span class='badge bg-secondary'>Sem assinatura digital</span>";
-            $imprimirUrl = Plugin::getWebDir('protocolo') . "/front/termo.php?id=$id&tipo=" . htmlspecialchars($t['tipo']);
+            $imprimirUrl = protocolo_web_dir('protocolo') . "/front/termo.php?id=$id&tipo=" . htmlspecialchars($t['tipo']);
             echo "<div class='border rounded p-3 mb-3'>";
             echo "<div class='d-flex justify-content-between'><div>$badge <code class='ms-2'>" . htmlspecialchars($t['codigo']) . "</code><br><small class='text-muted'>" . Html::convDateTime($t['date_creation']) . " · Hash " . htmlspecialchars(substr($t['hash_verificacao'] ?? '', 0, 12)) . "...</small><br>$assinado</div>";
             echo "<div><a href='$imprimirUrl' target='_blank' class='btn btn-sm btn-outline-primary'><i class='ti ti-printer'></i> Ver/Imprimir</a></div></div>";
@@ -673,7 +673,7 @@ class Pasta extends CommonDBTM
             }
         }
 
-        $csrf = Session::getNewCSRFToken();
+        $csrf = protocolo_csrf_token();
         $formUrl = self::getFormURL();
         // Wrapper pt-page: aplica identidade visual moderna (compat com tab_cadre_fixe/cards/btn);
         // no modal usa padding zerado (o pt-modal-body já tem respiro)
@@ -1070,9 +1070,9 @@ class Pasta extends CommonDBTM
             echo "<div class='col-lg-8'>";
             // O conteúdo de itens/termos já está na tab, mas para vista form sem tabs, duplicamos link para termo
             echo "<div class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-printer'></i> " . __('Ações rápidas', 'protocolo') . "</strong></div><div class='list-group list-group-flush'>";
-            echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/termo.php?id=$ID&tipo=recebimento' target='_blank' class='list-group-item list-group-item-action'><i class='ti ti-printer'></i> " . __('Imprimir Termo de Recebimento', 'protocolo') . "</a>";
+            echo "<a href='" . protocolo_web_dir('protocolo') . "/front/termo.php?id=$ID&tipo=recebimento' target='_blank' class='list-group-item list-group-item-action'><i class='ti ti-printer'></i> " . __('Imprimir Termo de Recebimento', 'protocolo') . "</a>";
             if ($this->fields['status'] === 'retirada') {
-                echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/termo.php?id=$ID&tipo=retirada' target='_blank' class='list-group-item list-group-item-action'><i class='ti ti-printer'></i> " . __('Imprimir Termo de Retirada', 'protocolo') . "</a>";
+                echo "<a href='" . protocolo_web_dir('protocolo') . "/front/termo.php?id=$ID&tipo=retirada' target='_blank' class='list-group-item list-group-item-action'><i class='ti ti-printer'></i> " . __('Imprimir Termo de Retirada', 'protocolo') . "</a>";
             }
             echo "<a href='" . self::getSearchURL() . "?criteria[0][field]=4&criteria[0][searchtype]=equals&criteria[0][value]=" . (int)$this->fields['plugin_protocolo_escolas_id'] . "' class='list-group-item list-group-item-action'><i class='ti ti-building'></i> " . __('Ver outras pastas desta escola', 'protocolo') . "</a>";
             echo "</div></div>";
@@ -1083,7 +1083,7 @@ class Pasta extends CommonDBTM
                 echo "<div class='pt-card mb-3' style='border-color:#bbf7d0;'><div class='pt-card-header' style='background:#f0fdf4;border-color:#bbf7d0;'><strong style='color:#065f46;'><i class='ti ti-logout' style='color:#10b981;'></i> " . __('Registrar retirada', 'protocolo') . "</strong></div><div class='pt-card-body'>";
                 echo "<p class='small text-muted'>" . __('Quando a escola vier buscar, preencha e gere o Termo de Retirada.', 'protocolo') . "</p>";
                 echo "<form method='post' action='" . self::getFormURL() . "'>";
-                echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+                echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='retirar'>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Retirado por', 'protocolo') . " *</label><input name='retirado_por' class='form-control' required placeholder='" . __('Nome de quem retirou', 'protocolo') . "'></div>";
@@ -1100,7 +1100,7 @@ class Pasta extends CommonDBTM
                 echo "</form>";
 
                 echo "<form method='post' action='" . self::getFormURL() . "' class='mt-2' onsubmit=\"return confirm('" . __('Cancelar esta pasta?', 'protocolo') . "')\">";
-                echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+                echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='cancelar'>";
                 echo "<button class='pt-btn pt-btn-danger pt-btn-sm w-100'>" . __('Cancelar pasta', 'protocolo') . "</button>";
@@ -1108,7 +1108,7 @@ class Pasta extends CommonDBTM
             } else {
                 echo "<div class='pt-card mb-3'><div class='pt-card-body text-center'><p class='mb-2'>" . __('Status', 'protocolo') . ": " . self::getStatusBadge($this->fields['status']) . "</p>";
                 echo "<form method='post' action='" . self::getFormURL() . "' onsubmit=\"return confirm('" . __('Reabrir pasta?', 'protocolo') . "')\">";
-                echo '<input type="hidden" name="_glpi_csrf_token" value="' . Session::getNewCSRFToken() . '">';
+                echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='reabrir'>";
                 echo "<button class='pt-btn pt-btn-secondary pt-btn-sm'>" . __('Reabrir para aguardando', 'protocolo') . "</button>";
@@ -2512,7 +2512,7 @@ class Pasta extends CommonDBTM
      */
     private static function getProtocoloWebDir(): string
     {
-        $web = Plugin::getWebDir('protocolo');
+        $web = protocolo_web_dir('protocolo');
         // Se $web já está vazio por algum motivo, fallback
         if ($web === '' || $web === null) {
             $web = '/plugins/protocolo';

@@ -5,6 +5,7 @@
  * o modal nunca abra "cego" e o envio morra com 403 depois.
  */
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 

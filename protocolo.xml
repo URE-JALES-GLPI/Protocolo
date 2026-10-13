@@ -10,7 +10,7 @@
     <tag>ure</tag>
     <tag>escola</tag>
     <requirements>
-        <glpi min="11.0.0" max="12.0.0" />
-        <php min="8.1" />
+        <glpi min="11.0.0" max="12.0.99" />
+        <php min="8.2" />
     </requirements>
 </root>

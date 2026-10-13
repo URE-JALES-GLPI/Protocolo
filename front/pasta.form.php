@@ -1,5 +1,6 @@
 <?php
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 
@@ -102,7 +103,7 @@ if (isset($_POST['add'])) {
     $canCreate = Pasta::canCreate();
     $canView = Pasta::canView();
     $diag = protocolo_rights_diag();
-    $csrfOk = Session::validateCSRF($_POST) ? '1' : '0';
+    $csrfOk = protocolo_validate_csrf($_POST) ? '1' : '0';
     error_log("[protocolo] ADD attempt: uid=" . $diag['uid'] . " pid=" . $diag['pid'] . " db=" . var_export($diag['db'], true) . " sess=" . var_export($diag['sess'], true) . " canCreate=" . ($canCreate ? '1' : '0') . " canView=" . ($canView ? '1' : '0') . " csrf=$csrfOk ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
     if (!$canCreate) {
         $dbgUid = (int)Session::getLoginUserID();
@@ -160,12 +161,12 @@ if (isset($_POST['add'])) {
         exit;
     }
 } elseif (isset($_POST['update'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch update uid=".Session::getLoginUserID());
+    if (!protocolo_validate_csrf($_POST)) error_log("[protocolo] CSRF mismatch update uid=".Session::getLoginUserID());
     $pasta->check($_POST['id'], UPDATE);
     $pasta->update($_POST);
     Html::back();
 } elseif (isset($_POST['action'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch action=".$_POST['action']??'none');
+    if (!protocolo_validate_csrf($_POST)) error_log("[protocolo] CSRF mismatch action=".$_POST['action']??'none');
     $id = (int)($_POST['id'] ?? 0);
     $pasta->getFromDB($id);
     $action = $_POST['action'] ?? '';
@@ -193,17 +194,17 @@ if (isset($_POST['add'])) {
         Html::back();
     }
 } elseif (isset($_POST['delete'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch delete");
+    if (!protocolo_validate_csrf($_POST)) error_log("[protocolo] CSRF mismatch delete");
     $pasta->check($_POST['id'], DELETE);
     $pasta->delete($_POST);
     Html::redirect(Pasta::getSearchURL());
 } elseif (isset($_POST['purge'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch purge");
+    if (!protocolo_validate_csrf($_POST)) error_log("[protocolo] CSRF mismatch purge");
     $pasta->check($_POST['id'], PURGE);
     $pasta->delete($_POST, 1);
     Html::redirect(Pasta::getSearchURL());
 } elseif (isset($_POST['restore'])) {
-    if (!Session::validateCSRF($_POST)) error_log("[protocolo] CSRF mismatch restore");
+    if (!protocolo_validate_csrf($_POST)) error_log("[protocolo] CSRF mismatch restore");
     $pasta->check($_POST['id'], DELETE);
     $pasta->restore($_POST);
     Html::redirect(Pasta::getFormURLWithID($_POST['id']));

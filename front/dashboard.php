@@ -1,5 +1,6 @@
 <?php
 include('../../../inc/includes.php');
+require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;
@@ -209,7 +210,7 @@ if (Pasta::canCreate()) {
     echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-green pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
 }
 if (Config::canEdit()) {
-    echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/config.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-settings'></i> Config</a>";
+    echo "<a href='" . protocolo_web_dir('protocolo') . "/front/config.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-settings'></i> Config</a>";
 }
 echo "<button id='pt-theme-btn' onclick='ptToggleTheme()' class='pt-btn pt-btn-secondary pt-btn-sm' title='Alternar tema claro/escuro'><i class='ti ti-moon'></i></button>";
 echo "</div>";
@@ -361,7 +362,7 @@ echo "<div id='pt-ret-w4' class='pt-modal-body' style='display:none;'>";
 echo "<div style='text-align:center;margin-bottom:10px;'><div style='font-weight:800;font-size:1.05rem;color:#1e1b4b;'>4. Assinatura</div><div style='font-size:.85rem;color:#6b7280;'>Use o dedo ou caneta no quadro</div></div>";
 echo "<div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-ret-canvas' style='width:100%;height:200px;display:block;touch-action:none;cursor:crosshair;'></canvas></div>";
 echo "<div class='text-muted' style='font-size:.78rem;margin:6px 0;'>Desenhe acima. Use Limpar para refazer.</div>";
-echo "<input type='hidden' id='pt-ret-csrf' value='" . Session::getNewCSRFToken() . "'>";
+echo "<input type='hidden' id='pt-ret-csrf' value='" . protocolo_csrf_token() . "'>";
 echo "<div style='display:flex;gap:8px;margin-top:12px;'><button type='button' class='pt-btn pt-btn-secondary' style='flex:1;' onclick='ptRWizShow(3)'><i class='ti ti-arrow-left'></i> Voltar</button><button type='button' class='pt-btn pt-btn-secondary' style='flex:1;' onclick='ptRetClearCanvas()'><i class='ti ti-eraser'></i> Limpar</button></div>";
 echo "<div id='pt-ret-err' style='display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.85rem;'></div>";
 echo "<button type='button' id='pt-ret-confirm' class='pt-btn pt-btn-green' style='width:100%;margin-top:8px;' onclick='ptSubmitRetirada()'><i class='ti ti-check'></i> Assinar e concluir</button>";
@@ -387,7 +388,7 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
     }
 echo "</tbody></table></div>";
 echo "</div>";
-    echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";
+    echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . protocolo_web_dir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";
 }
 
 echo "<div class='pt-alert pt-alert-info'><div><strong>" . __('Fluxo do sistema:', 'protocolo') . "</strong> 1) " . __('Alguém deixa a pasta → Registrar Entrada → assina no tablet → imprime o Termo de Recebimento.', 'protocolo') . "<br>2) " . __('Escola vem buscar → Retirar na grade → assina no tablet → imprime o Termo de Entrega/Retirada.', 'protocolo') . "</div></div>";
@@ -399,7 +400,7 @@ echo "<div class='tab-pane fade " . ($activeTab==='dashboards'?'show active':'')
 
 echo "<div class='pt-section-title'>";
 echo "<i class='ti ti-chart-bar'></i><h5>" . __('Dashboards - Gráficos', 'protocolo') . "</h5>";
-echo "<a href='" . Plugin::getWebDir('protocolo') . "/front/export.php?type=dashboards' class='pt-btn pt-btn-green pt-btn-sm' style='margin-left:auto;'><i class='ti ti-file-spreadsheet'></i> " . __('Exportar XLSX', 'protocolo') . "</a>";
+echo "<a href='" . protocolo_web_dir('protocolo') . "/front/export.php?type=dashboards' class='pt-btn pt-btn-green pt-btn-sm' style='margin-left:auto;'><i class='ti ti-file-spreadsheet'></i> " . __('Exportar XLSX', 'protocolo') . "</a>";
 echo "</div>";
 
 if ($graficosAtivo) {
@@ -410,7 +411,7 @@ if ($graficosAtivo) {
     echo "</div>";
     echo "<div class='pt-alert pt-alert-info'><i class='ti ti-info-circle'></i><div>" . __('Use Exportar XLSX para baixar os dados dos gráficos e tabelas filtradas por sua entidade ativa.', 'protocolo') . "</div></div>";
 } else {
-    echo "<div class='pt-alert pt-alert-warning'><i class='ti ti-alert-triangle'></i><div>" . __('Gráficos desativados. Ative em', 'protocolo') . " <a href='" . Plugin::getWebDir('protocolo') . "/front/config.php'>" . __('Configuração', 'protocolo') . "</a>.</div></div>";
+    echo "<div class='pt-alert pt-alert-warning'><i class='ti ti-alert-triangle'></i><div>" . __('Gráficos desativados. Ative em', 'protocolo') . " <a href='" . protocolo_web_dir('protocolo') . "/front/config.php'>" . __('Configuração', 'protocolo') . "</a>.</div></div>";
 }
 echo "</div>"; // fim tab-dashboards
 
