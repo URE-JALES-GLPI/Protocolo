@@ -18,7 +18,7 @@ ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 include('../../../inc/includes.php');
-require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
+require_once __DIR__ . '/../src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 

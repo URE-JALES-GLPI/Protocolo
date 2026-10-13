@@ -5,7 +5,7 @@
  */
 define('GLPI_ROOT', dirname(__DIR__, 3) . '/..');
 include(GLPI_ROOT . "/inc/includes.php");
-require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
+require_once __DIR__ . '/../src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;

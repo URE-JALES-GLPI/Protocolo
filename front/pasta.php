@@ -7,7 +7,7 @@
  * - Bolinhas amarelo/vermelho para pendências
  */
 include('../../../inc/includes.php');
-require_once GLPI_ROOT . '/plugins/protocolo/src/compat.php';
+require_once __DIR__ . '/../src/compat.php';
 
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;
