@@ -51,7 +51,7 @@ $totalRetiradas  = countElementsInTable(Pasta::getTable(), array_merge(['status'
 $totalCanceladas = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'cancelada', 'is_deleted' => 0], $entityFilter));
 $totalMes = 0;
 try {
-    $whereMes = array_merge(['is_deleted' => 0, new \QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter);
+    $whereMes = array_merge(['is_deleted' => 0, new \Glpi\DBAL\QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter);
     $it = $DB->request(['COUNT' => 'cpt', 'FROM' => Pasta::getTable(), 'WHERE' => $whereMes]);
     foreach ($it as $r) $totalMes = $r['cpt'];
 } catch (Throwable $e) {}

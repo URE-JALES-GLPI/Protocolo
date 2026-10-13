@@ -70,7 +70,7 @@ if ($qFiltro !== '') {
     $qLike = $DB->quoteValue('%' . $qFiltro . '%');
     $qWhereSql = " AND (p.codigo LIKE $qLike OR p.recebido_de LIKE $qLike OR p.assunto LIKE $qLike OR p.categoria LIKE $qLike OR p.especie_outro LIKE $qLike)";
     $qWhereSqlPasta = " AND (codigo LIKE $qLike OR recebido_de LIKE $qLike OR assunto LIKE $qLike OR categoria LIKE $qLike OR especie_outro LIKE $qLike)";
-    $qLikeCond = [new \QueryExpression("(codigo LIKE $qLike OR recebido_de LIKE $qLike OR assunto LIKE $qLike OR categoria LIKE $qLike OR especie_outro LIKE $qLike)")];
+    $qLikeCond = [new \Glpi\DBAL\QueryExpression("(codigo LIKE $qLike OR recebido_de LIKE $qLike OR assunto LIKE $qLike OR categoria LIKE $qLike OR especie_outro LIKE $qLike)")];
 }
 // Stats - com filtro de entidade + categoria + busca
 $totalAguardando = countElementsInTable(Pasta::getTable(), array_merge(['status' => 'aguardando', 'is_deleted' => 0], $entityFilter, $qLikeCond));
@@ -87,7 +87,7 @@ if ($hasCategoriaCol && !$categoriaFiltro) {
 }
 $totalMes        = 0;
 try {
-    $whereMes = array_merge(['is_deleted' => 0, new \QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter, $qLikeCond);
+    $whereMes = array_merge(['is_deleted' => 0, new \Glpi\DBAL\QueryExpression("MONTH(data_recebimento) = MONTH(NOW()) AND YEAR(data_recebimento) = YEAR(NOW())")], $entityFilter, $qLikeCond);
     $iterator = $DB->request([
         'COUNT' => 'cpt',
         'FROM'  => Pasta::getTable(),
