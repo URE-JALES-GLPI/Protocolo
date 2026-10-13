@@ -78,7 +78,9 @@ if ($action === 'save') {
         $data = $_POST;
     }
     $csrf = $data['_glpi_csrf_token'] ?? '';
-    if ($csrf === '' || !protocolo_validate_csrf(['_glpi_csrf_token' => $csrf])) {
+    // No GLPI 12 não há token CSRF (protocolo_csrf_token retorna ''); a validação
+    // é feita pelo CheckCsrfListener do core — então o gate só vale no GLPI <12.
+    if (!protocolo_is_glpi12_plus() && ($csrf === '' || !protocolo_validate_csrf(['_glpi_csrf_token' => $csrf]))) {
         http_response_code(403);
         echo json_encode(['ok' => false, 'error' => 'Sessão expirada. Recarregue a página (F5).']);
         exit;

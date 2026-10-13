@@ -46,7 +46,8 @@ if (!is_array($data)) {
 }
 
 $csrf = $data['_glpi_csrf_token'] ?? '';
-if ($csrf === '' || !protocolo_validate_csrf(['_glpi_csrf_token' => $csrf])) {
+// No GLPI 12 não há token CSRF; validação pelo CheckCsrfListener do core — gate só no GLPI <12.
+if (!protocolo_is_glpi12_plus() && ($csrf === '' || !protocolo_validate_csrf(['_glpi_csrf_token' => $csrf]))) {
     pt_retirada_answer(['ok' => false, 'code' => 'SESSION_DEAD', 'error' => 'Sessão expirada. Recarregue a página (F5) e tente de novo.'], 403);
 }
 
