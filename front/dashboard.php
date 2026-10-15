@@ -201,12 +201,18 @@ echo "<div class='container-fluid pt-page'>";
 echo "<div class='pt-page-header'>";
 echo "<div class='pt-page-title'><i class='ti ti-dashboard'></i><h2>Dashboard - Protocolo</h2></div>";
 echo "<div class='pt-page-actions'>";
+$activeTab = $_GET['tab'] ?? 'resumo';
+if (!in_array($activeTab, ['resumo', 'dashboards'], true)) $activeTab = 'resumo';
 if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<a href='#atrasadas' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</a>";
 }
 if (Profile::canAdmin()) { echo "<a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-folder'></i> " . __('Pastas', 'protocolo') . "</a>"; }
 echo "<a href='" . Pasta::getSearchURL() . "?minhas=1' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</a>";
-echo "<a href='?tab=dashboards' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a>";
+if ($activeTab === 'dashboards') {
+    echo "<a href='dashboard.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-list'></i> " . __('Resumo', 'protocolo') . "</a>";
+} else {
+    echo "<a href='?tab=dashboards' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a>";
+}
 if (Recebedor::canView()) { echo "<a href='" . Recebedor::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-users'></i> " . __('Gerenciar Recebedores', 'protocolo') . "</a>"; }
 if (Pasta::canCreate()) {
     echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-green pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
@@ -239,15 +245,6 @@ if ($categoriaFiltro || $qFiltro !== '') {
     echo "</div>";
 }
 
-// Abas Resumo / Dashboards (Resumo abre direto, sem seleção)
-$activeTab = $_GET['tab'] ?? 'resumo';
-if (!in_array($activeTab, ['resumo', 'dashboards'], true)) $activeTab = 'resumo';
-$tabBase = $_GET; unset($tabBase['tab']);
-$tabUrl = function($t) use ($tabBase) { $q = $tabBase; if ($t !== 'resumo') $q['tab'] = $t; return '?' . http_build_query($q); };
-echo "<ul class='nav nav-tabs mb-3'>";
-echo "<li class='nav-item'><a class='nav-link " . ($activeTab==='resumo'?'active':'') . "' href='" . htmlspecialchars($tabUrl('resumo')) . "'><i class='ti ti-list'></i> " . __('Resumo', 'protocolo') . "</a></li>";
-echo "<li class='nav-item'><a class='nav-link " . ($activeTab==='dashboards'?'active':'') . "' href='" . htmlspecialchars($tabUrl('dashboards')) . "'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a></li>";
-echo "</ul>";
 echo "<div class='tab-content'>";
 echo "<div class='tab-pane fade " . ($activeTab==='resumo'?'show active':'') . "' id='tab-resumo'>";
 
