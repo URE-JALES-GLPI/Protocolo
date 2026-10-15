@@ -233,22 +233,18 @@ body{ background:#eee; }
     <div class="alert alert-warning mt-4 no-print" style="font-size:12px;"><?= __('Atenção: esta pasta ainda consta como', 'protocolo') ?> <strong><?= __('aguardando', 'protocolo') ?></strong>. <?= __('Registre a retirada em "Pasta → Registrar retirada" antes de imprimir o termo definitivo.', 'protocolo') ?></div>
   <?php endif; ?>
 
-  <div class="hash d-flex justify-content-between align-items-center gap-3">
+  <div class="hash">
     <div style="flex:1">
       <strong><?= __('Código de verificação:', 'protocolo') ?></strong> <?= htmlspecialchars($termo['codigo']) ?> &middot; Hash: <?= htmlspecialchars($termo['hash_verificacao'] ?? '') ?> &middot; Pasta: <?= htmlspecialchars($pasta->fields['codigo']) ?><br>
       <?= __('Termo gerado em', 'protocolo') ?> <?= date('d/m/Y H:i:s') ?> <?= __('por', 'protocolo') ?> <?= htmlspecialchars($_SESSION['glpiname'] ?? '') ?> &middot; <?= __('Sistema de Protocolo - Autenticidade mediante consulta no setor.', 'protocolo') ?>
     </div>
-    <div class="text-center" style="flex-shrink:0">
-      <div id="qrcode" style="background:white; padding:4px; border:1px solid #ccc; display:inline-block"></div>
-      <div class="small text-muted" style="font-size:8px; margin-top:2px">Escaneie para verificar</div>
-    </div>
+
   </div>
 
   <div class="text-center mt-3 no-print">
     <small class="text-muted"><?= __('Assinaturas coletadas digitalmente no tablet.', 'protocolo') ?></small>
   </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 (function(){
   function fitOnePage(){
@@ -266,19 +262,7 @@ body{ background:#eee; }
   window.addEventListener('beforeprint', fitOnePage);
   window.addEventListener('afterprint', ()=>{ const t=document.getElementById('termo'); if(t) t.style.zoom='1'; });
 
-  // QR Code para verificação
-  document.addEventListener('DOMContentLoaded', function(){
-    var codigo = "<?= addslashes($termo['codigo']) ?>";
-    var hash = "<?= addslashes($termo['hash_verificacao'] ?? '') ?>";
-    var base = "<?= protocolo_web_dir('protocolo') ?>";
-    var verifyUrl = window.location.origin + base + "/front/verify.php?codigo=" + encodeURIComponent(codigo) + "&hash=" + encodeURIComponent(hash);
-    var el = document.getElementById('verifyUrlText');
-    if (el) el.textContent = verifyUrl;
-    var qrel = document.getElementById('qrcode');
-    if (qrel && typeof QRCode !== 'undefined') {
-      new QRCode(qrel, {text: verifyUrl, width: 80, height: 80, correctLevel: QRCode.CorrectLevel.M});
-    }
-  });
+
 })();
 </script>
 </body>
