@@ -1009,8 +1009,9 @@ class Pasta extends CommonDBTM
             echo "</div>";
 
             $lastItens = $lastInput['itens'] ?? [];
-            echo "<div class='pt-s9-sec'><div class='pt-s9-sec-head'><span class='pt-s9-sec-title'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " <span class='required'>*</span></span><button type='button' id='btnAddItem' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-plus'></i> " . __('Adicionar item', 'protocolo') . "</button></div>";
-            echo "<div class='row g-2 mb-1 pt-s9-cols' aria-hidden='true'><div class='col-md-7'>Descrição</div><div class='col-md-2'>Qtd</div><div class='col-md-2'>Obs.</div><div class='col-md-1'></div></div>";
+            echo "<div class='pt-s9-sec'><div class='pt-s9-sec-head'><span class='pt-s9-sec-title'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " <span class='required'>*</span></span></div>";
+            echo "<div class='row g-2 mb-1 pt-s9-cols' aria-hidden='true'><div class='col-md-8'>Descrição</div><div class='col-md-3'>Qtd</div><div class='col-md-1'></div></div>";
+            echo "<div class='row g-2 mb-1 pt-s9-cols' aria-hidden='true'><div class='col-md-12'>Obs.</div></div>";
             if (!empty($lastItens) && is_array($lastItens)) {
                 echo "<div id='itensWrap'>";
                 foreach ($lastItens as $idx => $it) {
@@ -1018,11 +1019,11 @@ class Pasta extends CommonDBTM
                     $qtd = max(1, (int)($it['quantidade'] ?? 1));
                     $obs = htmlspecialchars($it['observacao'] ?? '');
                     if ($desc === '' && $qtd === 1 && $obs === '' && $idx !== 0) continue;
-                    echo "<div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[$idx][descricao]' class='form-control' value='$desc' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[$idx][quantidade]' type='number' min='1' value='$qtd' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[$idx][observacao]' class='form-control' value='$obs' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div>";
+                    echo "<div class='row g-2 mb-2 item-row'><div class='col-md-8'><input name='itens[$idx][descricao]' class='form-control' value='$desc' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-3'><input name='itens[$idx][quantidade]' type='number' min='1' value='$qtd' class='form-control' placeholder='Qtd'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div><div class='col-md-12'><input name='itens[$idx][observacao]' class='form-control' value='$obs' placeholder='Obs.'></div></div>";
                 }
                 echo "</div>";
             } else {
-                echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-md-7'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-2'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-md-2'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div></div>";
+                echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-md-8'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-md-3'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-md-1'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div><div class='col-md-12'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div></div></div>";
             }
             echo "<div class='form-text mb-0'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
             echo "</div></div>";
@@ -1974,7 +1975,7 @@ class Pasta extends CommonDBTM
                                 var row = document.createElement('div');
                                 row.className='row g-2 mb-2 item-row border border-warning rounded p-1';
                                 row.dataset.tipoId=tid;
-                                row.innerHTML='<div class=\"col-md-7\"><input name=\"itens['+idx+'][descricao]\" class=\"form-control\" value=\"'+nome.replace(/\"/g,'&quot;')+'\" required></div><div class=\"col-md-2\"><input name=\"itens['+idx+'][quantidade]\" type=\"number\" min=\"1\" value=\"1\" class=\"form-control\" placeholder=\"Qtd\"></div><div class=\"col-md-2\"><input name=\"itens['+idx+'][observacao]\" class=\"form-control\" placeholder=\"Obs.\"></div><div class=\"col-md-1\"><button type=\"button\" class=\"btn btn-outline-danger w-100 btnRemove\"><i class=\"ti ti-trash\"></i></button></div>';
+                                row.innerHTML='<div class=\"col-md-8\"><input name=\"itens['+idx+'][descricao]\" class=\"form-control\" value=\"'+nome.replace(/\"/g,'&quot;')+'\" required></div><div class=\"col-md-3\"><input name=\"itens['+idx+'][quantidade]\" type=\"number\" min=\"1\" value=\"1\" class=\"form-control\" placeholder=\"Qtd\"></div><div class=\"col-md-1\"><button type=\"button\" class=\"btn btn-outline-danger w-100 btnRemove\"><i class=\"ti ti-trash\"></i></button></div><div class=\"col-md-12\"><input name=\"itens['+idx+'][observacao]\" class=\"form-control\" placeholder=\"Obs.\"></div>';
                                 wrap.appendChild(row);
                             }
                         } else {

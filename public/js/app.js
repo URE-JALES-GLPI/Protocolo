@@ -3,18 +3,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Adicionar itens dinamicamente em pasta.form.php
   const btnAdd = document.getElementById('btnAddItem');
   const wrap = document.getElementById('itensWrap');
-  if (btnAdd && wrap) {
-    btnAdd.addEventListener('click', () => {
-      const idx = wrap.querySelectorAll('.item-row').length;
-      const row = document.createElement('div');
-      row.className = 'row g-2 mb-2 item-row';
-      row.innerHTML = `
-        <div class="col-md-7"><input name="itens[${idx}][descricao]" class="form-control" placeholder="Descrição do item" required></div>
-        <div class="col-md-2"><input name="itens[${idx}][quantidade]" type="number" min="1" value="1" class="form-control" placeholder="Qtd"></div>
-        <div class="col-md-2"><input name="itens[${idx}][observacao]" class="form-control" placeholder="Obs."></div>
-        <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 btnRemove"><i class="ti ti-trash"></i></button></div>`;
-      wrap.appendChild(row);
-    });
+  const addEmptyRow = () => {
+    if (!wrap) return;
+    const idx = wrap.querySelectorAll('.item-row').length;
+    const row = document.createElement('div');
+    row.className = 'row g-2 mb-2 item-row';
+    row.innerHTML = `
+      <div class="col-md-8"><input name="itens[${idx}][descricao]" class="form-control" placeholder="Descrição do item" required></div>
+      <div class="col-md-3"><input name="itens[${idx}][quantidade]" type="number" min="1" value="1" class="form-control" placeholder="Qtd"></div>
+      <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 btnRemove"><i class="ti ti-trash"></i></button></div>
+      <div class="col-md-12"><input name="itens[${idx}][observacao]" class="form-control" placeholder="Obs."></div>`;
+    wrap.appendChild(row);
+  };
+  if (btnAdd && wrap) btnAdd.addEventListener('click', addEmptyRow);
+  if (wrap) {
     wrap.addEventListener('click', e => {
       if (e.target.closest('.btnRemove')) {
         const row = e.target.closest('.item-row');
@@ -25,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         row.remove();
         if (wrap.querySelectorAll('.item-row').length === 0) {
-          btnAdd.click();
+          addEmptyRow();
         }
       }
     });
@@ -57,17 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
             row.className = 'row g-2 mb-2 item-row border border-warning rounded p-1';
             row.dataset.tipoId = tid;
             row.innerHTML = `
-              <div class="col-md-7"><input name="itens[${idx}][descricao]" class="form-control" value="${nome.replace(/"/g, '&quot;')}" required></div>
-              <div class="col-md-2"><input name="itens[${idx}][quantidade]" type="number" min="1" value="1" class="form-control" placeholder="Qtd"></div>
-              <div class="col-md-2"><input name="itens[${idx}][observacao]" class="form-control" placeholder="Obs."></div>
-              <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 btnRemove"><i class="ti ti-trash"></i></button></div>`;
+              <div class="col-md-8"><input name="itens[${idx}][descricao]" class="form-control" value="${nome.replace(/"/g, '&quot;')}" required></div>
+              <div class="col-md-3"><input name="itens[${idx}][quantidade]" type="number" min="1" value="1" class="form-control" placeholder="Qtd"></div>
+              <div class="col-md-1"><button type="button" class="btn btn-outline-danger w-100 btnRemove"><i class="ti ti-trash"></i></button></div>
+              <div class="col-md-12"><input name="itens[${idx}][observacao]" class="form-control" placeholder="Obs."></div>`;
             wrap.appendChild(row);
           }
         } else {
           const row = wrap.querySelector(`.item-row[data-tipo-id="${tid}"]`);
           if (row) {
             row.remove();
-            if (wrap.querySelectorAll('.item-row').length === 0) btnAdd.click();
+            if (wrap.querySelectorAll('.item-row').length === 0) addEmptyRow();
           }
         }
       });
