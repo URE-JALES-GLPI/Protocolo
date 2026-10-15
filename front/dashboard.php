@@ -249,7 +249,7 @@ if ($graficosAtivo) {
 
 echo "<div class='container-fluid pt-page'>";
 echo "<div class='pt-page-header'>";
-echo "<div class='pt-page-title'><i class='ti ti-dashboard'></i><h2>Dashboard - Protocolo</h2></div>";
+echo "<div class='pt-page-title'><i class='ti ti-dashboard'></i><h2>Protocolo</h2></div>";
 echo "<div class='pt-page-actions' style='margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;'>";
 $activeTab = $_GET['tab'] ?? 'resumo';
 if (!in_array($activeTab, ['resumo', 'dashboards'], true)) $activeTab = 'resumo';
