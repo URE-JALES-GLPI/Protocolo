@@ -206,7 +206,7 @@ if ($alertaAtivo && $totalAtrasadas > 0) {
 }
 if (Profile::canAdmin()) { echo "<a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-folder'></i> " . __('Pastas', 'protocolo') . "</a>"; }
 echo "<a href='" . Pasta::getSearchURL() . "?minhas=1' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</a>";
-echo "<a href='#dashboards' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a>";
+echo "<a href='?tab=dashboards' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a>";
 if (Recebedor::canView()) { echo "<a href='" . Recebedor::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-users'></i> " . __('Gerenciar Recebedores', 'protocolo') . "</a>"; }
 if (Pasta::canCreate()) {
     echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-green pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
@@ -239,7 +239,17 @@ if ($categoriaFiltro || $qFiltro !== '') {
     echo "</div>";
 }
 
-// Resumo exibido direto (sem abas)
+// Abas Resumo / Dashboards (Resumo abre direto, sem seleção)
+$activeTab = $_GET['tab'] ?? 'resumo';
+if (!in_array($activeTab, ['resumo', 'dashboards'], true)) $activeTab = 'resumo';
+$tabBase = $_GET; unset($tabBase['tab']);
+$tabUrl = function($t) use ($tabBase) { $q = $tabBase; if ($t !== 'resumo') $q['tab'] = $t; return '?' . http_build_query($q); };
+echo "<ul class='nav nav-tabs mb-3'>";
+echo "<li class='nav-item'><a class='nav-link " . ($activeTab==='resumo'?'active':'') . "' href='" . htmlspecialchars($tabUrl('resumo')) . "'><i class='ti ti-list'></i> " . __('Resumo', 'protocolo') . "</a></li>";
+echo "<li class='nav-item'><a class='nav-link " . ($activeTab==='dashboards'?'active':'') . "' href='" . htmlspecialchars($tabUrl('dashboards')) . "'><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a></li>";
+echo "</ul>";
+echo "<div class='tab-content'>";
+echo "<div class='tab-pane fade " . ($activeTab==='resumo'?'show active':'') . "' id='tab-resumo'>";
 
 // Tabela aguardando
 $invView = 'grid';
@@ -253,7 +263,7 @@ try {
 $tableStyle = $invView === 'grid' ? 'display:none;' : '';
 $cardsStyle = $invView === 'grid' ? 'display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));' : 'display:none;';
 echo "<div id='pt-ret-bulkbar' class='pt-card' style='display:none;margin-bottom:12px;padding:10px 14px;flex-direction:row;align-items:center;gap:10px;'><span id='pt-ret-bulkcount' style='font-weight:700;'>0 selecionada(s)</span><button type='button' class='pt-btn pt-btn-sm' style='background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:0;' onclick='ptOpenRetiradaBulk()'><i class='ti ti-signature'></i> Retirar selecionadas</button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptRetClearSelection()'><i class='ti ti-x'></i> Limpar</button></div>";
-echo "<div class='pt-card'><div class='pt-card-header' style='flex-wrap:wrap;gap:8px;'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><span style='display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;'><button type='button' id='dash-filter-btn' class='pt-btn pt-btn-secondary pt-btn-sm' style='background:#fff;border:1.5px solid #e8eaf0;border-radius:8px;font-weight:700;' onclick=\"ptToggleFilter('dash-filter-content','dash-filter-btn','dash-filter-text','dash-filter-icon')\"><i class='ti ti-filter'></i> Filtros <span id='dash-filter-text'>Expandir</span> <i id='dash-filter-icon' class='ti ti-chevron-down ms-1'></i></button><span style='display:inline-flex;gap:4px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='list' onclick='ptSetInvView(\"list\")' title='Lista'><i class='ti ti-list'></i></button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='grid' onclick='ptSetInvView(\"grid\")' title='Grade'><i class='ti ti-layout-grid'></i></button></span><span class='pt-search-compact'><input type='text' id='pt-q-live' name='q' value='" . htmlspecialchars($qFiltro) . "' placeholder='Buscar...' autocomplete='off'></span></span></div>";
+echo "<div class='pt-card'><div class='pt-card-header' style='flex-wrap:wrap;gap:8px;'><span style='display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;'><button type='button' id='dash-filter-btn' class='pt-btn pt-btn-secondary pt-btn-sm' style='background:#fff;border:1.5px solid #e8eaf0;border-radius:8px;font-weight:700;' onclick=\"ptToggleFilter('dash-filter-content','dash-filter-btn','dash-filter-text','dash-filter-icon')\"><i class='ti ti-filter'></i> Filtros <span id='dash-filter-text'>Expandir</span> <i id='dash-filter-icon' class='ti ti-chevron-down ms-1'></i></button><span style='display:inline-flex;gap:4px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='list' onclick='ptSetInvView(\"list\")' title='Lista'><i class='ti ti-list'></i></button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='grid' onclick='ptSetInvView(\"grid\")' title='Grade'><i class='ti ti-layout-grid'></i></button></span><span class='pt-search-compact'><input type='text' id='pt-q-live' name='q' value='" . htmlspecialchars($qFiltro) . "' placeholder='Buscar...' autocomplete='off'></span></span><strong style='margin-left:auto;'><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong></div>";
 echo "<style>.pt-search-compact input{width:140px;transition:width .2s ease;padding:6px 10px;border:1.5px solid #e8eaf0;border-radius:8px;font-size:.85rem;box-sizing:border-box;}.pt-search-compact input:focus{width:250px;outline:none;border-color:#4f46e5;}</style>";
 echo "<div id='dash-filter-content' class='collapsed' style='display:none;margin:4px 14px 12px;'>";
 echo "<div class='d-flex gap-2 flex-wrap align-items-center'>";
@@ -380,7 +390,10 @@ echo "</div>";
 
 echo "<div class='pt-alert pt-alert-info'><div><strong>" . __('Fluxo do sistema:', 'protocolo') . "</strong> 1) " . __('Alguém deixa a pasta → Registrar Entrada → assina no tablet → imprime o Termo de Recebimento.', 'protocolo') . "<br>2) " . __('Escola vem buscar → Retirar na grade → assina no tablet → imprime o Termo de Entrega/Retirada.', 'protocolo') . "</div></div>";
 
-// Dashboards (abaixo do Resumo)
+echo "</div>"; // fim tab-resumo
+
+// Dashboards em aba própria
+echo "<div class='tab-pane fade " . ($activeTab==='dashboards'?'show active':'') . "' id='tab-dashboards'>";
 
 echo "<div class='pt-section-title' id='dashboards'>";
 echo "<i class='ti ti-chart-bar'></i><h5>" . __('Dashboards - Gráficos', 'protocolo') . "</h5>";
@@ -397,6 +410,8 @@ if ($graficosAtivo) {
 } else {
     echo "<div class='pt-alert pt-alert-warning'><i class='ti ti-alert-triangle'></i><div>" . __('Gráficos desativados. Ative em', 'protocolo') . " <a href='" . protocolo_web_dir('protocolo') . "/front/config.php'>" . __('Configuração', 'protocolo') . "</a>.</div></div>";
 }
+echo "</div>"; // fim tab-dashboards
+echo "</div>"; // fim tab-content
 echo "</div>"; // fim container-fluid
 
 // Janela flutuante Registrar Entrada (mesmo formulário da tela cheia, sem trocar de página)
