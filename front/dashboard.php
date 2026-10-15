@@ -62,6 +62,8 @@ if ($categoriaFiltro && $hasCategoriaCol) {
     $categoriaWhereSqlPasta = " AND categoria='" . $categoriaFiltro . "'";
     $entityFilter['categoria'] = $categoriaFiltro;
 }
+// Home filtrada só nas atrasadas (botão Atrasadas do topo)
+$soAtrasadas = (($_GET['soatrasadas'] ?? '') === '1') && $alertaAtivo && $prazoAlerta > 0;
 // Busca livre: código, recebido de, assunto, espécie
 $qFiltro = trim($_GET['q'] ?? '');
 $qWhereSql = '';
@@ -120,20 +122,16 @@ try {
 }
 
 // Últimas aguardando — ESCOLA = ENTIDADE - com JOIN agregado para evitar N+1 + dias
-$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql $qWhereSql ORDER BY p.data_recebimento DESC, p.id DESC LIMIT 12";
+$lastExtra = '';
+$lastOrder = 'ORDER BY p.data_recebimento DESC, p.id DESC LIMIT 12';
+if ($soAtrasadas) {
+    $lastExtra = ' AND DATEDIFF(NOW(), p.data_recebimento) >= ' . (int)$prazoAlerta;
+    $lastOrder = 'ORDER BY p.data_recebimento ASC, p.id ASC LIMIT 50';
+}
+$lastSql = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, COALESCE(ic.cpt,0) AS itens_qtd, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id LEFT JOIN (SELECT plugin_protocolo_pastas_id, COUNT(*) AS cpt FROM glpi_plugin_protocolo_itens GROUP BY plugin_protocolo_pastas_id) ic ON ic.plugin_protocolo_pastas_id=p.id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql $qWhereSql$lastExtra $lastOrder";
 $lastRows = [];
 $res = $DB->doQuery($lastSql);
 if ($res) while ($row = $DB->fetchAssoc($res)) $lastRows[] = $row;
-
-// Atrasadas detalhadas (para tabela separada)
-$atrasadasRows = [];
-if ($alertaAtivo && $totalAtrasadas > 0) {
-    try {
-        $sqlAtras = "SELECT p.*, COALESCE(e.completename, oe.name) AS escola_nome, DATEDIFF(NOW(), p.data_recebimento) AS dias_parada FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta . " ORDER BY p.data_recebimento ASC LIMIT 10";
-        $res = $DB->doQuery($sqlAtras);
-        if ($res) while ($row = $DB->fetchAssoc($res)) $atrasadasRows[] = $row;
-    } catch (Throwable $e) {}
-}
 
 // Dados gráficos
 $chartEntradas = ['labels' => [], 'values' => []];
@@ -256,7 +254,14 @@ echo "<div class='pt-page-actions' style='margin-left:auto;display:flex;gap:8px;
 $activeTab = $_GET['tab'] ?? 'resumo';
 if (!in_array($activeTab, ['resumo', 'dashboards'], true)) $activeTab = 'resumo';
 if ($alertaAtivo && $totalAtrasadas > 0) {
-    echo "<a href='#atrasadas' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</a>";
+    $catQ = $categoriaFiltro !== '' ? 'categoria=' . urlencode($categoriaFiltro) : '';
+    if ($soAtrasadas) {
+        $backQ = $catQ !== '' ? '?' . $catQ : '?';
+        echo "<a href='" . htmlspecialchars($backQ) . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-list'></i> " . __('Todas', 'protocolo') . "</a>";
+    } else {
+        $fq = $catQ !== '' ? '?' . $catQ . '&soatrasadas=1' : '?soatrasadas=1';
+        echo "<a href='" . htmlspecialchars($fq) . "' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</a>";
+    }
 }
 if (Profile::canAdmin()) { echo "<a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-folder'></i> " . __('Pastas', 'protocolo') . "</a>"; }
 echo "<a href='" . Pasta::getSearchURL() . "?minhas=1' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</a>";
@@ -422,20 +427,6 @@ echo "<button type='button' class='pt-btn pt-btn-secondary' style='width:100%;' 
 echo "</div>";
 echo "</div>";
 echo "</div>";
-
-// Tabela atrasadas
-if ($alertaAtivo && $totalAtrasadas > 0) {
-    echo "<div id='atrasadas' class='pt-card' style='border-color:#fecaca;'><div class='pt-card-header' style='background:#fef2f2;border-color:#fecaca;'><strong style='color:#991b1b;'><i class='ti ti-alarm' style='color:#dc2626;'></i> " . __('Pastas atrasadas', 'protocolo') . " — " . __('aguardando há mais de', 'protocolo') . " $prazoAlerta " . __('dias', 'protocolo') . " ($totalAtrasadas)</strong><a href='" . Pasta::getSearchURL() . "?criteria[0][field]=2&criteria[0][searchtype]=equals&criteria[0][value]=aguardando' class='pt-btn pt-btn-secondary pt-btn-sm'>" . __('Ver todas aguardando', 'protocolo') . "</a></div><div style='overflow-x:auto;'><table class='pt-list-table'><thead><tr><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>DATA</th><th>" . __('Dias', 'protocolo') . "</th><th></th></tr></thead><tbody>";
-    foreach ($atrasadasRows as $r) {
-        $dias = (int)($r['dias_parada'] ?? 0);
-        $catBadge = Pasta::getCategoriaBadge($r['categoria'] ?? 'pasta', $r['especie_outro'] ?? null);
-        $origem = isset($r['origem_tipo']) ? Pasta::getOrigemDestinoDisplay($r, 'origem') . " <i class='ti ti-arrow-right'></i> " . Pasta::getOrigemDestinoDisplay($r, 'destino') : htmlspecialchars($r['escola_nome']);
-        echo "<tr class='pt-list-row table-danger'><td><span class='pt-row-title'>" . htmlspecialchars($r['codigo']) . "</span></td><td>$catBadge</td><td class='small'>$origem</td><td>" . htmlspecialchars($r['recebido_de']) . "</td><td>" . Html::convDateTime($r['data_recebimento']) . "</td><td><span class='pt-badge pt-badge-warn'>$dias d</span></td><td><a href='" . Pasta::getFormURLWithID($r['id']) . "' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> Regularizar</a></td></tr>";
-    }
-echo "</tbody></table></div>";
-echo "</div>";
-    echo "<div class='form-text mt-1 text-muted small'><i class='ti ti-settings'></i> " . __('Ajuste o prazo em', 'protocolo') . " <a href='" . protocolo_web_dir('protocolo') . "/front/config.php'>Configuração → Prazo alerta</a>.</div>";
-}
 
 echo "<div class='pt-alert pt-alert-info'><div><strong>" . __('Fluxo do sistema:', 'protocolo') . "</strong> 1) " . __('Alguém deixa a pasta → Registrar Entrada → assina no tablet → imprime o Termo de Recebimento.', 'protocolo') . "<br>2) " . __('Escola vem buscar → Retirar na grade → assina no tablet → imprime o Termo de Entrega/Retirada.', 'protocolo') . "</div></div>";
 
