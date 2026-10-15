@@ -6,6 +6,7 @@ use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\Escola;
 use GlpiPlugin\Protocolo\Config;
 use GlpiPlugin\Protocolo\Recebedor;
+use GlpiPlugin\Protocolo\Profile;
 
 if (!Pasta::canView()) {
     error_log("[protocolo] DASHBOARD BLOQUEADO pid=" . ($_SESSION['glpiactive_profile']['id'] ?? 'no_pid') . " uid=" . Session::getLoginUserID() . " rights_db_check FAIL");
@@ -203,13 +204,13 @@ echo "<div class='pt-page-actions'>";
 if ($alertaAtivo && $totalAtrasadas > 0) {
     echo "<a href='#atrasadas' class='pt-btn pt-btn-danger pt-btn-sm'><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</a>";
 }
-echo "<a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-folder'></i> " . __('Pastas', 'protocolo') . "</a>";
+if (Profile::canAdmin()) { echo "<a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-folder'></i> " . __('Pastas', 'protocolo') . "</a>"; }
 echo "<a href='" . Pasta::getSearchURL() . "?minhas=1' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</a>";
 if (Recebedor::canView()) { echo "<a href='" . Recebedor::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-users'></i> " . __('Gerenciar Recebedores', 'protocolo') . "</a>"; }
 if (Pasta::canCreate()) {
     echo "<a href='" . Pasta::getFormURL() . "' onclick=\"return ptOpenRegisterModal(event)\" class='pt-btn pt-btn-green pt-btn-sm'><i class='ti ti-folder-plus'></i> " . __('Registrar Entrada', 'protocolo') . "</a>";
 }
-if (Config::canEdit()) {
+if (Profile::canAdmin()) {
     echo "<a href='" . protocolo_web_dir('protocolo') . "/front/config.php' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-settings'></i> Config</a>";
 }
 echo "<button id='pt-theme-btn' onclick='ptToggleTheme()' class='pt-btn pt-btn-secondary pt-btn-sm' title='Alternar tema claro/escuro'><i class='ti ti-moon'></i></button>";
@@ -231,7 +232,6 @@ if ($hasCategoriaCol && !$categoriaFiltro) {
 echo "</div>";
 
 echo "<div class='pt-filters-bar' style='padding:12px 16px;margin-bottom:20px;'>";
-echo "<button type='button' id='dash-filter-btn' class='pt-filter-toggle-btn' onclick=\"ptToggleFilter('dash-filter-content','dash-filter-btn','dash-filter-text','dash-filter-icon')\"><i class='ti ti-filter'></i> Filtros <span id='dash-filter-text'>Expandir</span> <i id='dash-filter-icon' class='ti ti-chevron-down ms-1'></i></button>";
 if ($categoriaFiltro) echo " <span class='pt-badge pt-badge-pasta ms-2'>Filtrando: " . htmlspecialchars(Pasta::getEspecieLabel($categoriaFiltro)) . "</span>";
 if ($qFiltro !== '') echo " <span class='pt-badge pt-badge-pasta ms-2'>Busca: " . htmlspecialchars($qFiltro) . "</span>";
 echo "<div id='dash-filter-content' class='collapsed' style='display:none;margin-top:12px;'>";
@@ -260,18 +260,7 @@ echo "</div>";
 echo "</div>";
 echo "</div>";
 
-// Tabs Resumo / Dashboards
-$activeTab = $_GET['tab'] ?? 'resumo';
-if (!in_array($activeTab, ['resumo', 'dashboards'])) $activeTab = 'resumo';
-echo "<ul class='nav nav-tabs mb-3' id='protocoloDashTabs' role='tablist'>";
-echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='resumo'?'active':'') . "' data-pt-tab='resumo' href='#tab-resumo' role='tab' onclick=\"return ptDashTab(event,'resumo')\"><i class='ti ti-list'></i> " . __('Resumo', 'protocolo') . "</a></li>";
-echo "<li class='nav-item' role='presentation'><a class='nav-link " . ($activeTab==='dashboards'?'active':'') . "' data-pt-tab='dashboards' href='#tab-dashboards' role='tab' onclick=\"return ptDashTab(event,'dashboards')\"><i class='ti ti-chart-bar'></i> " . __('Dashboards', 'protocolo') . "</a></li>";
-echo "</ul>";
-
-// Tab content
-echo "<div class='tab-content'>";
-// Resumo
-echo "<div class='tab-pane fade " . ($activeTab==='resumo'?'show active':'') . "' id='tab-resumo'>";
+// Resumo exibido direto (sem abas)
 
 // Tabela aguardando
 $invView = 'grid';
@@ -285,11 +274,8 @@ try {
 $tableStyle = $invView === 'grid' ? 'display:none;' : '';
 $cardsStyle = $invView === 'grid' ? 'display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));' : 'display:none;';
 echo "<div id='pt-ret-bulkbar' class='pt-card' style='display:none;margin-bottom:12px;padding:10px 14px;flex-direction:row;align-items:center;gap:10px;'><span id='pt-ret-bulkcount' style='font-weight:700;'>0 selecionada(s)</span><button type='button' class='pt-btn pt-btn-sm' style='background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border:0;' onclick='ptOpenRetiradaBulk()'><i class='ti ti-signature'></i> Retirar selecionadas</button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptRetClearSelection()'><i class='ti ti-x'></i> Limpar</button></div>";
-echo "<div class='pt-card'><div class='pt-card-header'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><span style='display:inline-flex;gap:4px;align-items:center;'><span style='display:inline-flex;gap:4px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='list' onclick='ptSetInvView(\"list\")' title='Lista'><i class='ti ti-list'></i></button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='grid' onclick='ptSetInvView(\"grid\")' title='Grade'><i class='ti ti-layout-grid'></i></button></span></span></div>";
-echo "<div style='padding:10px 14px 0;'><form method='get' action='' style='display:flex;gap:8px;align-items:center;'>";
-if ($categoriaFiltro) echo "<input type='hidden' name='categoria' value='" . htmlspecialchars($categoriaFiltro) . "'>";
-echo "<div class='pt-filter-search' style='flex:1;'><input type='text' id='pt-q-live' name='q' value='" . htmlspecialchars($qFiltro) . "' placeholder='Buscar por código, nome, assunto, tipo...' autocomplete='off'></div>";
-echo "</form></div>";
+echo "<div class='pt-card'><div class='pt-card-header' style='flex-wrap:wrap;gap:8px;'><strong><i class='ti ti-clock'></i> " . __('Pastas aguardando retirada (recentes)', 'protocolo') . "</strong><span style='display:inline-flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap;'><button type='button' id='dash-filter-btn' class='pt-btn pt-btn-secondary pt-btn-sm' style='background:#fff;border:1.5px solid #e8eaf0;border-radius:8px;font-weight:700;' onclick=\"ptToggleFilter('dash-filter-content','dash-filter-btn','dash-filter-text','dash-filter-icon')\"><i class='ti ti-filter'></i> Filtros <span id='dash-filter-text'>Expandir</span> <i id='dash-filter-icon' class='ti ti-chevron-down ms-1'></i></button><span style='display:inline-flex;gap:4px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='list' onclick='ptSetInvView(\"list\")' title='Lista'><i class='ti ti-list'></i></button><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm pt-view-btn' data-v='grid' onclick='ptSetInvView(\"grid\")' title='Grade'><i class='ti ti-layout-grid'></i></button></span><span class='pt-search-compact'><input type='text' id='pt-q-live' name='q' value='" . htmlspecialchars($qFiltro) . "' placeholder='Buscar...' autocomplete='off'></span></span></div>";
+echo "<style>.pt-search-compact input{width:140px;transition:width .2s ease;padding:6px 10px;border:1.5px solid #e8eaf0;border-radius:8px;font-size:.85rem;box-sizing:border-box;}.pt-search-compact input:focus{width:250px;outline:none;border-color:#4f46e5;}</style>";
 echo "<script>document.addEventListener('DOMContentLoaded',function(){var inp=document.getElementById('pt-q-live');if(!inp||inp.dataset.live)return;inp.dataset.live='1';var tb=document.querySelector('#pt-aguard-table tbody');var er=document.createElement('tr');er.id='pt-q-empty-table';er.style.display='none';er.innerHTML=\"<td colspan='10'><div class='pt-empty-state pt-empty-small'><i class='ti ti-search'></i><p>Nenhum resultado para esta busca.</p></div></td>\";if(tb)tb.appendChild(er);var cw=document.getElementById('pt-aguard-cards');var ec=document.createElement('div');ec.id='pt-q-empty-cards';ec.style.display='none';ec.innerHTML=\"<div style='background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:20px;text-align:center;color:#9ca3af;grid-column:1/-1;'>Nenhum resultado para esta busca.</div>\";if(cw)cw.appendChild(ec);inp.addEventListener('input',function(){var q=(inp.value||'').toLowerCase();var nT=0;document.querySelectorAll('#pt-aguard-table tbody tr.pt-list-row').forEach(function(tr){if(tr.id==='pt-q-empty-table')return;var hit=q===''||tr.textContent.toLowerCase().indexOf(q)!==-1;tr.style.display=hit?'':'none';if(hit)nT++;});er.style.display=(q!==''&&nT===0)?'':'none';var nC=0;var cw2=document.getElementById('pt-aguard-cards');if(cw2)Array.from(cw2.children).forEach(function(cd){if(cd.id==='pt-q-empty-cards')return;var hit=q===''||cd.textContent.toLowerCase().indexOf(q)!==-1;cd.style.display=hit?'':'none';if(hit)nC++;});ec.style.display=(q!==''&&nC===0)?'':'none';});});</script>";
 echo "<div id='pt-aguard-table' class='pt-hide-mobile' style='overflow-x:auto;$tableStyle'><table class='pt-list-table'><thead><tr><th style='width:36px;'><input type='checkbox' id='pt-ret-check-all' title='Selecionar todas' style='width:17px;height:17px;accent-color:#4f46e5;'></th><th>" . __('Código') . "</th><th>" . __('Categoria', 'protocolo') . "</th><th>" . __('Origem', 'protocolo') . " → " . __('Destino', 'protocolo') . "</th><th>" . __('Recebido de') . "</th><th>DATA</th><th>" . __('Dias', 'protocolo') . "</th><th>" . __('Itens') . "</th><th>" . __('Status') . "</th><th>Ações</th></tr></thead><tbody>";
 echo "<style>.pt-only-mobile{display:none;}.pt-view-btn.on{border-color:#4f46e5!important;color:#4f46e5!important;background:#eef2ff!important;}@media (max-width:768px){.pt-hide-mobile{display:none;}.pt-only-mobile{display:grid;grid-template-columns:1fr;gap:16px;padding:4px 12px 16px;}#pt-aguard-cards>div{padding:16px!important;}}</style>";
@@ -393,10 +379,7 @@ echo "</div>";
 
 echo "<div class='pt-alert pt-alert-info'><div><strong>" . __('Fluxo do sistema:', 'protocolo') . "</strong> 1) " . __('Alguém deixa a pasta → Registrar Entrada → assina no tablet → imprime o Termo de Recebimento.', 'protocolo') . "<br>2) " . __('Escola vem buscar → Retirar na grade → assina no tablet → imprime o Termo de Entrega/Retirada.', 'protocolo') . "</div></div>";
 
-echo "</div>"; // fim tab-resumo
-
-// Dashboards
-echo "<div class='tab-pane fade " . ($activeTab==='dashboards'?'show active':'') . "' id='tab-dashboards'>";
+// Dashboards (abaixo do Resumo)
 
 echo "<div class='pt-section-title'>";
 echo "<i class='ti ti-chart-bar'></i><h5>" . __('Dashboards - Gráficos', 'protocolo') . "</h5>";
@@ -413,10 +396,6 @@ if ($graficosAtivo) {
 } else {
     echo "<div class='pt-alert pt-alert-warning'><i class='ti ti-alert-triangle'></i><div>" . __('Gráficos desativados. Ative em', 'protocolo') . " <a href='" . protocolo_web_dir('protocolo') . "/front/config.php'>" . __('Configuração', 'protocolo') . "</a>.</div></div>";
 }
-echo "</div>"; // fim tab-dashboards
-
-echo "</div>"; // fim tab-content
-
 echo "</div>"; // fim container-fluid
 
 // Janela flutuante Registrar Entrada (mesmo formulário da tela cheia, sem trocar de página)
