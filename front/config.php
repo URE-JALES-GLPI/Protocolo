@@ -414,6 +414,7 @@ if ($grouped) {
     echo "</div>";
     echo "</div>";
     echo "</div></div>";
+} // fim if grouped (toolbar) — abas abaixo sempre visíveis
 
     // Tabs
     $totalTipos = 0;
@@ -696,12 +697,12 @@ if ($grouped) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href=url; a.download='protocolo-emails-por-entidade.csv'; a.click(); URL.revokeObjectURL(url);
         });
-        apply();
+        if(search&&fStatus&&fEntity) apply();
     })();
 </script>
 JS;
     echo "<div class='form-text mt-2'><i class='ti ti-info-circle'></i> " . __('Cada card/accordion = 1 Entidade. Clique em <strong>Ativar/Desativar</strong> para pausar sem apagar. Use <strong>Buscar</strong> ou filtros para achar rápido. Aba <strong>Lista completa</strong> mostra tudo em tabela — ideal para conferência e exportação.', 'protocolo') . "</div>";
-} else {
+if (!$grouped) {
     echo "<div class='text-center py-4'><div class='mb-2'><i class='ti ti-inbox' style='font-size:32px; opacity:.4'></i></div><p class='text-muted mb-2'><strong>" . __('Nenhum e-mail por entidade cadastrado no PLUGIN.', 'protocolo') . "</strong></p><p class='small text-muted'>" . __('Adicione abaixo. Enquanto não cadastrar, o sistema usa <code>Escola.email</code> / <code>glpi_entities.email</code> + <code>cópia global</code> como fallback.', 'protocolo') . "</p></div>";
     echo "<div class='alert alert-light border small'><i class='ti ti-bulb'></i> <strong>" . __('Como funciona o envio?', 'protocolo') . "</strong><br>" . __('1) Se a entidade da pasta tem e-mails <span class="badge bg-success">Ativos</span> aqui → envia para eles.<br>2) Senão, tenta e-mail da Escola e da Entidade GLPI.<br>3) Sempre adiciona cópia global (se configurada).<br>Portanto, cadastre aqui os e-mails que <strong>devem receber</strong>.', 'protocolo') . "</div>";
 }
