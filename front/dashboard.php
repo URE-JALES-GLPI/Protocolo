@@ -195,6 +195,58 @@ if ($graficosAtivo) {
             $chartTempoMedio['values'][] = $m['media'];
         }
     } catch (Throwable $e) { $chartTempoMedio = ['labels' => [], 'values' => []]; }
+
+    // Retiradas últimos 6 meses (espelho das entradas)
+    $chartRetiradas = ['labels' => [], 'values' => []];
+    try {
+        $monthsR = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $ts = strtotime("-$i months");
+            $ym = date('Y-m', $ts);
+            $monthsR[$ym] = ['label' => date('m/y', $ts), 'cpt' => 0];
+        }
+        $sql = "SELECT DATE_FORMAT(data_retirada, '%Y-%m') as ym, COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas WHERE status='retirada' AND is_deleted=0 AND data_retirada IS NOT NULL $entityWhereSqlPasta $categoriaWhereSqlPasta $qWhereSqlPasta AND data_retirada >= DATE_SUB(NOW(), INTERVAL 6 MONTH) GROUP BY ym ORDER BY ym";
+        $res = $DB->doQuery($sql);
+        if ($res) {
+            while ($row = $DB->fetchAssoc($res)) {
+                if (isset($monthsR[$row['ym']])) $monthsR[$row['ym']]['cpt'] = (int)$row['cpt'];
+            }
+        }
+        foreach ($monthsR as $m) { $chartRetiradas['labels'][] = $m['label']; $chartRetiradas['values'][] = $m['cpt']; }
+    } catch (Throwable $e) { $chartRetiradas = ['labels' => [], 'values' => []]; }
+
+    // Filtros com alias p/ queries com JOIN
+    $qLikeP = $qFiltro !== '' ? $DB->quoteValue('%' . $qFiltro . '%') : '';
+    $qWP = $qLikeP !== '' ? " AND (p.codigo LIKE $qLikeP OR p.recebido_de LIKE $qLikeP OR p.assunto LIKE $qLikeP OR p.categoria LIKE $qLikeP OR p.especie_outro LIKE $qLikeP)" : '';
+    $catWP = ($categoriaFiltro && $hasCategoriaCol) ? " AND p.categoria='" . $categoriaFiltro . "'" : '';
+
+    // Top escolas com pastas aguardando
+    $chartEscolas = ['labels' => [], 'values' => []];
+    try {
+        $sql = "SELECT COALESCE(e.completename, oe.name) AS escola_nome, COUNT(*) AS cpt FROM glpi_plugin_protocolo_pastas p LEFT JOIN glpi_entities e ON e.id=p.plugin_protocolo_escolas_id LEFT JOIN glpi_plugin_protocolo_escolas oe ON oe.id=p.plugin_protocolo_escolas_id WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $catWP $qWP GROUP BY escola_nome ORDER BY cpt DESC LIMIT 8";
+        $res = $DB->doQuery($sql);
+        if ($res) {
+            while ($row = $DB->fetchAssoc($res)) {
+                $chartEscolas['labels'][] = mb_strimwidth($row['escola_nome'] ?: '—', 0, 28, '…');
+                $chartEscolas['values'][] = (int)$row['cpt'];
+            }
+        }
+    } catch (Throwable $e) { $chartEscolas = ['labels' => [], 'values' => []]; }
+
+    // Itens por tipo de arquivo (top 10)
+    $chartItensTipo = ['labels' => [], 'values' => []];
+    try {
+        if ($DB->tableExists('glpi_plugin_protocolo_pastatipos')) {
+            $sql = "SELECT t.name AS nome, COUNT(*) AS cpt FROM glpi_plugin_protocolo_pastatipos pt JOIN glpi_plugin_protocolo_tipos t ON t.id=pt.plugin_protocolo_tipos_id JOIN glpi_plugin_protocolo_pastas p ON p.id=pt.plugin_protocolo_pastas_id WHERE p.is_deleted=0 $entityWhereSql $catWP $qWP GROUP BY t.name ORDER BY cpt DESC LIMIT 10";
+            $res = $DB->doQuery($sql);
+            if ($res) {
+                while ($row = $DB->fetchAssoc($res)) {
+                    $chartItensTipo['labels'][] = mb_strimwidth($row['nome'] ?: '—', 0, 24, '…');
+                    $chartItensTipo['values'][] = (int)$row['cpt'];
+                }
+            }
+        }
+    } catch (Throwable $e) { $chartItensTipo = ['labels' => [], 'values' => []]; }
 }
 
 echo "<div class='container-fluid pt-page'>";
@@ -403,6 +455,17 @@ if ($graficosAtivo) {
     echo "<div class='col-lg-3'><div class='pt-card h-100'><div class='pt-card-header'><strong><i class='ti ti-chart-pie'></i> " . __('Por status', 'protocolo') . "</strong></div><div class='pt-card-body d-flex align-items-center justify-content-center'><canvas id='chartStatus' height='200'></canvas></div></div></div>";
     echo "<div class='col-lg-4'><div class='pt-card h-100'><div class='pt-card-header'><strong><i class='ti ti-clock'></i> " . __('Tempo médio de guarda (dias)', 'protocolo') . "</strong><span class='pt-badge pt-badge-pasta'>Média geral: " . ($tempoMedioGeral ?: '—') . "d</span></div><div class='pt-card-body'><canvas id='chartTempo' height='200'></canvas><small class='text-muted d-block mt-2'>" . __('Média entre recebimento e retirada por mês de retirada.', 'protocolo') . "</small></div></div></div>";
     echo "</div>";
+    echo "<div class='row g-3 mb-4'>";
+    echo "<div class='col-lg-4'><div class='pt-card h-100'><div class='pt-card-header'><strong><i class='ti ti-chart-pie'></i> " . __('Por espécie', 'protocolo') . "</strong></div><div class='pt-card-body d-flex align-items-center justify-content-center'><canvas id='chartEspecie' height='200'></canvas></div></div></div>";
+    echo "<div class='col-lg-8'><div class='pt-card h-100'><div class='pt-card-header'><strong><i class='ti ti-chart-bar'></i> " . __('Retiradas por mês (últimos 6 meses)', 'protocolo') . "</strong></div><div class='pt-card-body'><canvas id='chartRetiradas' height='200'></canvas></div></div></div>";
+    echo "</div>";
+    echo "<div class='row g-3 mb-4'>";
+    echo "<div class='col-lg-7'><div class='pt-card h-100'><div class='pt-card-header'><strong><i class='ti ti-trophy'></i> " . __('Top escolas com pastas aguardando', 'protocolo') . "</strong></div><div class='pt-card-body'><canvas id='chartEscolas' height='220'></canvas></div></div></div>";
+    echo "<div class='col-lg-5'><div class='pt-card h-100'><div class='pt-card-header'><strong><i class='ti ti-alarm'></i> " . __('No prazo x atrasadas', 'protocolo') . "</strong></div><div class='pt-card-body d-flex align-items-center justify-content-center'><canvas id='chartAtrasadas' height='220'></canvas></div></div></div>";
+    echo "</div>";
+    echo "<div class='row g-3 mb-4'>";
+    echo "<div class='col-lg-12'><div class='pt-card h-100'><div class='pt-card-header'><strong><i class='ti ti-tags'></i> " . __('Itens por tipo de arquivo (top 10)', 'protocolo') . "</strong></div><div class='pt-card-body'><canvas id='chartItensTipo' height='180'></canvas></div></div></div>";
+    echo "</div>";
     echo "<div class='pt-alert pt-alert-info'><i class='ti ti-info-circle'></i><div>" . __('Use Exportar XLSX para baixar os dados dos gráficos e tabelas filtradas por sua entidade ativa.', 'protocolo') . "</div></div>";
 } else {
     echo "<div class='pt-alert pt-alert-warning'><i class='ti ti-alert-triangle'></i><div>" . __('Gráficos desativados. Ative em', 'protocolo') . " <a href='" . protocolo_web_dir('protocolo') . "/front/config.php'>" . __('Configuração', 'protocolo') . "</a>.</div></div>";
@@ -432,6 +495,26 @@ if ($graficosAtivo) {
     $jsonStatusValues = json_encode($chartStatus['values']);
     $jsonTempoLabels = json_encode($chartTempoMedio['labels'], JSON_UNESCAPED_UNICODE);
     $jsonTempoValues = json_encode($chartTempoMedio['values']);
+    $chartEspecie = ['labels' => [], 'values' => []];
+    foreach (Pasta::getEspecieOptions() as $espVal => $espLabel) {
+        $chartEspecie['labels'][] = $espLabel;
+        $nEsp = 0;
+        if ($hasCategoriaCol && (!$categoriaFiltro || $categoriaFiltro === $espVal)) {
+            try { $nEsp = countElementsInTable(Pasta::getTable(), array_merge(['categoria' => $espVal, 'is_deleted' => 0], $entityFilterBase, $qLikeCond)); } catch (Throwable $e) { $nEsp = 0; }
+        }
+        $chartEspecie['values'][] = $nEsp;
+    }
+    $chartAtrasadas = ['labels' => [__('No prazo', 'protocolo'), __('Atrasadas', 'protocolo')], 'values' => [max(0, (int)$totalAguardando - (int)$totalAtrasadas), (int)$totalAtrasadas]];
+    $jsonEspecieLabels = json_encode($chartEspecie['labels'], JSON_UNESCAPED_UNICODE);
+    $jsonEspecieValues = json_encode($chartEspecie['values']);
+    $jsonRetiradasLabels = json_encode($chartRetiradas['labels'], JSON_UNESCAPED_UNICODE);
+    $jsonRetiradasValues = json_encode($chartRetiradas['values']);
+    $jsonEscolasLabels = json_encode($chartEscolas['labels'], JSON_UNESCAPED_UNICODE);
+    $jsonEscolasValues = json_encode($chartEscolas['values']);
+    $jsonAtrasadasLabels = json_encode($chartAtrasadas['labels'], JSON_UNESCAPED_UNICODE);
+    $jsonAtrasadasValues = json_encode($chartAtrasadas['values']);
+    $jsonItensTipoLabels = json_encode($chartItensTipo['labels'], JSON_UNESCAPED_UNICODE);
+    $jsonItensTipoValues = json_encode($chartItensTipo['values']);
 
     // Tenta usar Chart.js do GLPI se existir, senão CDN
     $chartJsCdn = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
@@ -467,6 +550,31 @@ document.addEventListener('DOMContentLoaded', function(){
       type: 'line',
       data: { labels: $jsonTempoLabels, datasets: [{ label:'Dias médios', data: $jsonTempoValues, borderColor:'#4f46e5', backgroundColor:'rgba(79,70,229,0.12)', tension:0.35, fill:true, pointRadius:3, pointBackgroundColor:'#4f46e5' }] },
       options: { responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, title:{ display:true, text:'dias' } } } }
+    });
+    mk('chartEspecie', {
+      type: 'doughnut',
+      data: { labels: $jsonEspecieLabels, datasets: [{ data: $jsonEspecieValues, backgroundColor:['#4f46e5','#f59e0b','#0ea5e9','#8b5cf6','#9ca3af'], borderWidth:0 }] },
+      options: { responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'58%' }
+    });
+    mk('chartRetiradas', {
+      type: 'bar',
+      data: { labels: $jsonRetiradasLabels, datasets: [{ label: 'Retiradas', data: $jsonRetiradasValues, backgroundColor: '#0ea5e9', hoverBackgroundColor: '#0284c7', borderRadius: 6 }] },
+      options: { responsive: true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' pasta(s)' } } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+    });
+    mk('chartEscolas', {
+      type: 'bar',
+      data: { labels: $jsonEscolasLabels, datasets: [{ label: 'Aguardando', data: $jsonEscolasValues, backgroundColor: '#10b981', hoverBackgroundColor: '#059669', borderRadius: 6 }] },
+      options: { indexAxis:'y', responsive: true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.parsed.x + ' pasta(s)' } } }, scales:{ x:{ beginAtZero:true, ticks:{ precision:0 } } } }
+    });
+    mk('chartAtrasadas', {
+      type: 'doughnut',
+      data: { labels: $jsonAtrasadasLabels, datasets: [{ data: $jsonAtrasadasValues, backgroundColor:['#10b981','#ef4444'], borderWidth:0 }] },
+      options: { responsive:true, plugins:{ legend:{ position:'bottom' } }, cutout:'58%' }
+    });
+    mk('chartItensTipo', {
+      type: 'bar',
+      data: { labels: $jsonItensTipoLabels, datasets: [{ label: 'Itens', data: $jsonItensTipoValues, backgroundColor: '#f59e0b', hoverBackgroundColor: '#d97706', borderRadius: 6 }] },
+      options: { responsive: true, plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label: ctx => ctx.parsed.y + ' item(ns)' } } }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
     });
     window._ptCharts.forEach(function(ch){ try { ch.resize(); } catch(e){} });
   };
