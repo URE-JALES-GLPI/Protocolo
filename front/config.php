@@ -78,6 +78,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_entity_email']
     Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#entity-emails');
 }
 
+// --- Tipos de itens da pasta ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_tipo'])) {
+    protocolo_check_csrf_or_bypass();
+    if (!Config::canEdit()) Html::displayRightError();
+    $nome = trim($_POST['tipo_name'] ?? '');
+    if ($nome === '') {
+        Session::addMessageAfterRedirect(__('Nome do tipo é obrigatório', 'protocolo'), false, ERROR);
+    } else {
+        $t = new TipoArquivo();
+        $nid = $t->add(['name' => mb_substr($nome, 0, 255), 'is_active' => 1]);
+        if ($nid) Session::addMessageAfterRedirect(__('Tipo adicionado', 'protocolo'), false, INFO);
+        else Session::addMessageAfterRedirect(__('Falha ao adicionar tipo', 'protocolo'), false, ERROR);
+    }
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#tab-tipos');
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_tipo'])) {
+    protocolo_check_csrf_or_bypass();
+    if (!Config::canEdit()) Html::displayRightError();
+    $id = (int)($_POST['id'] ?? 0);
+    if ($id) {
+        $t = new TipoArquivo();
+        if ($t->getFromDB($id)) {
+            $t->update(['id' => $id, 'is_active' => !empty($t->fields['is_active']) ? 0 : 1]);
+            Session::addMessageAfterRedirect(__('Status do tipo alterado', 'protocolo'), false, INFO);
+        }
+    }
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#tab-tipos');
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_tipo'])) {
+    protocolo_check_csrf_or_bypass();
+    if (!Config::canEdit()) Html::displayRightError();
+    $id = (int)($_POST['id'] ?? 0);
+    if ($id) {
+        $emUso = 0;
+        try { $emUso = countElementsInTable('glpi_plugin_protocolo_pastatipos', ['plugin_protocolo_tipos_id' => $id]); } catch (Throwable $e) {}
+        if ($emUso > 0) {
+            Session::addMessageAfterRedirect(__('Tipo em uso em pastas — desative em vez de excluir', 'protocolo'), false, ERROR);
+        } else {
+            $t = new TipoArquivo();
+            if ($t->delete(['id' => $id])) Session::addMessageAfterRedirect(__('Tipo excluído', 'protocolo'), false, INFO);
+            else Session::addMessageAfterRedirect(__('Falha ao excluir tipo', 'protocolo'), false, ERROR);
+        }
+    }
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#tab-tipos');
+}
+
 // Enviar teste e-mail (3 modelos)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_test_email'])) {
     protocolo_check_csrf_or_bypass();
@@ -370,9 +416,12 @@ if ($grouped) {
     echo "</div></div>";
 
     // Tabs
+    $totalTipos = 0;
+    try { $totalTipos = countElementsInTable(TipoArquivo::getTable()); } catch (Throwable $e) {}
     echo "<ul class='nav nav-tabs' role='tablist'>";
     echo "<li class='nav-item' role='presentation'><button class='nav-link active' id='tab-lista-btn' data-bs-toggle='tab' data-bs-target='#tab-lista' type='button' role='tab'><i class='ti ti-table'></i> " . __('Lista completa', 'protocolo') . " <span class='badge bg-primary ms-1'>{$totalEmails}</span></button></li>";
     echo "<li class='nav-item' role='presentation'><button class='nav-link' id='tab-agrupado-btn' data-bs-toggle='tab' data-bs-target='#tab-agrupado' type='button' role='tab'><i class='ti ti-layout-grid'></i> " . __('Agrupado por entidade', 'protocolo') . " <span class='badge bg-secondary ms-1'>{$totalEntidades}</span></button></li>";
+    echo "<li class='nav-item' role='presentation'><button class='nav-link' id='tab-tipos-btn' data-bs-toggle='tab' data-bs-target='#tab-tipos' type='button' role='tab'><i class='ti ti-tags'></i> " . __('Tipos de itens', 'protocolo') . " <span class='badge bg-secondary ms-1'>{$totalTipos}</span></button></li>";
     echo "</ul>";
     echo "<div class='tab-content border border-top-0 rounded-bottom bg-white'>";
 
@@ -505,6 +554,38 @@ if ($grouped) {
         }
     } catch (Throwable $e) {}
     echo "</div>"; // tab agrupado
+
+    // TAB 3 — Tipos de itens da pasta (gerência rápida; completo em tipo.php)
+    echo "<div class='tab-pane fade p-3' id='tab-tipos' role='tabpanel'>";
+    echo "<form method='post' action='' class='d-flex gap-2 flex-wrap align-items-center mb-3'>";
+    echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
+    echo "<input type='text' name='tipo_name' class='form-control' style='max-width:320px;' placeholder='" . __('Novo tipo (ex: Ofício, Processo)', 'protocolo') . "' required maxlength='255'>";
+    echo "<button type='submit' name='add_tipo' value='1' class='btn btn-primary'><i class='ti ti-plus'></i> " . __('Adicionar tipo', 'protocolo') . "</button>";
+    echo "<a href='" . TipoArquivo::getSearchURL() . "' class='btn btn-outline-secondary'><i class='ti ti-settings'></i> " . __('Gerenciar completo', 'protocolo') . "</a>";
+    echo "</form>";
+    echo "<div class='table-responsive' style='max-height:520px; overflow:auto;'>";
+    echo "<table class='table table-hover table-striped table-sm align-middle mb-0'><thead class='table-light sticky-top' style='top:0; z-index:1;'><tr>";
+    echo "<th style='width:40px'>#</th><th><i class='ti ti-tag'></i> " . __('Nome', 'protocolo') . "</th><th style='width:110px'>" . __('Status', 'protocolo') . "</th><th style='width:220px' class='text-end'>" . __('Ações', 'protocolo') . "</th>";
+    echo "</tr></thead><tbody>";
+    try {
+        $tiposCfg = $DB->request(['FROM' => TipoArquivo::getTable(), 'ORDER' => 'name']);
+        $idxT = 0;
+        foreach ($tiposCfg as $tp) {
+            $idxT++;
+            $tid = (int)$tp['id'];
+            $ativo = !empty($tp['is_active']);
+            echo "<tr><td>{$idxT}</td><td>" . htmlspecialchars($tp['name'] ?? '') . "</td>";
+            echo "<td>" . ($ativo ? "<span class='badge bg-success'>Ativo</span>" : "<span class='badge bg-secondary'>Inativo</span>") . "</td>";
+            echo "<td class='text-end'><div class='d-inline-flex gap-1'>";
+            echo "<form method='post' action='' class='d-inline'><input type='hidden' name='id' value='{$tid}'><input type='hidden' name='_glpi_csrf_token' value='" . protocolo_csrf_token() . "'><button type='submit' name='toggle_tipo' value='1' class='btn btn-sm btn-outline-secondary'>" . ($ativo ? __('Desativar', 'protocolo') : __('Ativar', 'protocolo')) . "</button></form>";
+            echo "<form method='post' action='' class='d-inline' onsubmit=\"return confirm('" . __('Excluir este tipo?', 'protocolo') . "');\"><input type='hidden' name='id' value='{$tid}'><input type='hidden' name='_glpi_csrf_token' value='" . protocolo_csrf_token() . "'><button type='submit' name='delete_tipo' value='1' class='btn btn-sm btn-outline-danger'><i class='ti ti-trash'></i></button></form>";
+            echo "</div></td></tr>";
+        }
+        if ($idxT === 0) echo "<tr><td colspan='4' class='text-center text-muted'>" . __('Nenhum tipo cadastrado', 'protocolo') . "</td></tr>";
+    } catch (Throwable $e) { echo "<tr><td colspan='4' class='text-center text-muted'>Erro ao carregar tipos</td></tr>"; }
+    echo "</tbody></table></div>";
+    echo "<script>(function(){if(location.hash==='#tab-tipos'){var b=document.getElementById('tab-tipos-btn');if(b){try{if(window.bootstrap){new bootstrap.Tab(b).show();}else{b.click();}}catch(e){try{b.click();}catch(_){}}}}})();</script>";
+    echo "</div>"; // tab tipos
     echo "</div>"; // tab-content
 
     // JS filtros + ações (nowdoc para não precisar escapar)
