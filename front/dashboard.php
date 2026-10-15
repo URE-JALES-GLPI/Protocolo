@@ -351,7 +351,7 @@ echo "<div style='text-align:center;margin-bottom:12px;'><div style='font-weight
 echo "<input id='pt-ret-doc-input' type='text' inputmode='numeric' autocomplete='off' class='form-control' placeholder='Digite ou toque nos números' style='background:#f8fafc;border:2px solid #e8eaf0;border-radius:10px;padding:12px;font-size:1.4rem;font-weight:700;text-align:center;letter-spacing:3px;color:#1e1b4b;'>";
 echo "<input type='hidden' id='pt-ret-doc' value=''>";
 echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
-foreach (['7','8','9','4','5','6','1','2','3'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:14px;font-size:1.2rem;font-weight:700;' onclick='ptRetPress(\"$nk\")'>$nk</button>";
+foreach (['1','2','3','4','5','6','7','8','9'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:14px;font-size:1.2rem;font-weight:700;' onclick='ptRetPress(\"$nk\")'>$nk</button>";
 echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:14px;font-size:1rem;font-weight:700;color:#dc2626;' onclick='ptRetClearDoc()'>C</button>";
 echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:14px;font-size:1.2rem;font-weight:700;' onclick='ptRetPress(\"0\")'>0</button>";
 echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:14px;font-size:1.2rem;' onclick='ptRetPress(\"del\")'><i class='ti ti-backspace'></i></button>";

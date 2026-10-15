@@ -194,7 +194,7 @@ class Recebedor extends \CommonDBTM
         echo '<td colspan=\'3\'><input type=\'text\' name=\'document\' id=\'pt-recebedor-doc\' class=\'form-control\' value=\'' . htmlspecialchars($this->fields['document'] ?? '') . '\' placeholder=\'Somente números\' maxlength=\'14\' inputmode=\'numeric\' style=\'font-size:1.2rem;padding:10px;text-align:center;letter-spacing:2px;\'>';
         echo '<small class=\'text-muted\' id=\'pt-recebedor-doc-hint\'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>';
         echo '<div style=\'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;\'>';
-        foreach (['7', '8', '9', '4', '5', '6', '1', '2', '3'] as $nk) {
+        foreach (['1', '2', '3', '4', '5', '6', '7', '8', '9'] as $nk) {
             echo '<button type=\'button\' class=\'pt-btn pt-btn-secondary\' style=\'flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;\' onclick=\'ptRecebNum("' . $nk . '")\'>' . $nk . '</button>';
         }
         echo '<button type=\'button\' class=\'pt-btn pt-btn-secondary\' style=\'flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;\' onclick=\'ptRecebNum("clr")\'>C</button>';
