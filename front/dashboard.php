@@ -63,7 +63,13 @@ if ($categoriaFiltro && $hasCategoriaCol) {
     $entityFilter['categoria'] = $categoriaFiltro;
 }
 // Home filtrada só nas atrasadas (botão Atrasadas do topo)
-$soAtrasadas = (($_GET['soatrasadas'] ?? '') === '1') && $alertaAtivo && $prazoAlerta > 0;
+// Padrão: exibe Todas. Ao clicar em Atrasadas, filtra e mostra o botão Todas.
+$soAtrasadasParam = $_GET['soatrasadas'] ?? null;
+if ($soAtrasadasParam === null) {
+    $soAtrasadas = false; // padrão: view Todas (tudo exibido)
+} else {
+    $soAtrasadas = (($soAtrasadasParam === '1')) && $alertaAtivo && $prazoAlerta > 0;
+}
 // Busca livre: código, recebido de, assunto, espécie
 $qFiltro = trim($_GET['q'] ?? '');
 $qWhereSql = '';
@@ -255,8 +261,10 @@ $activeTab = $_GET['tab'] ?? 'resumo';
 if (!in_array($activeTab, ['resumo', 'dashboards'], true)) $activeTab = 'resumo';
 if ($alertaAtivo && $totalAtrasadas > 0) {
     $catQ = $categoriaFiltro !== '' ? 'categoria=' . urlencode($categoriaFiltro) : '';
-    echo "<button type='button' id='pt-btn-atrasadas' onclick='ptFilterAtrasadas(true)' class='pt-btn pt-btn-danger pt-btn-sm'" . ($soAtrasadas ? " style='display:none;'" : "") . "><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</button>";
-    echo "<button type='button' id='pt-btn-todas' onclick='ptFilterAtrasadas(false)' class='pt-btn pt-btn-secondary pt-btn-sm' style='border:2px solid #16a34a;color:#16a34a;font-weight:700;'" . ($soAtrasadas ? "" : " style='display:none;'") . "><i class='ti ti-list'></i> " . __('Todas', 'protocolo') . "</button>";
+    $atrasadasStyle = $soAtrasadas ? " style='display:none;'" : "";
+    $todasStyle = $soAtrasadas ? " style='border:2px solid #16a34a;color:#16a34a;font-weight:700;'" : " style='border:2px solid #16a34a;color:#16a34a;font-weight:700;display:none;'";
+    echo "<button type='button' id='pt-btn-atrasadas' onclick='ptFilterAtrasadas(true)' class='pt-btn pt-btn-danger pt-btn-sm'$atrasadasStyle><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</button>";
+    echo "<button type='button' id='pt-btn-todas' onclick='ptFilterAtrasadas(false)' class='pt-btn pt-btn-secondary pt-btn-sm'$todasStyle><i class='ti ti-list'></i> " . __('Todas', 'protocolo') . "</button>";
     echo "<script>window.PT_PRAZO=" . (int)$prazoAlerta . ";window._ptAtrasadas=" . ($soAtrasadas ? 'true' : 'false') . ";window.ptFilterAtrasadas=function(on){window._ptAtrasadas=!!on;var a=document.getElementById('pt-btn-atrasadas'),t=document.getElementById('pt-btn-todas');if(a)a.style.display=on?'none':'';if(t)t.style.display=on?'':'none';try{var u=new URL(window.location.href);if(on){u.searchParams.set('soatrasadas','1');}else{u.searchParams.delete('soatrasadas');}window.history.replaceState(null,'',u);}catch(e){}var inp=document.getElementById('pt-q-live');if(inp){inp.dispatchEvent(new Event('input'));}};</script>";
 }
 if (Profile::canAdmin()) { echo "<a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-folder'></i> " . __('Pastas', 'protocolo') . "</a>"; }
