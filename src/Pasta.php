@@ -1712,6 +1712,8 @@ class Pasta extends CommonDBTM
                 var nmEl = document.getElementById('pt-nrec-nome');
                 var nome = nmEl ? nmEl.value.trim().toUpperCase() : '';
                 if(!nome){ window.ptNRecErr('Informe o nome.'); if(nmEl) nmEl.focus(); return; }
+                var dcChk = document.getElementById('pt-nrec-doc');
+                if((window.__ptNRecDoc || 'cpf') === 'cpf' && dcChk && dcChk.value && !window.ptValidateCPF(dcChk.value)){ window.ptNRecErr('CPF inválido. Confira os dígitos e tente novamente.'); if(dcChk) dcChk.focus(); return; }
                 if(!window.__ptNRecDrawn){ window.ptNRecErr('Faça a assinatura no quadro.'); return; }
                 var dcEl = document.getElementById('pt-nrec-doc');
                 var c = document.getElementById('pt-nrec-canvas');
@@ -2104,6 +2106,17 @@ class Pasta extends CommonDBTM
             Session::addMessageAfterRedirect(__('Recebido de é obrigatório', 'protocolo'), false, ERROR);
             return false;
         }
+        $recDocTipo = strtolower(trim($input['recebido_documento_tipo'] ?? 'cpf'));
+        if (!in_array($recDocTipo, ['cpf', 'rg'], true)) $recDocTipo = 'cpf';
+        $input['recebido_documento_tipo'] = $recDocTipo;
+        $recDoc = trim($input['recebido_documento'] ?? '');
+        if ($recDoc !== '') {
+            $recDocOk = ($recDocTipo === 'cpf') ? self::validarCPF($recDoc) : self::validarRG($recDoc);
+            if (!$recDocOk) {
+                Session::addMessageAfterRedirect($recDocTipo === 'cpf' ? __('CPF inválido. Confira os 11 dígitos.', 'protocolo') : __('RG inválido. Confira os 7 a 9 dígitos.', 'protocolo'), false, ERROR);
+                return false;
+            }
+        }
         $recSig = trim($input['recebido_assinatura_image'] ?? '');
         if ($recSig !== '' && strpos($recSig, 'data:image/') !== 0) $recSig = '';
         if (strlen($recSig) > 1500000) $recSig = '';
@@ -2126,6 +2139,13 @@ class Pasta extends CommonDBTM
         if (!in_array($recbDocTipo, ['cpf', 'rg'], true)) $recbDocTipo = 'cpf';
         $input['recebedor_documento_tipo'] = $recbDocTipo;
         $input['recebedor_documento'] = trim($input['recebedor_documento'] ?? '');
+        if ($input['recebedor_documento'] !== '') {
+            $recbDocOk = ($recbDocTipo === 'cpf') ? self::validarCPF($input['recebedor_documento']) : self::validarRG($input['recebedor_documento']);
+            if (!$recbDocOk) {
+                Session::addMessageAfterRedirect($recbDocTipo === 'cpf' ? __('CPF inválido. Confira os 11 dígitos.', 'protocolo') : __('RG inválido. Confira os 7 a 9 dígitos.', 'protocolo'), false, ERROR);
+                return false;
+            }
+        }
         $recbSig = trim($input['recebedor_assinatura_image'] ?? '');
         if ($recbSig !== '' && strpos($recbSig, 'data:image/') !== 0) $recbSig = '';
         if (strlen($recbSig) > 1500000) $recbSig = '';
@@ -2470,9 +2490,9 @@ class Pasta extends CommonDBTM
         if (preg_match('/^(\d)\1{10}$/', $cpf)) return false;
         for ($t = 9; $t < 11; $t++) {
             $d = 0;
-            for ($c = 0; $c < $t; $c++) $d += $cpf[$c] * (($t + 1) - $c);
+            for ($c = 0; $c < $t; $c++) $d += (int)$cpf[$c] * (($t + 1) - $c);
             $d = ((10 * $d) % 11) % 10;
-            if ($cpf[$c] != $d) return false;
+            if ((int)$cpf[$t] !== $d) return false;
         }
         return true;
     }

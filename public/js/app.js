@@ -444,6 +444,24 @@ window.ptFormatDoc = function(v, tipo){
   return v;
 };
 
+// Valida CPF real (dígitos verificadores). Retorna true/false.
+window.ptValidateCPF = function(cpf){
+  var s = ('' + (cpf || '')).replace(/\D/g, '');
+  if (s.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(s)) return false; // todos dígitos iguais (000..., 111..., etc) é inválido
+  var sum = 0, rest, i;
+  for (i = 1; i <= 9; i++) sum = sum + parseInt(s.substring(i - 1, i), 10) * (11 - i);
+  rest = (sum * 10) % 11;
+  if (rest === 10 || rest === 11) rest = 0;
+  if (rest !== parseInt(s.substring(9, 10), 10)) return false;
+  sum = 0;
+  for (i = 1; i <= 10; i++) sum = sum + parseInt(s.substring(i - 1, i), 10) * (12 - i);
+  rest = (sum * 10) % 11;
+  if (rest === 10 || rest === 11) rest = 0;
+  if (rest !== parseInt(s.substring(10, 11), 10)) return false;
+  return true;
+};
+
 function ptRetBindDocInput(){
   var inp = document.getElementById('pt-ret-doc-input');
   if (!inp || inp.dataset.maskBound) return;
@@ -547,6 +565,15 @@ window.ptRWizNext = function(cur){
     if (!nm || !nm.value.trim()) { if (nm) nm.focus(); return; }
     ptRWizShow(2);
   } else if (cur === 3) {
+    var docH = document.getElementById('pt-ret-doc');
+    if ((window.__ptRetDocType || 'cpf') === 'cpf' && docH && docH.value && !window.ptValidateCPF(docH.value)) {
+      window.ptRetErr('CPF inválido. Confira os dígitos e tente novamente.');
+      var docVis = document.getElementById('pt-ret-doc-input');
+      if (docVis) docVis.focus();
+      return;
+    }
+    var errE = document.getElementById('pt-ret-err');
+    if (errE) errE.style.display = 'none';
     ptRWizShow(4);
   }
 };
@@ -646,6 +673,15 @@ window.ptSubmitRetirada = function(){
   if (!nome) { window.ptRetErr('Informe o nome de quem retira.'); if (nomeEl) nomeEl.focus(); return; }
   if (!window.__ptRetDrawn) { window.ptRetErr('Faça a assinatura no quadro.'); return; }
   var docEl = document.getElementById('pt-ret-doc');
+  var docTipo = window.__ptRetDocType || 'cpf';
+  if (docTipo === 'cpf' && docEl && docEl.value) {
+    if (!window.ptValidateCPF(docEl.value)) {
+      window.ptRetErr('CPF inválido. Confira os dígitos e tente novamente.');
+      var diFocus = document.getElementById('pt-ret-doc-input');
+      if (diFocus) diFocus.focus();
+      return;
+    }
+  }
   var obsEl = document.getElementById('pt-ret-obs');
   var csrfEl = document.getElementById('pt-ret-csrf');
   var c = document.getElementById('pt-ret-canvas');
