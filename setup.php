@@ -159,13 +159,18 @@ function plugin_init_protocolo(): void
         if (class_exists(\GlpiPlugin\Protocolo\Install::class) && isset($DB) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
             $migratedVersion = null;
             try { $migratedVersion = \Config::getConfigurationValue('plugin:protocolo', 'migrated_version'); } catch (\Throwable $e) {}
-            // Auto-heal: se faltar coluna estrutural (ex.: entregador_* de 2.5.0), roda a migração
-            // mesmo que migrated_version já esteja na versão atual. Evita termo com dados ausentes.
+            // Auto-heal: se faltar alguma coluna estrutural (ex.: entregador_assinatura_image),
+            // roda a migração mesmo que migrated_version já esteja na versão atual.
+            // Checa várias colunas porque versões antigas podem ter só parte delas.
             $needsHeal = false;
             try {
-                if ($DB->tableExists('glpi_plugin_protocolo_pastas')
-                    && !$DB->fieldExists('glpi_plugin_protocolo_pastas', 'entregador_nome')) {
-                    $needsHeal = true;
+                if ($DB->tableExists('glpi_plugin_protocolo_pastas')) {
+                    foreach (['entregador_nome', 'entregador_assinatura_image', 'retirada_assinatura_image', 'recebedor_assinatura_image'] as $needCol) {
+                        if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', $needCol)) {
+                            $needsHeal = true;
+                            break;
+                        }
+                    }
                 }
             } catch (\Throwable $e) {}
             if ($migratedVersion !== PLUGIN_PROTOCOLO_VERSION || $needsHeal) {
