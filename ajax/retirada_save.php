@@ -157,9 +157,25 @@ foreach ($ids as $pid) {
         } catch (\Throwable $e) {
         }
     } else {
-        $results[] = ['id' => $pid, 'ok' => false, 'error' => 'Falha ao registrar retirada da pasta ' . ($pasta->fields['codigo'] ?? $pid) . '.'];
+        $fallback = 'Falha ao registrar retirada da pasta ' . ($pasta->fields['codigo'] ?? $pid) . '.';
+        $results[] = [
+            'id' => $pid,
+            'ok' => false,
+            'error' => Pasta::$lastRetiradaError !== '' ? Pasta::$lastRetiradaError : $fallback,
+        ];
     }
 }
 
 $okCount = count(array_filter($results, fn($r) => !empty($r['ok'])));
-pt_retirada_answer(['ok' => $okCount > 0, 'done' => $okCount, 'total' => count($ids), 'results' => $results, 'termos' => $termos]);
+$firstErr = '';
+foreach ($results as $r) {
+    if (empty($r['ok']) && !empty($r['error'])) {
+        $firstErr = (string)$r['error'];
+        break;
+    }
+}
+$out = ['ok' => $okCount > 0, 'done' => $okCount, 'total' => count($ids), 'results' => $results, 'termos' => $termos];
+if ($okCount === 0 && $firstErr !== '') {
+    $out['error'] = $firstErr;
+}
+pt_retirada_answer($out);
