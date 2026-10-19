@@ -33,11 +33,11 @@ function plugin_protocolo_getDatabaseRelations(): array
             'glpi_plugin_protocolo_pastas' => 'plugin_protocolo_escolas_id'
         ],
         'glpi_plugin_protocolo_pastas' => [
-            'glpi_plugin_protocolo_itens' => 'plugin_protocolo_pastas_id',
             'glpi_plugin_protocolo_termos' => 'plugin_protocolo_pastas_id',
-            'glpi_plugin_protocolo_pastatipos' => 'plugin_protocolo_pastas_id',
         ],
-        // 'glpi_plugin_protocolo_tipos' removido para evitar "Invalid relations" - limpeza feita via FK sem checagem DbUtils
+        // NÃO declarar aqui tabelas filhas sem classe CommonDBTM registrada
+        // (itens, pastatipos, tipos): o DbUtils valida o itemtype de destino e
+        // gera "Invalid relations declared" em toda exclusão de item.
     ];
 }
 
