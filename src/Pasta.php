@@ -17,6 +17,13 @@ class Pasta extends CommonDBTM
     // para que o núcleo do GLPI (Session::haveRight) também passe em CREATE/UPDATE.
     public static string $rightname = 'plugin_protocolo_use';
 
+    // Última falha específica de doRetirar(), usada por ajax/retirada_save.php
+    // para mostrar a causa real no wizard (ex.: estrutura do banco incompleta).
+    public static string $lastRetiradaError = '';
+
+    // Evita repetir SHOW COLUMNS/ALTER a cada pasta em uma retirada em lote.
+    private static bool $assinaturaColsEnsured = false;
+
     // Registra criação/alterações em glpi_logs → aba "Histórico"/Log da ficha
     // (quem mudou, quando, campo, valor antigo → novo).
     // GLPI 12 tipou como bool no CommonDBTM — declara com tipo para não dar fatal.
@@ -2388,6 +2395,9 @@ class Pasta extends CommonDBTM
     public static function ensureAssinaturaColumns(): void
     {
         global $DB;
+        if (self::$assinaturaColsEnsured) {
+            return;
+        }
         if (!$DB || !$DB->tableExists(self::getTable())) {
             return;
         }
@@ -2405,21 +2415,37 @@ class Pasta extends CommonDBTM
             'entregador_assinatura_data'  => 'DATETIME DEFAULT NULL',
             'entregador_assinatura_ip'    => 'VARCHAR(45) DEFAULT NULL',
         ];
+        $changed = false;
         foreach ($cols as $col => $def) {
             try {
-                if (!$DB->fieldExists(self::getTable(), $col)) {
+                // $usecache=false: o cache de schema do GLPI ($DB->field_cache) NÃO é
+                // invalidado por ALTER TABLE. Sem isso, um fieldExists() posterior na
+                // MESMA request continua vendo o schema antigo e o salvamento descarta
+                // silenciosamente os campos do entregador.
+                if (!$DB->fieldExists(self::getTable(), $col, false)) {
                     $DB->doQuery("ALTER TABLE `" . self::getTable() . "` ADD COLUMN `$col` $def");
+                    $changed = true;
                 }
             } catch (\Throwable $e) {
                 error_log("[protocolo] ensureAssinaturaColumns: coluna $col falhou: " . $e->getMessage());
             }
         }
+        if ($changed) {
+            // Repopula o cache com o schema já alterado para os fieldExists() seguintes.
+            try {
+                $DB->listFields(self::getTable(), false);
+            } catch (\Throwable $e) {
+                error_log("[protocolo] ensureAssinaturaColumns: refresh do cache falhou: " . $e->getMessage());
+            }
+        }
+        self::$assinaturaColsEnsured = true;
     }
 
     // Ações custom: retirar, cancelar, reabrir (chamadas via front/pasta.form.php)
     public function doRetirar(array $params): bool
     {
         global $DB;
+        self::$lastRetiradaError = '';
         if ($this->fields['status'] !== 'aguardando') {
             Session::addMessageAfterRedirect(__('Pasta não está aguardando', 'protocolo'), false, ERROR);
             return false;
@@ -2480,15 +2506,21 @@ class Pasta extends CommonDBTM
             'users_id_retirada' => Session::getLoginUserID(),
             'date_mod' => date('Y-m-d H:i:s')
         ];
+        $retSigOk = false;
+        $entgSigOk = false;
         try {
             // Garante colunas de assinatura/entregador mesmo que a migração não tenha rodado.
             self::ensureAssinaturaColumns();
-            if ($DB->fieldExists(self::getTable(), 'retirada_assinatura_image')) {
+            // Sem cache: o schema pode ter sido alterado nesta mesma request (setup.php
+            // ou ensureAssinaturaColumns) e o cache antigo faria os campos sumirem.
+            $retSigOk = $DB->fieldExists(self::getTable(), 'retirada_assinatura_image', false);
+            if ($retSigOk) {
                 $updRetirada['retirada_assinatura_image'] = $sigImage !== '' ? $sigImage : null;
                 $updRetirada['retirada_assinatura_data'] = $sigImage !== '' ? $sigData : null;
                 $updRetirada['retirada_assinatura_ip'] = $sigImage !== '' ? $sigIp : null;
             }
-            if ($DB->fieldExists(self::getTable(), 'entregador_nome')) {
+            $entgSigOk = $DB->fieldExists(self::getTable(), 'entregador_assinatura_image', false);
+            if ($entgSigOk) {
                 $updRetirada['entregador_nome'] = $entgNome;
                 $updRetirada['entregador_documento'] = $entgDoc ?: null;
                 $updRetirada['entregador_documento_tipo'] = $entgTipo;
@@ -2496,8 +2528,32 @@ class Pasta extends CommonDBTM
                 $updRetirada['entregador_assinatura_data'] = $entgSig !== '' ? $sigData : null;
                 $updRetirada['entregador_assinatura_ip'] = $entgSig !== '' ? $sigIp : null;
             }
-        } catch (\Throwable $e) {}
-        $DB->update(self::getTable(), $updRetirada, ['id' => $this->getID()]);
+        } catch (\Throwable $e) {
+            error_log('[protocolo] doRetirar: preparo de colunas falhou (pasta ' . $this->getID() . '): ' . $e->getMessage());
+        }
+        // Nunca concluir a retirada "com sucesso" perdendo uma assinatura coletada.
+        // Antes o campo era descartado em silêncio e o termo saía só com a assinatura de quem recebeu.
+        if ($sigImage !== '' && !$retSigOk) {
+            self::$lastRetiradaError = __('Não foi possível salvar a assinatura de quem recebeu: estrutura do banco incompleta. Avise o suporte de TI.', 'protocolo');
+            error_log('[protocolo] doRetirar: coluna retirada_assinatura_image ausente; assinatura de quem recebeu NÃO salva (pasta ' . $this->getID() . ')');
+            Session::addMessageAfterRedirect(self::$lastRetiradaError, false, ERROR);
+            return false;
+        }
+        if ($entgSig !== '' && !$entgSigOk) {
+            self::$lastRetiradaError = __('Não foi possível salvar a assinatura de quem entregou: estrutura do banco incompleta. Avise o suporte de TI.', 'protocolo');
+            error_log('[protocolo] doRetirar: coluna entregador_assinatura_image ausente; assinatura de quem entregou NÃO salva (pasta ' . $this->getID() . ')');
+            Session::addMessageAfterRedirect(self::$lastRetiradaError, false, ERROR);
+            return false;
+        }
+        try {
+            // DBmysql::update() retorna true ou lança exceção em caso de erro.
+            $DB->update(self::getTable(), $updRetirada, ['id' => $this->getID()]);
+        } catch (\Throwable $e) {
+            self::$lastRetiradaError = __('Falha ao salvar a retirada no banco de dados. Tente novamente; se persistir, avise o suporte.', 'protocolo');
+            error_log('[protocolo] doRetirar: update falhou (pasta ' . $this->getID() . '): ' . $e->getMessage());
+            Session::addMessageAfterRedirect(self::$lastRetiradaError, false, ERROR);
+            return false;
+        }
 
         // cria termo retirada
         $codigo = Install::gerarCodigoTermo('retirada');

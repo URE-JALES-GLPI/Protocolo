@@ -586,6 +586,10 @@ class Install
                         }
                     } catch (\Throwable $e) { error_log("[protocolo] migrateEntities: coluna $col falhou: " . $e->getMessage()); }
                 }
+                // O cache de schema do GLPI não é invalidado por ALTER TABLE. Como a
+                // migração pode rodar na MESMA request de um salvamento (auto-heal do
+                // setup.php), repopula o cache com o schema já alterado.
+                try { $DB->listFields('glpi_plugin_protocolo_pastas', false); } catch (\Throwable $e) {}
             }
             if ($DB->tableExists('glpi_plugin_protocolo_itens')) {
                 try {
