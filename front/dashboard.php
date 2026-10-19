@@ -20,7 +20,7 @@ global $DB, $CFG_GLPI;
 
 // Config
 $cfg = Config::getAll();
-$prazoAlerta = Config::getPrazoAlertaDias();
+$prazoAlerta = max(1, min(90, Config::getPrazoAlertaDias()));
 $alertaAtivo = Config::isAlertaAtivo();
 $graficosAtivo = Config::isGraficosAtivo();
 
@@ -64,12 +64,10 @@ if ($categoriaFiltro && $hasCategoriaCol) {
 }
 // Home filtrada só nas atrasadas (botão Atrasadas do topo)
 // Padrão: exibe Todas. Ao clicar em Atrasadas, filtra e mostra o botão Todas.
+// O filtro independe do alerta visual (alerta_ativo) para continuar útil
+// mesmo com o destaque vermelho desligado.
 $soAtrasadasParam = $_GET['soatrasadas'] ?? null;
-if ($soAtrasadasParam === null) {
-    $soAtrasadas = false; // padrão: view Todas (tudo exibido)
-} else {
-    $soAtrasadas = (($soAtrasadasParam === '1')) && $alertaAtivo && $prazoAlerta > 0;
-}
+$soAtrasadas = ($soAtrasadasParam === '1') && $prazoAlerta > 0;
 // Busca livre: código, recebido de, assunto, espécie
 $qFiltro = trim($_GET['q'] ?? '');
 $qWhereSql = '';
@@ -105,15 +103,14 @@ try {
     foreach ($iterator as $row) $totalMes = $row['cpt'];
 } catch (Exception $e) { $totalMes = 0; }
 
-// Atrasadas (> prazo)
+// Atrasadas (> prazo) — calculado sempre para o contador do botão,
+// mesmo quando o alerta visual está desligado.
 $totalAtrasadas = 0;
-if ($alertaAtivo) {
-    try {
-        $sql = "SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql $qWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta;
-        $res = $DB->doQuery($sql);
-        if ($res && $row = $DB->fetchAssoc($res)) $totalAtrasadas = (int)$row['cpt'];
-    } catch (Throwable $e) { $totalAtrasadas = 0; }
-}
+try {
+    $sql = "SELECT COUNT(*) as cpt FROM glpi_plugin_protocolo_pastas p WHERE p.status='aguardando' AND p.is_deleted=0 $entityWhereSql $categoriaWhereSql $qWhereSql AND DATEDIFF(NOW(), p.data_recebimento) >= " . (int)$prazoAlerta;
+    $res = $DB->doQuery($sql);
+    if ($res && $row = $DB->fetchAssoc($res)) $totalAtrasadas = (int)$row['cpt'];
+} catch (Throwable $e) { $totalAtrasadas = 0; }
 
 $totalEscolas = 0;
 try {
@@ -259,13 +256,22 @@ echo "<div class='pt-page-title'><i class='ti ti-folder'></i><h2>Protocolo</h2><
 echo "<div class='pt-page-actions' style='margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;'>";
 $activeTab = $_GET['tab'] ?? 'resumo';
 if (!in_array($activeTab, ['resumo', 'dashboards'], true)) $activeTab = 'resumo';
-if ($alertaAtivo && $totalAtrasadas > 0) {
-    $catQ = $categoriaFiltro !== '' ? 'categoria=' . urlencode($categoriaFiltro) : '';
+if ($prazoAlerta > 0) {
+    // Toggle por link: recarrega com/sem ?soatrasadas=1 para o servidor
+    // renderizar a lista correta (50 atrasadas ou 12 últimas), sem depender
+    // de linhas que não foram carregadas no DOM.
+    $toggleParams = $_GET;
+    unset($toggleParams['soatrasadas']);
+    $toggleParams['tab'] = 'resumo';
+    $todasUrl = '?' . http_build_query($toggleParams);
+    $atrasadasParams = $toggleParams;
+    $atrasadasParams['soatrasadas'] = '1';
+    $atrasadasUrl = '?' . http_build_query($atrasadasParams);
     $atrasadasStyle = $soAtrasadas ? " style='display:none;'" : "";
     $todasStyle = $soAtrasadas ? " style='border:2px solid #16a34a;color:#16a34a;font-weight:700;'" : " style='border:2px solid #16a34a;color:#16a34a;font-weight:700;display:none;'";
-    echo "<button type='button' id='pt-btn-atrasadas' onclick='ptFilterAtrasadas(true)' class='pt-btn pt-btn-danger pt-btn-sm'$atrasadasStyle><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</button>";
-    echo "<button type='button' id='pt-btn-todas' onclick='ptFilterAtrasadas(false)' class='pt-btn pt-btn-secondary pt-btn-sm'$todasStyle><i class='ti ti-list'></i> " . __('Todas', 'protocolo') . "</button>";
-    echo "<script>window.PT_PRAZO=" . (int)$prazoAlerta . ";window._ptAtrasadas=" . ($soAtrasadas ? 'true' : 'false') . ";window.ptFilterAtrasadas=function(on){window._ptAtrasadas=!!on;var a=document.getElementById('pt-btn-atrasadas'),t=document.getElementById('pt-btn-todas');if(a)a.style.display=on?'none':'';if(t)t.style.display=on?'':'none';try{var u=new URL(window.location.href);if(on){u.searchParams.set('soatrasadas','1');}else{u.searchParams.delete('soatrasadas');}window.history.replaceState(null,'',u);}catch(e){}var inp=document.getElementById('pt-q-live');if(inp){inp.dispatchEvent(new Event('input'));}};</script>";
+    echo "<a href='" . htmlspecialchars($atrasadasUrl, ENT_QUOTES, 'UTF-8') . "' id='pt-btn-atrasadas' class='pt-btn pt-btn-danger pt-btn-sm'$atrasadasStyle><i class='ti ti-alert-triangle'></i> " . __('Atrasadas', 'protocolo') . " ($totalAtrasadas)</a>";
+    echo "<a href='" . htmlspecialchars($todasUrl, ENT_QUOTES, 'UTF-8') . "' id='pt-btn-todas' class='pt-btn pt-btn-secondary pt-btn-sm'$todasStyle><i class='ti ti-list'></i> " . __('Todas', 'protocolo') . "</a>";
+    echo "<script>window.PT_PRAZO=" . (int)$prazoAlerta . ";window._ptAtrasadas=" . ($soAtrasadas ? 'true' : 'false') . ";</script>";
 }
 if (Profile::canAdmin()) { echo "<a href='" . Pasta::getSearchURL() . "' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-folder'></i> " . __('Pastas', 'protocolo') . "</a>"; }
 echo "<a href='" . Pasta::getSearchURL() . "?minhas=1' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-history'></i> " . __('Histórico', 'protocolo') . "</a>";
