@@ -506,6 +506,8 @@ document.addEventListener('focusin', function(e){
 
 window.__ptRetIds = [];
 window.__ptRetDrawn = false;
+window.__ptRetEntgDrawn = false;
+window.__ptRetEntgData = {};
 function ptRetSelected(){
   var out = [];
   document.querySelectorAll('.pt-ret-check:checked').forEach(function(cb){ out.push({id: parseInt(cb.value, 10), codigo: cb.getAttribute('data-codigo') || ('#' + cb.value)}); });
@@ -552,15 +554,29 @@ window.ptOpenRetiradaModal = function(ids){
   if (di) di.value = '';
   var ob = document.getElementById('pt-ret-obs');
   if (ob) ob.value = '';
+  var errBox = document.getElementById('pt-ret-err');
+  if (errBox) errBox.style.display = 'none';
+  var esel = document.getElementById('pt-ret-entg-select');
+  if (esel) esel.value = '';
+  var en = document.getElementById('pt-ret-entg-nome');
+  if (en) en.value = '';
+  var ed = document.getElementById('pt-ret-entg-doc');
+  if (ed) ed.value = '';
+  var et = document.getElementById('pt-ret-entg-doctipo');
+  if (et) et.value = 'cpf';
+  var ei = document.getElementById('pt-ret-entg-image');
+  if (ei) ei.value = '';
   window.__ptRetDocType = 'cpf';
   ptRetDocType('cpf', true);
   ptRetClearCanvas();
+  ptRetEntgClearCanvas();
   ptRWizShow(1);
   ptRetBindDocInput();
+  ptRetEntgBindCanvas();
   ov.classList.add('open');
   document.body.style.overflow = 'hidden';
-  setTimeout(ptRetFitCanvas, 60);
-  if (nm) nm.focus();
+  setTimeout(ptRetEntgFitCanvas, 60);
+  ptRetLoadEntregadores();
 };
 window.ptCloseRetiradaModal = function(){
   var ov = document.getElementById('pt-retirada-overlay');
@@ -571,22 +587,34 @@ window.__ptRetWiz = 1;
 window.__ptRetTermos = [];
 window.ptRWizShow = function(n){
   window.__ptRetWiz = n;
-  [1, 2, 3, 4, 5].forEach(function(i){
+  [1, 2, 3, 4, 5, 6].forEach(function(i){
     var p = document.getElementById('pt-ret-w' + i);
     if (p) p.style.display = (i === n) ? '' : 'none';
   });
   var t = document.getElementById('pt-ret-wiz-title');
-  if (t) t.textContent = n === 5 ? 'Retirada concluída' : ('Retirada — Etapa ' + n + ' de 4');
+  if (t) t.textContent = n === 6 ? 'Retirada concluída' : ('Retirada — Etapa ' + n + ' de 5');
   var bar = document.getElementById('pt-ret-progress');
-  if (bar) bar.style.width = n === 5 ? '100%' : (['25%', '50%', '75%', '100%'][n - 1] || '25%');
-  if (n === 4) setTimeout(ptRetFitCanvas, 60);
+  if (bar) bar.style.width = (['20%', '40%', '60%', '80%', '100%', '100%'][n - 1] || '20%');
+  var errBox = document.getElementById('pt-ret-err');
+  if (errBox) errBox.style.display = 'none';
+  if (n === 5) setTimeout(ptRetFitCanvas, 60);
 };
 window.ptRWizNext = function(cur){
   if (cur === 1) {
-    var nm = document.getElementById('pt-ret-nome');
-    if (!nm || !nm.value.trim()) { if (nm) nm.focus(); return; }
+    var entgNome = document.getElementById('pt-ret-entg-nome');
+    if (!entgNome || !entgNome.value.trim()) {
+      window.ptRetErr('Selecione ou cadastre quem entrega.');
+      var es = document.getElementById('pt-ret-entg-select');
+      if (es) es.focus();
+      return;
+    }
+    if (!window.__ptRetEntgDrawn) { window.ptRetErr('Faça a assinatura de quem entrega no quadro.'); return; }
     ptRWizShow(2);
-  } else if (cur === 3) {
+  } else if (cur === 2) {
+    var nm = document.getElementById('pt-ret-nome');
+    if (!nm || !nm.value.trim()) { window.ptRetErr('Informe o nome de quem recebe.'); if (nm) nm.focus(); return; }
+    ptRWizShow(3);
+  } else if (cur === 4) {
     var docH = document.getElementById('pt-ret-doc');
     if ((window.__ptRetDocType || 'cpf') === 'cpf' && docH && docH.value && !window.ptValidateCPF(docH.value)) {
       window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
@@ -594,9 +622,7 @@ window.ptRWizNext = function(cur){
       if (docVis) docVis.focus();
       return;
     }
-    var errE = document.getElementById('pt-ret-err');
-    if (errE) errE.style.display = 'none';
-    ptRWizShow(4);
+    ptRWizShow(5);
   }
 };
 window.ptRetChooseDoc = function(t){
@@ -604,7 +630,7 @@ window.ptRetChooseDoc = function(t){
   var badge = document.getElementById('pt-ret-doc-badge');
   if (badge) badge.textContent = window.__ptRetDocType.toUpperCase();
   ptRetClearDoc();
-  ptRWizShow(3);
+  ptRWizShow(4);
 };
 window.ptRetDocType = function(t, silent){
   window.__ptRetDocType = (t === 'rg') ? 'rg' : 'cpf';
@@ -682,6 +708,128 @@ function ptRetBindCanvas(){
   c.addEventListener('touchmove', move, {passive: false});
   c.addEventListener('touchend', end);
 }
+function ptRetEntgFitCanvas(){
+  var c = document.getElementById('pt-ret-entg-canvas');
+  if (!c) return;
+  var r = c.getBoundingClientRect();
+  var w = Math.max(280, Math.floor(r.width));
+  c.width = w;
+  c.height = 180;
+  window.__ptRetEntgDrawn = false;
+}
+window.ptRetEntgClearCanvas = function(){
+  var c = document.getElementById('pt-ret-entg-canvas');
+  if (!c) return;
+  ptRetEntgFitCanvas();
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  window.__ptRetEntgDrawn = false;
+};
+function ptRetEntgBindCanvas(){
+  var c = document.getElementById('pt-ret-entg-canvas');
+  if (!c || c.dataset.bound) return;
+  c.dataset.bound = '1';
+  var ctx = c.getContext('2d');
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#111827';
+  var drawing = false;
+  function pos(ev){
+    var r = c.getBoundingClientRect();
+    var x, y;
+    if (ev.touches && ev.touches.length) { x = ev.touches[0].clientX; y = ev.touches[0].clientY; }
+    else { x = ev.clientX; y = ev.clientY; }
+    var sx = c.width / r.width;
+    var sy = c.height / r.height;
+    return [(x - r.left) * sx, (y - r.top) * sy];
+  }
+  function start(ev){ drawing = true; var p = pos(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if (ev.preventDefault) ev.preventDefault(); }
+  function move(ev){ if (!drawing) return; var p = pos(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptRetEntgDrawn = true; if (ev.preventDefault) ev.preventDefault(); }
+  function end(){ drawing = false; }
+  c.addEventListener('mousedown', start);
+  c.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', end);
+  c.addEventListener('touchstart', start, {passive: false});
+  c.addEventListener('touchmove', move, {passive: false});
+  c.addEventListener('touchend', end);
+}
+function ptRetEntgDrawImage(src){
+  var c = document.getElementById('pt-ret-entg-canvas');
+  if (!c) return;
+  ptRetEntgFitCanvas();
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  if (!src || ('' + src).indexOf('data:image/') !== 0) { window.__ptRetEntgDrawn = false; return; }
+  var im = new Image();
+  im.onload = function(){
+    try {
+      var sc = Math.min(c.width / im.width, c.height / im.height, 1);
+      var w = im.width * sc, h = im.height * sc;
+      ctx.drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
+      window.__ptRetEntgDrawn = true;
+    } catch (e) { window.__ptRetEntgDrawn = false; }
+  };
+  im.onerror = function(){ window.__ptRetEntgDrawn = false; };
+  im.src = src;
+}
+function ptRetEntgApply(id){
+  var row = window.__ptRetEntgData ? window.__ptRetEntgData[String(id)] : null;
+  var n = document.getElementById('pt-ret-entg-nome');
+  var d = document.getElementById('pt-ret-entg-doc');
+  var t = document.getElementById('pt-ret-entg-doctipo');
+  var im = document.getElementById('pt-ret-entg-image');
+  if (row) {
+    if (n) n.value = row.nome || '';
+    if (d) d.value = row.documento || '';
+    if (t) t.value = row.tipo || 'cpf';
+    if (im) im.value = row.image || '';
+    ptRetEntgDrawImage(row.image || '');
+  } else {
+    if (n) n.value = '';
+    if (d) d.value = '';
+    if (t) t.value = 'cpf';
+    if (im) im.value = '';
+    window.ptRetEntgClearCanvas();
+  }
+}
+function ptRetEntgBindSelect(){
+  var sel = document.getElementById('pt-ret-entg-select');
+  if (!sel || sel.dataset.bound) return;
+  sel.dataset.bound = '1';
+  sel.addEventListener('change', function(){ ptRetEntgApply(sel.value); });
+}
+function ptRetLoadEntregadores(selectName){
+  var sel = document.getElementById('pt-ret-entg-select');
+  if (!sel) return;
+  ptRetEntgBindSelect();
+  var base = (typeof ptPluginBase === 'function') ? ptPluginBase() : '/plugins/protocolo';
+  fetch(base + '/ajax/recebedor.php?action=list', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var items = (d && d.items) || [];
+      window.__ptRetEntgData = {};
+      var cur = sel.value;
+      sel.innerHTML = '<option value="">-- Selecione quem entrega --</option>';
+      items.forEach(function(t){
+        var id = String(t.id);
+        window.__ptRetEntgData[id] = {nome: t.name || '', documento: t.doc || '', tipo: t.doc_tipo || 'cpf', image: t.image || ''};
+        var o = document.createElement('option');
+        o.value = id;
+        o.textContent = t.doc ? (t.name + ' (' + t.doc + ')') : t.name;
+        sel.appendChild(o);
+      });
+      var target = '';
+      if (selectName) {
+        items.some(function(t){ if (('' + (t.name || '')).trim().toUpperCase() === selectName) { target = String(t.id); return true; } return false; });
+      }
+      if (!target && cur && window.__ptRetEntgData[cur]) target = cur;
+      sel.value = target;
+      if (target) ptRetEntgApply(target);
+    })
+    .catch(function(){
+      sel.innerHTML = '<option value="">-- Falha ao carregar --</option>';
+    });
+}
 window.ptRetErr = function(msg){
   var e = document.getElementById('pt-ret-err');
   if (e) { e.textContent = msg; e.style.display = 'block'; }
@@ -690,10 +838,17 @@ window.ptRetErr = function(msg){
 window.ptSubmitRetirada = function(){
   var err0 = document.getElementById('pt-ret-err');
   if (err0) err0.style.display = 'none';
+  var entgNomeEl = document.getElementById('pt-ret-entg-nome');
+  var entgNome = entgNomeEl ? entgNomeEl.value.trim() : '';
+  if (!entgNome) { window.ptRetErr('Selecione ou cadastre quem entrega.'); return; }
+  if (!window.__ptRetEntgDrawn) { window.ptRetErr('Faça a assinatura de quem entrega no quadro.'); return; }
+  var entgCanvas = document.getElementById('pt-ret-entg-canvas');
+  var entgImg = '';
+  try { entgImg = entgCanvas.toDataURL('image/png'); } catch (eEntg) { window.ptRetErr('Falha na assinatura de quem entrega. Assine de novo.'); return; }
   var nomeEl = document.getElementById('pt-ret-nome');
   var nome = nomeEl ? nomeEl.value.trim() : '';
-  if (!nome) { window.ptRetErr('Informe o nome de quem retira.'); if (nomeEl) nomeEl.focus(); return; }
-  if (!window.__ptRetDrawn) { window.ptRetErr('Faça a assinatura no quadro.'); return; }
+  if (!nome) { window.ptRetErr('Informe o nome de quem recebe.'); if (nomeEl) nomeEl.focus(); return; }
+  if (!window.__ptRetDrawn) { window.ptRetErr('Faça a assinatura de quem recebe no quadro.'); return; }
   var docEl = document.getElementById('pt-ret-doc');
   var docTipo = window.__ptRetDocType || 'cpf';
   if (docTipo === 'cpf' && docEl && docEl.value) {
@@ -709,6 +864,8 @@ window.ptSubmitRetirada = function(){
   var c = document.getElementById('pt-ret-canvas');
   var img = '';
   try { img = c.toDataURL('image/png'); } catch (e) { return; }
+  var entgDocEl = document.getElementById('pt-ret-entg-doc');
+  var entgTipoEl = document.getElementById('pt-ret-entg-doctipo');
   var btn = document.getElementById('pt-ret-confirm');
   if (btn) { btn.disabled = true; }
   var base = (typeof ptPluginBase === 'function') ? ptPluginBase() : '/plugins/protocolo';
@@ -724,6 +881,10 @@ window.ptSubmitRetirada = function(){
       doc: docEl ? docEl.value : '',
       obs: obsEl ? obsEl.value : '',
       image: img,
+      entregador_nome: entgNome,
+      entregador_doc: entgDocEl ? entgDocEl.value : '',
+      entregador_doc_tipo: entgTipoEl ? entgTipoEl.value : 'cpf',
+      entregador_image: entgImg,
       _glpi_csrf_token: csrfEl ? csrfEl.value : ''
     })
   }).then(function(r){ return r.json(); })
@@ -731,9 +892,9 @@ window.ptSubmitRetirada = function(){
       if (btn) { btn.disabled = false; }
       if (d && d.ok) {
         window.__ptRetTermos = d.termos || [];
-        var info = document.getElementById('pt-ret-w5-info');
-        if (info) info.textContent = d.done + ' pasta(s) retirada(s) com 1 assinatura. Os termos abrirão para impressão.';
-        ptRWizShow(5);
+        var info = document.getElementById('pt-ret-w6-info');
+        if (info) info.textContent = d.done + ' pasta(s) retirada(s) com 2 assinaturas. Os termos abrirão para impressão.';
+        ptRWizShow(6);
         (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
       } else {
         window.ptRetErr((d && d.error) || 'Falha ao registrar. Tente de novo.');
@@ -780,8 +941,46 @@ window.ptSetInvView = function(v){
 };
 document.addEventListener('DOMContentLoaded', function(){
   ptRetBindCanvas();
+  ptRetEntgBindCanvas();
+  ptRetEntgBindSelect();
   ptRetBindDocInput();
   ptRetRefreshBar();
+  try {
+    if (typeof window.ptRecNewOpen === 'function' && !window.ptRecNewOpen.__ptRetHooked) {
+      var _ptRecOpenOrig = window.ptRecNewOpen;
+      var _ptRecOpenWrap = function(){
+        var recOv = document.getElementById('pt-recnew-overlay');
+        if (recOv) {
+          if (recOv.parentNode !== document.body) document.body.appendChild(recOv);
+          recOv.style.visibility = 'visible';
+          recOv.style.zIndex = '10080';
+        }
+        return _ptRecOpenOrig.apply(this, arguments);
+      };
+      _ptRecOpenWrap.__ptRetHooked = true;
+      window.ptRecNewOpen = _ptRecOpenWrap;
+    } else if (typeof window.ptRecNewOpen !== 'function') {
+      window.ptRecNewOpen = function(){
+        if (typeof window.ptShowMsgPopup === 'function') {
+          window.ptShowMsgPopup('error', 'Indisponível', 'Você não tem permissão para cadastrar entregadores.');
+        }
+      };
+    }
+  } catch (e) {}
+  try {
+    if (typeof window.ptNRecSave === 'function' && !window.ptNRecSave.__ptRetHooked) {
+      var _ptNRecSaveOrig = window.ptNRecSave;
+      var _ptNRecSaveWrap = function(){
+        var nmEl = document.getElementById('pt-nrec-nome');
+        var want = nmEl ? nmEl.value.trim().toUpperCase() : '';
+        var r = _ptNRecSaveOrig.apply(this, arguments);
+        setTimeout(function(){ ptRetLoadEntregadores(want); }, 600);
+        return r;
+      };
+      _ptNRecSaveWrap.__ptRetHooked = true;
+      window.ptNRecSave = _ptNRecSaveWrap;
+    }
+  } catch (e) {}
   var regOv = document.getElementById('pt-register-overlay');
   if (regOv) window.ptOverlayDismiss(regOv, function(){ window.ptCloseRegisterModal(); });
   var retOv = document.getElementById('pt-retirada-overlay');
