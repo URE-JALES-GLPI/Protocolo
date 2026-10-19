@@ -72,7 +72,7 @@ $doc = trim($data['doc'] ?? '');
 if ($doc !== '') {
     $docOk = ($docTipo === 'cpf') ? Pasta::validarCPF($doc) : Pasta::validarRG($doc);
     if (!$docOk) {
-        pt_retirada_answer(['ok' => false, 'error' => $docTipo === 'cpf' ? 'CPF inválido (11 dígitos válidos).' : 'RG inválido (7 a 9 dígitos).']);
+        pt_retirada_answer(['ok' => false, 'error' => $docTipo === 'cpf' ? 'CPF inválido. Informe 11 dígitos no formato 000.000.000-00.' : 'RG inválido (7 a 9 dígitos).']);
     }
 }
 $image = trim($data['image'] ?? '');

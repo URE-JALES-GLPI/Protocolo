@@ -1345,6 +1345,14 @@ class Pasta extends CommonDBTM
                     } else if(cur === 4){
                         var rn4 = document.querySelector('input[name=\"recebido_de\"]');
                         if(!rn4 || !rn4.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn4); return; }
+                    } else if(cur === 6){
+                        var rdt = (window.__ptRecDocType || 'cpf');
+                        var rdv = document.getElementById('recebido_documento');
+                        if(rdt === 'cpf' && rdv && rdv.value){
+                            if(typeof window.ptValidateCPF !== 'function' || !window.ptValidateCPF(rdv.value)){
+                                ptWizAlertMsg('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.', rdv); return;
+                            }
+                        }
                     } else if(cur === 7){
                         if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
                     }
@@ -2400,7 +2408,7 @@ class Pasta extends CommonDBTM
         if ($docRet !== '') {
             $ok = ($tipoRet === 'cpf') ? self::validarCPF($docRet) : self::validarRG($docRet);
             if (!$ok) {
-                $msg = $tipoRet === 'cpf' ? __('CPF inválido na retirada. Deve ter 11 dígitos válidos', 'protocolo') : __('RG inválido na retirada. Deve ter 7 a 9 dígitos', 'protocolo');
+                $msg = $tipoRet === 'cpf' ? __('CPF inválido na retirada. Informe 11 dígitos no formato 000.000.000-00', 'protocolo') : __('RG inválido na retirada. Deve ter 7 a 9 dígitos', 'protocolo');
                 Session::addMessageAfterRedirect($msg, false, ERROR);
                 return false;
             }

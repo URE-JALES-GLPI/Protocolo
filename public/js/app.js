@@ -567,7 +567,7 @@ window.ptRWizNext = function(cur){
   } else if (cur === 3) {
     var docH = document.getElementById('pt-ret-doc');
     if ((window.__ptRetDocType || 'cpf') === 'cpf' && docH && docH.value && !window.ptValidateCPF(docH.value)) {
-      window.ptRetErr('CPF inválido. Confira os dígitos e tente novamente.');
+      window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
       var docVis = document.getElementById('pt-ret-doc-input');
       if (docVis) docVis.focus();
       return;
@@ -676,7 +676,7 @@ window.ptSubmitRetirada = function(){
   var docTipo = window.__ptRetDocType || 'cpf';
   if (docTipo === 'cpf' && docEl && docEl.value) {
     if (!window.ptValidateCPF(docEl.value)) {
-      window.ptRetErr('CPF inválido. Confira os dígitos e tente novamente.');
+      window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
       var diFocus = document.getElementById('pt-ret-doc-input');
       if (diFocus) diFocus.focus();
       return;
