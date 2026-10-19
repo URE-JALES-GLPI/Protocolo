@@ -183,6 +183,12 @@ class Install
               `retirada_assinatura_image` LONGTEXT DEFAULT NULL,
               `retirada_assinatura_data` DATETIME DEFAULT NULL,
               `retirada_assinatura_ip` VARCHAR(45) DEFAULT NULL,
+              `entregador_nome` VARCHAR(150) DEFAULT NULL,
+              `entregador_documento` VARCHAR(30) DEFAULT NULL,
+              `entregador_documento_tipo` ENUM('cpf','rg') DEFAULT 'cpf',
+              `entregador_assinatura_image` LONGTEXT DEFAULT NULL,
+              `entregador_assinatura_data` DATETIME DEFAULT NULL,
+              `entregador_assinatura_ip` VARCHAR(45) DEFAULT NULL,
               `observacao_retirada` TEXT DEFAULT NULL,
               `users_id` INT DEFAULT NULL,
               `users_id_retirada` INT DEFAULT NULL,
@@ -542,6 +548,22 @@ class Install
                     'recebedor_assinatura_ip'    => 'VARCHAR(45) DEFAULT NULL',
                 ];
                 foreach ($recbCols as $col => $def) {
+                    try {
+                        if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', $col)) {
+                            $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `$col` $def");
+                        }
+                    } catch (\Throwable $e) { error_log("[protocolo] migrateEntities: coluna $col falhou: " . $e->getMessage()); }
+                }
+                // --- 2.5.0: entregador (quem entrega) na retirada, com assinatura ---
+                $entgCols = [
+                    'entregador_nome'             => 'VARCHAR(150) DEFAULT NULL',
+                    'entregador_documento'        => 'VARCHAR(30) DEFAULT NULL',
+                    'entregador_documento_tipo'   => "ENUM('cpf','rg') DEFAULT 'cpf'",
+                    'entregador_assinatura_image' => 'LONGTEXT DEFAULT NULL',
+                    'entregador_assinatura_data'  => 'DATETIME DEFAULT NULL',
+                    'entregador_assinatura_ip'    => 'VARCHAR(45) DEFAULT NULL',
+                ];
+                foreach ($entgCols as $col => $def) {
                     try {
                         if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', $col)) {
                             $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `$col` $def");

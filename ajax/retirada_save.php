@@ -64,6 +64,28 @@ $nome = trim($data['nome'] ?? '');
 if ($nome === '') {
     pt_retirada_answer(['ok' => false, 'error' => 'Informe o nome de quem retira.']);
 }
+$entgNome = trim($data['entregador_nome'] ?? '');
+if ($entgNome === '') {
+    pt_retirada_answer(['ok' => false, 'error' => 'Informe o nome de quem entrega.']);
+}
+$entgTipo = strtolower(trim($data['entregador_doc_tipo'] ?? 'cpf'));
+if (!in_array($entgTipo, ['cpf', 'rg'], true)) {
+    $entgTipo = 'cpf';
+}
+$entgDoc = trim($data['entregador_doc'] ?? '');
+if ($entgDoc !== '') {
+    $entgOk = ($entgTipo === 'cpf') ? Pasta::validarCPF($entgDoc) : Pasta::validarRG($entgDoc);
+    if (!$entgOk) {
+        pt_retirada_answer(['ok' => false, 'error' => $entgTipo === 'cpf' ? 'CPF inválido do entregador. Informe 11 dígitos no formato 000.000.000-00.' : 'RG inválido do entregador (7 a 9 dígitos).']);
+    }
+}
+$entgImage = trim($data['entregador_image'] ?? '');
+if ($entgImage === '' || strpos($entgImage, 'data:image/') !== 0) {
+    pt_retirada_answer(['ok' => false, 'error' => 'Faça a assinatura de quem entrega no quadro.']);
+}
+if (strlen($entgImage) > 1500000) {
+    pt_retirada_answer(['ok' => false, 'error' => 'Assinatura do entregador muito grande. Limpe e assine de novo.']);
+}
 $docTipo = strtolower(trim($data['doc_tipo'] ?? 'cpf'));
 if (!in_array($docTipo, ['cpf', 'rg'], true)) {
     $docTipo = 'cpf';
@@ -106,6 +128,10 @@ foreach ($ids as $pid) {
         'data_retirada' => date('Y-m-d H:i:s'),
         'observacao_retirada' => trim($data['obs'] ?? ''),
         'retirada_assinatura_image' => $image,
+        'entregador_nome' => $entgNome,
+        'entregador_documento_tipo' => $entgTipo,
+        'entregador_documento' => $entgDoc,
+        'entregador_assinatura_image' => $entgImage,
     ];
     try {
         $ok = $pasta->doRetirar($params);

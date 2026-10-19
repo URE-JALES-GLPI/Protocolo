@@ -2418,6 +2418,25 @@ class Pasta extends CommonDBTM
         if (strlen($sigImage) > 1500000) $sigImage = '';
         $sigData = date('Y-m-d H:i:s');
         $sigIp = $_SERVER['REMOTE_ADDR'] ?? null;
+        $entgNome = trim($params['entregador_nome'] ?? '');
+        if ($entgNome === '') {
+            Session::addMessageAfterRedirect(__('Informe quem entregou', 'protocolo'), false, ERROR);
+            return false;
+        }
+        $entgTipo = strtolower(trim($params['entregador_documento_tipo'] ?? 'cpf'));
+        if (!in_array($entgTipo, ['cpf', 'rg'])) $entgTipo = 'cpf';
+        $entgDoc = trim($params['entregador_documento'] ?? '');
+        if ($entgDoc !== '') {
+            $entgOk = ($entgTipo === 'cpf') ? self::validarCPF($entgDoc) : self::validarRG($entgDoc);
+            if (!$entgOk) {
+                $msgEntg = $entgTipo === 'cpf' ? __('CPF inválido do entregador. Informe 11 dígitos no formato 000.000.000-00', 'protocolo') : __('RG inválido do entregador. Deve ter 7 a 9 dígitos', 'protocolo');
+                Session::addMessageAfterRedirect($msgEntg, false, ERROR);
+                return false;
+            }
+        }
+        $entgSig = trim($params['entregador_assinatura_image'] ?? '');
+        if ($entgSig !== '' && strpos($entgSig, 'data:image/') !== 0) $entgSig = '';
+        if (strlen($entgSig) > 1500000) $entgSig = '';
         $updRetirada = [
             'status' => 'retirada',
             'data_retirada' => $dataRet,
@@ -2433,6 +2452,14 @@ class Pasta extends CommonDBTM
                 $updRetirada['retirada_assinatura_image'] = $sigImage !== '' ? $sigImage : null;
                 $updRetirada['retirada_assinatura_data'] = $sigImage !== '' ? $sigData : null;
                 $updRetirada['retirada_assinatura_ip'] = $sigImage !== '' ? $sigIp : null;
+            }
+            if ($DB->fieldExists(self::getTable(), 'entregador_nome')) {
+                $updRetirada['entregador_nome'] = $entgNome;
+                $updRetirada['entregador_documento'] = $entgDoc ?: null;
+                $updRetirada['entregador_documento_tipo'] = $entgTipo;
+                $updRetirada['entregador_assinatura_image'] = $entgSig !== '' ? $entgSig : null;
+                $updRetirada['entregador_assinatura_data'] = $entgSig !== '' ? $sigData : null;
+                $updRetirada['entregador_assinatura_ip'] = $entgSig !== '' ? $sigIp : null;
             }
         } catch (\Throwable $e) {}
         $DB->update(self::getTable(), $updRetirada, ['id' => $this->getID()]);
@@ -2456,6 +2483,11 @@ class Pasta extends CommonDBTM
         $this->fields['observacao_retirada'] = trim($params['observacao_retirada'] ?? '') ?: null;
         $this->fields['retirada_assinatura_image'] = $sigImage !== '' ? $sigImage : null;
         $this->fields['retirada_assinatura_data'] = $sigImage !== '' ? $sigData : null;
+        $this->fields['entregador_nome'] = $entgNome;
+        $this->fields['entregador_documento'] = $entgDoc;
+        $this->fields['entregador_documento_tipo'] = $entgTipo;
+        $this->fields['entregador_assinatura_image'] = $entgSig !== '' ? $entgSig : null;
+        $this->fields['entregador_assinatura_data'] = $entgSig !== '' ? $sigData : null;
         // Notificação automática de retirada
         try {
             if (class_exists(Notificacao::class)) {

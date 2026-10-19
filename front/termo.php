@@ -65,6 +65,8 @@ $subtitulo = $tipo === 'recebimento' ? 'Comprovante de recebimento e guarda temp
 $dataRef = $tipo === 'recebimento' ? $pasta->fields['data_recebimento'] : ($pasta->fields['data_retirada'] ?? date('Y-m-d H:i:s'));
 $responsavel = $tipo === 'recebimento' ? $pasta->fields['recebido_de'] : ($pasta->fields['retirado_por'] ?? '_________________________');
 $documento = $tipo === 'recebimento' ? $pasta->fields['recebido_documento'] : ($pasta->fields['retirado_documento'] ?? '');
+$entregadorNome = trim($pasta->fields['entregador_nome'] ?? '');
+$entregadorDoc = trim($pasta->fields['entregador_documento'] ?? '');
 // Origem/Destino para termo
 $origemTipo = $pasta->fields['origem_tipo'] ?? 'ure';
 $destinoTipo = $pasta->fields['destino_tipo'] ?? 'escola';
@@ -153,8 +155,13 @@ body{ background:#eee; }
     <?php if (!empty($pasta->fields['assunto'])): ?><tr><td colspan="2"><strong><?= __('Assunto', 'protocolo') ?>:</strong> <?= htmlspecialchars($pasta->fields['assunto']) ?></td></tr><?php endif; ?>
     <tr><td><strong><?= __('Origem', 'protocolo') ?>:</strong><br><?= htmlspecialchars($origemNome) ?></td>
         <td><strong><?= __('Destino', 'protocolo') ?> / <?= __('Destinatário', 'protocolo') ?>:</strong><br><?= htmlspecialchars($destinoNome) ?></td></tr>
-    <tr><td><strong><?= $tipo === 'recebimento' ? __('Recebido de:', 'protocolo') : __('Retirado por:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td>
+    <?php if ($tipo === 'recebimento'): ?>
+    <tr><td><strong><?= __('Recebido de:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td>
         <td><strong><?= __('Responsável protocolo:', 'protocolo') ?></strong><br><?= htmlspecialchars($criadorNome) ?></td></tr>
+    <?php else: ?>
+    <tr><td><strong><?= __('Entregue por (protocolo):', 'protocolo') ?></strong><br><?= htmlspecialchars($entregadorNome !== '' ? $entregadorNome : $criadorNome) ?><?= $entregadorDoc ? ' (' . htmlspecialchars($entregadorDoc) . ')' : '' ?></td>
+        <td><strong><?= __('Retirado por:', 'protocolo') ?></strong><br><?= htmlspecialchars($responsavel) ?><?= $documento ? ' (' . htmlspecialchars($documento) . ')' : '' ?></td></tr>
+    <?php endif; ?>
     <?php if ($escolaEndereco && $destinoTipo==='escola'): ?><tr><td colspan="2"><strong><?= __('Endereço escola', 'protocolo') ?>:</strong> <?= htmlspecialchars($escolaEndereco) ?></td></tr><?php endif; ?>
   </table>
 
@@ -200,29 +207,48 @@ body{ background:#eee; }
       <?php
       $sigImg = '';
       $sigDataFmt = '';
-      if ($tipo === 'retirada' && !empty($pasta->fields['retirada_assinatura_image'])) {
+      $sigNome = '';
+      $sigDoc = '';
+      if ($tipo === 'retirada' && $entregadorNome !== '' && !empty($pasta->fields['entregador_assinatura_image'])) {
+          $sigImg = $pasta->fields['entregador_assinatura_image'];
+          if (!empty($pasta->fields['entregador_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['entregador_assinatura_data']));
+          $sigNome = $entregadorNome;
+          $sigDoc = $entregadorDoc;
+      } elseif ($tipo === 'retirada' && !empty($pasta->fields['retirada_assinatura_image'])) {
           $sigImg = $pasta->fields['retirada_assinatura_image'];
           if (!empty($pasta->fields['retirada_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['retirada_assinatura_data']));
+          $sigNome = $pasta->fields['retirado_por'] ?? '';
+          $sigDoc = $pasta->fields['retirado_documento'] ?? '';
       } elseif ($tipo === 'recebimento' && !empty($pasta->fields['recebido_assinatura_image'])) {
           $sigImg = $pasta->fields['recebido_assinatura_image'];
           if (!empty($pasta->fields['recebido_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['recebido_assinatura_data']));
+          $sigNome = $pasta->fields['recebido_de'] ?? '';
+          $sigDoc = $pasta->fields['recebido_documento'] ?? '';
       }
       ?>
       <?php if ($sigImg): ?><img src="<?= htmlspecialchars($sigImg) ?>" alt="Assinatura" style="max-height:70px;max-width:100%;object-fit:contain;"><br><?php endif; ?>
-      <?= $tipo === 'recebimento' ? __('Assinatura de quem entregou', 'protocolo') : __('Assinatura de quem retirou', 'protocolo') ?><br>
-      <strong><?= htmlspecialchars($responsavel) ?></strong><br>
-      <small><?= htmlspecialchars($documento) ?></small>
+      <?= $tipo === 'recebimento' ? __('Assinatura de quem entregou', 'protocolo') : __('Assinatura de quem entregou (protocolo)', 'protocolo') ?><br>
+      <strong><?= htmlspecialchars($sigNome !== '' ? $sigNome : $responsavel) ?></strong><?php if ($sigDoc !== ''): ?><br><small><?= htmlspecialchars($sigDoc) ?></small><?php endif; ?>
       <?php if ($sigImg && $sigDataFmt): ?><br><small>Assinado digitalmente em <?= htmlspecialchars($sigDataFmt) ?></small><?php endif; ?>
     </div>
     <div class="assinatura">
       <?php
-      $recbImg = ($tipo === 'recebimento' && !empty($pasta->fields['recebedor_assinatura_image'])) ? $pasta->fields['recebedor_assinatura_image'] : '';
-      $recbDataFmt = (!empty($pasta->fields['recebedor_assinatura_data'])) ? date('d/m/Y H:i', strtotime($pasta->fields['recebedor_assinatura_data'])) : '';
-      $recbNome = trim($pasta->fields['recebedor_nome'] ?? '');
-      $recbDoc = trim($pasta->fields['recebedor_documento'] ?? '');
+      if ($tipo === 'retirada') {
+          $recbImg = !empty($pasta->fields['retirada_assinatura_image']) ? $pasta->fields['retirada_assinatura_image'] : '';
+          $recbDataFmt = !empty($pasta->fields['retirada_assinatura_data']) ? date('d/m/Y H:i', strtotime($pasta->fields['retirada_assinatura_data'])) : '';
+          $recbNome = trim($pasta->fields['retirado_por'] ?? '');
+          $recbDoc = trim($pasta->fields['retirado_documento'] ?? '');
+          $recbLabel = __('Assinatura de quem recebeu (retirou)', 'protocolo');
+      } else {
+          $recbImg = !empty($pasta->fields['recebedor_assinatura_image']) ? $pasta->fields['recebedor_assinatura_image'] : '';
+          $recbDataFmt = !empty($pasta->fields['recebedor_assinatura_data']) ? date('d/m/Y H:i', strtotime($pasta->fields['recebedor_assinatura_data'])) : '';
+          $recbNome = trim($pasta->fields['recebedor_nome'] ?? '');
+          $recbDoc = trim($pasta->fields['recebedor_documento'] ?? '');
+          $recbLabel = 'Assinatura de quem recebeu';
+      }
       ?>
       <?php if ($recbImg): ?><img src="<?= htmlspecialchars($recbImg) ?>" alt="Assinatura" style="max-height:70px;max-width:100%;object-fit:contain;"><br><?php endif; ?>
-      <?= $tipo === 'recebimento' ? 'Assinatura de quem recebeu' : __('Assinatura / Carimbo do setor de protocolo', 'protocolo') ?><br>
+      <?= $recbLabel ?><br>
       <strong><?= $recbNome !== '' ? htmlspecialchars($recbNome) : htmlspecialchars($criadorNome) ?></strong>
       <?php if ($recbDoc !== ''): ?><br><small><?= htmlspecialchars($recbDoc) ?></small><?php endif; ?>
       <?php if ($recbImg && $recbDataFmt): ?><br><small>Assinado digitalmente em <?= htmlspecialchars($recbDataFmt) ?></small><?php endif; ?>

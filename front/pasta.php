@@ -256,7 +256,7 @@ if ($lista) {
             echo "<td>$dataRetH</td>";
             echo "<td>$statusBadge</td>";
             echo "<td class='text-end' style='white-space:nowrap;'><a href='$viewUrl' class='pt-btn pt-btn-outline pt-btn-sm'><i class='ti ti-eye'></i> Ver</a>";
-            if (($r['status'] ?? '') === 'aguardando') echo " <button type='button' class='pt-btn pt-btn-green pt-btn-sm' title='Registrar retirada' onclick='ptOpenRetiradaModal([" . (int)$r['id'] . "])'><i class='ti ti-signature'></i> Retirar</button>";
+            if (($r['status'] ?? '') === 'aguardando') echo " <button type='button' class='pt-btn pt-btn-primary pt-btn-sm' title='Registrar retirada' onclick='ptOpenRetiradaModal([" . (int)$r['id'] . "])'><i class='ti ti-signature'></i> Retirar</button>";
             echo "</td>";
             echo "</tr>";
             $histCards .= "<div style='background:#fff;border:1px solid #e8eaf0;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 8px rgba(17,24,39,.06);'>";
@@ -265,7 +265,7 @@ if ($lista) {
             $histCards .= "<div style='display:flex;flex-direction:column;gap:6px;background:#f8fafc;border-radius:10px;padding:10px 12px;font-size:.82rem;'><div><span style='font-size:.68rem;font-weight:800;color:#9ca3af;'>DE </span>" . Pasta::getOrigemDestinoDisplay($r, 'origem') . "</div><div><span style='font-size:.68rem;font-weight:800;color:#4f46e5;'>PARA </span><span style='color:#1e40af;'>" . Pasta::getOrigemDestinoDisplay($r, 'destino') . "</span></div></div>";
             $histCards .= "<div style='display:flex;gap:10px;font-size:.78rem;color:#6b7280;flex-wrap:wrap;'><span>Rec: $dataRecH</span><span>Ret: $dataRetH</span></div>";
             $histCards .= "<div style='display:flex;gap:8px;'><a href='$viewUrl' class='pt-btn pt-btn-outline pt-btn-sm' style='flex:1;min-height:42px;'><i class='ti ti-eye'></i> Ver</a>";
-            if (($r['status'] ?? '') === 'aguardando') $histCards .= "<button type='button' class='pt-btn pt-btn-green pt-btn-sm' style='flex:1;min-height:42px;' onclick='ptOpenRetiradaModal([" . (int)$r['id'] . "])'><i class='ti ti-signature'></i> Retirar</button>";
+            if (($r['status'] ?? '') === 'aguardando') $histCards .= "<button type='button' class='pt-btn pt-btn-primary pt-btn-sm' style='flex:1;min-height:42px;' onclick='ptOpenRetiradaModal([" . (int)$r['id'] . "])'><i class='ti ti-signature'></i> Retirar</button>";
             $histCards .= "</div>";
             $histCards .= "</div>";
             continue;
