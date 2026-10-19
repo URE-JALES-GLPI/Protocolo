@@ -2383,6 +2383,39 @@ class Pasta extends CommonDBTM
         return $input;
     }
 
+    // Garante (idempotente) que as colunas de assinatura/entregador existam na tabela.
+    // Chamado no momento do salvamento para não depender do timing da migração.
+    public static function ensureAssinaturaColumns(): void
+    {
+        global $DB;
+        if (!$DB || !$DB->tableExists(self::getTable())) {
+            return;
+        }
+        $cols = [
+            'recebido_assinatura_image'   => 'LONGTEXT DEFAULT NULL',
+            'recebido_assinatura_data'    => 'DATETIME DEFAULT NULL',
+            'recebido_assinatura_ip'      => 'VARCHAR(45) DEFAULT NULL',
+            'retirada_assinatura_image'   => 'LONGTEXT DEFAULT NULL',
+            'retirada_assinatura_data'    => 'DATETIME DEFAULT NULL',
+            'retirada_assinatura_ip'      => 'VARCHAR(45) DEFAULT NULL',
+            'entregador_nome'             => 'VARCHAR(150) DEFAULT NULL',
+            'entregador_documento'        => 'VARCHAR(30) DEFAULT NULL',
+            'entregador_documento_tipo'   => "ENUM('cpf','rg') DEFAULT 'cpf'",
+            'entregador_assinatura_image' => 'LONGTEXT DEFAULT NULL',
+            'entregador_assinatura_data'  => 'DATETIME DEFAULT NULL',
+            'entregador_assinatura_ip'    => 'VARCHAR(45) DEFAULT NULL',
+        ];
+        foreach ($cols as $col => $def) {
+            try {
+                if (!$DB->fieldExists(self::getTable(), $col)) {
+                    $DB->doQuery("ALTER TABLE `" . self::getTable() . "` ADD COLUMN `$col` $def");
+                }
+            } catch (\Throwable $e) {
+                error_log("[protocolo] ensureAssinaturaColumns: coluna $col falhou: " . $e->getMessage());
+            }
+        }
+    }
+
     // Ações custom: retirar, cancelar, reabrir (chamadas via front/pasta.form.php)
     public function doRetirar(array $params): bool
     {
@@ -2448,6 +2481,8 @@ class Pasta extends CommonDBTM
             'date_mod' => date('Y-m-d H:i:s')
         ];
         try {
+            // Garante colunas de assinatura/entregador mesmo que a migração não tenha rodado.
+            self::ensureAssinaturaColumns();
             if ($DB->fieldExists(self::getTable(), 'retirada_assinatura_image')) {
                 $updRetirada['retirada_assinatura_image'] = $sigImage !== '' ? $sigImage : null;
                 $updRetirada['retirada_assinatura_data'] = $sigImage !== '' ? $sigData : null;
