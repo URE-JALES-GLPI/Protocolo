@@ -382,7 +382,7 @@ echo "</tbody></table></div></div>";
 
 echo "<div id='pt-aguard-cards' class='pt-only-mobile' style='gap:14px;padding:4px 12px 16px;$cardsStyle'>" . ($mobileCards ?? '') . "</div>";
 
-echo "<div id='pt-retirada-overlay' class='pt-modal-overlay' onclick='if(event.target===this)ptCloseRetiradaModal()'>";
+  echo "<div id='pt-retirada-overlay' class='pt-modal-overlay'>";
 echo "<div class='pt-modal' onclick='event.stopPropagation()' role='dialog' aria-modal='true' aria-label='Registrar retirada' style='max-width:520px;max-height:92vh;display:flex;flex-direction:column;'>";
 echo "<div class='pt-modal-header' style='background:linear-gradient(135deg,#16a34a,#059669);'><div class='pt-modal-title'><i class='ti ti-signature'></i><span id='pt-ret-wiz-title'>Retirada — Etapa 1 de 4</span></div><button type='button' class='pt-modal-close' onclick='ptCloseRetiradaModal()' aria-label='Fechar'><i class='ti ti-x'></i></button></div>";
 echo "<div style='height:4px;background:#e8eaf0;'><div id='pt-ret-progress' style='height:100%;width:25%;background:linear-gradient(90deg,#10b981,#059669);transition:width .25s;'></div></div>";
@@ -471,7 +471,7 @@ echo "</div>"; // fim container-fluid
 
 // Janela flutuante Registrar Entrada (mesmo formulário da tela cheia, sem trocar de página)
 if (Pasta::canCreate()) {
-    echo "<div id='pt-register-overlay' class='pt-modal-overlay' onclick='ptCloseRegisterModal(event)'>";
+    echo "<div id='pt-register-overlay' class='pt-modal-overlay'>";
     echo "<div class='pt-modal pt-modal-lg' onclick='event.stopPropagation()' role='dialog' aria-modal='true' aria-label='" . __('Registrar Entrada', 'protocolo') . "'>";
     echo "<div class='pt-modal-header' style='background:linear-gradient(135deg,#16a34a,#059669);'><div class='pt-modal-title'><i class='ti ti-folder-plus'></i><span>" . __('Registrar Entrada', 'protocolo') . "</span><span id='pt-wiz-steptitle' class='pt-step-badge'>Etapa 1 de 9</span></div><button type='button' class='pt-modal-close' onclick='ptCloseRegisterModal()' aria-label='Fechar'><i class='ti ti-x'></i></button></div>";
     echo "<div class='pt-modal-body'>";

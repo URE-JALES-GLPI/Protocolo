@@ -180,6 +180,28 @@ window.ptOpenRegisterModal = function(ev) {
   } catch (e) { goFallback(); }
   return false;
 };
+// Fecha o overlay só se o clique começou E terminou no próprio fundo;
+// assim não fecha quando o arrasto começa dentro do modal e solta fora.
+window.ptOverlayDismiss = function(overlay, closeFn) {
+  if (!overlay || overlay.dataset.ptDismiss) return;
+  overlay.dataset.ptDismiss = '1';
+  var downOnOverlay = false;
+  overlay.addEventListener('mousedown', function(e) { downOnOverlay = (e.target === overlay); });
+  overlay.addEventListener('mouseup', function(e) {
+    if (downOnOverlay && e.target === overlay) closeFn();
+    downOnOverlay = false;
+  });
+  overlay.addEventListener('touchstart', function(e) {
+    var t = (e.touches && e.touches[0]) ? e.touches[0] : null;
+    downOnOverlay = !!(t && document.elementFromPoint(t.clientX, t.clientY) === overlay);
+  }, {passive: true});
+  overlay.addEventListener('touchend', function(e) {
+    var t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+    if (downOnOverlay && t && document.elementFromPoint(t.clientX, t.clientY) === overlay) closeFn();
+    downOnOverlay = false;
+  });
+};
+
 window.ptCloseRegisterModal = function(ev) {
   // fecha no ESC, no botão X/Fechar ou clicando no fundo escuro
   if (ev && ev.target && ev.target.id !== 'pt-register-overlay' && !(ev.target.closest && ev.target.closest('.pt-modal-close'))) return;
@@ -386,7 +408,7 @@ window.ptShowMsgPopup = function(type, title, msg) {
   ov.querySelector('.pt-modal-title span').textContent = title;
   ov.querySelector('.pt-modal-body p').textContent = msg;
   function close(){ ov.remove(); }
-  ov.addEventListener('click', close);
+  window.ptOverlayDismiss(ov, close);
   ov.querySelector('.pt-modal-close').addEventListener('click', close);
   ov.querySelector('.pt-btn').addEventListener('click', close);
   document.body.appendChild(ov);
@@ -760,6 +782,10 @@ document.addEventListener('DOMContentLoaded', function(){
   ptRetBindCanvas();
   ptRetBindDocInput();
   ptRetRefreshBar();
+  var regOv = document.getElementById('pt-register-overlay');
+  if (regOv) window.ptOverlayDismiss(regOv, function(){ window.ptCloseRegisterModal(); });
+  var retOv = document.getElementById('pt-retirada-overlay');
+  if (retOv) window.ptOverlayDismiss(retOv, function(){ window.ptCloseRetiradaModal(); });
   var cur = null;
   var tw = document.getElementById('pt-aguard-table');
   if (tw) cur = (tw.style.display === 'none') ? 'grid' : 'list';

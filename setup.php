@@ -19,7 +19,7 @@ define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
 function plugin_version_protocolo(): array
 {
     return [
-        'name'           => '[URE] Protocolo de Pastas - URE',
+        'name'           => '[URE] Protocolo de Pastas',
         'version'        => PLUGIN_PROTOCOLO_VERSION,
         'author'         => 'Leonardo Poiatti Fação',
         'license'        => 'GPLv2+',
