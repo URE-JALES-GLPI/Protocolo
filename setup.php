@@ -159,7 +159,16 @@ function plugin_init_protocolo(): void
         if (class_exists(\GlpiPlugin\Protocolo\Install::class) && isset($DB) && $DB->tableExists('glpi_plugin_protocolo_escolas')) {
             $migratedVersion = null;
             try { $migratedVersion = \Config::getConfigurationValue('plugin:protocolo', 'migrated_version'); } catch (\Throwable $e) {}
-            if ($migratedVersion !== PLUGIN_PROTOCOLO_VERSION) {
+            // Auto-heal: se faltar coluna estrutural (ex.: entregador_* de 2.5.0), roda a migração
+            // mesmo que migrated_version já esteja na versão atual. Evita termo com dados ausentes.
+            $needsHeal = false;
+            try {
+                if ($DB->tableExists('glpi_plugin_protocolo_pastas')
+                    && !$DB->fieldExists('glpi_plugin_protocolo_pastas', 'entregador_nome')) {
+                    $needsHeal = true;
+                }
+            } catch (\Throwable $e) {}
+            if ($migratedVersion !== PLUGIN_PROTOCOLO_VERSION || $needsHeal) {
                 \GlpiPlugin\Protocolo\Install::migrateEntities($DB);
                 // Garante novos direitos Usar/Admin e migração de legados
                 try {

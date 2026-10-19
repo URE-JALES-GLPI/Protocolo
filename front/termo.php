@@ -209,16 +209,15 @@ body{ background:#eee; }
       $sigDataFmt = '';
       $sigNome = '';
       $sigDoc = '';
-      if ($tipo === 'retirada' && $entregadorNome !== '' && !empty($pasta->fields['entregador_assinatura_image'])) {
-          $sigImg = $pasta->fields['entregador_assinatura_image'];
-          if (!empty($pasta->fields['entregador_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['entregador_assinatura_data']));
+      if ($tipo === 'retirada') {
+          // Quem ENTREGA (protocolo): usa SOMENTE os dados do entregador.
+          // Nunca cai para retirada_* (que é de quem RECEBE) — isso duplicava a assinatura.
+          if (!empty($pasta->fields['entregador_assinatura_image'])) {
+              $sigImg = $pasta->fields['entregador_assinatura_image'];
+              if (!empty($pasta->fields['entregador_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['entregador_assinatura_data']));
+          }
           $sigNome = $entregadorNome;
           $sigDoc = $entregadorDoc;
-      } elseif ($tipo === 'retirada' && !empty($pasta->fields['retirada_assinatura_image'])) {
-          $sigImg = $pasta->fields['retirada_assinatura_image'];
-          if (!empty($pasta->fields['retirada_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['retirada_assinatura_data']));
-          $sigNome = $pasta->fields['retirado_por'] ?? '';
-          $sigDoc = $pasta->fields['retirado_documento'] ?? '';
       } elseif ($tipo === 'recebimento' && !empty($pasta->fields['recebido_assinatura_image'])) {
           $sigImg = $pasta->fields['recebido_assinatura_image'];
           if (!empty($pasta->fields['recebido_assinatura_data'])) $sigDataFmt = date('d/m/Y H:i', strtotime($pasta->fields['recebido_assinatura_data']));
@@ -228,7 +227,15 @@ body{ background:#eee; }
       ?>
       <?php if ($sigImg): ?><img src="<?= htmlspecialchars($sigImg) ?>" alt="Assinatura" style="max-height:70px;max-width:100%;object-fit:contain;"><br><?php endif; ?>
       <?= $tipo === 'recebimento' ? __('Assinatura de quem entregou', 'protocolo') : __('Assinatura de quem entregou (protocolo)', 'protocolo') ?><br>
-      <strong><?= htmlspecialchars($sigNome !== '' ? $sigNome : $responsavel) ?></strong><?php if ($sigDoc !== ''): ?><br><small><?= htmlspecialchars($sigDoc) ?></small><?php endif; ?>
+      <?php
+      // Nome do entregador: em retirada NUNCA usar $responsavel (é de quem recebe).
+      if ($tipo === 'retirada') {
+          $sigNomeShow = $sigNome !== '' ? $sigNome : '__________________________';
+      } else {
+          $sigNomeShow = $sigNome !== '' ? $sigNome : (string)$responsavel;
+      }
+      ?>
+      <strong><?= htmlspecialchars($sigNomeShow) ?></strong><?php if ($sigDoc !== ''): ?><br><small><?= htmlspecialchars($sigDoc) ?></small><?php endif; ?>
       <?php if ($sigImg && $sigDataFmt): ?><br><small>Assinado digitalmente em <?= htmlspecialchars($sigDataFmt) ?></small><?php endif; ?>
     </div>
     <div class="assinatura">
