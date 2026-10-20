@@ -2634,11 +2634,12 @@ class Pasta extends CommonDBTM
 
     public static function validarRG(string $rg): bool
     {
-        $rg = preg_replace('/[^0-9Xx]/', '', $rg);
+        $rg = strtoupper(preg_replace('/[^0-9Xx]/', '', $rg));
         $len = strlen($rg);
         // RG: 7 a 9 dígitos (SP 9, outros 7-8), permite X no final
         if ($len < 7 || $len > 9) return false;
-        if (!preg_match('/^[0-9]{7,8}[0-9Xx]?$/', $rg)) return false;
+        if (!preg_match('/^[0-9]{7,8}[0-9X]?$/', $rg)) return false;
+        if (preg_match('/^([0-9X])\1+$/', $rg)) return false;
         return true;
     }
 

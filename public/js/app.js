@@ -487,7 +487,22 @@ window.ptValidateCPF = function(cpf){
 window.ptValidateRG = function(rg){
   var s = ('' + (rg || '')).replace(/[^0-9xX]/g, '').toUpperCase();
   if (s.length < 7 || s.length > 9) return false;
-  return /^[0-9]{7,8}[0-9X]?$/.test(s);
+  if (!/^[0-9]{7,8}[0-9X]?$/.test(s)) return false;
+  if (/^([0-9X])\1+$/.test(s)) return false;
+  return true;
+};
+
+window.ptRgCheckDigitWarning = function(rg){
+  var s = ('' + (rg || '')).replace(/[^0-9xX]/g, '').toUpperCase();
+  if (s.length !== 9 || !/^[0-9]{8}[0-9X]$/.test(s)) return '';
+  var sum = 0, i;
+  for (i = 0; i < 8; i++) sum += parseInt(s.charAt(i), 10) * (i + 2);
+  var dv = 11 - (sum % 11);
+  if (dv === 10) dv = 'X';
+  else if (dv === 11) dv = '0';
+  else dv = String(dv);
+  if (dv === s.charAt(8)) return '';
+  return 'O dígito verificador do RG não confere com o padrão de São Paulo. Se o RG for de outro estado, isso pode acontecer. Confira o número antes de continuar.';
 };
 
 function ptRetBindDocInput(){
@@ -655,6 +670,13 @@ window.ptRWizNav = function(d){
         window.ptRetErr('RG inválido. Informe de 7 a 9 dígitos.');
         if (docVis) docVis.focus();
         return;
+      }
+      if (docTipo === 'rg') {
+        var rgWarn = window.ptRgCheckDigitWarning(docRaw);
+        if (rgWarn && !window.confirm(rgWarn + '\n\nDeseja continuar mesmo assim?')) {
+          if (docVis) docVis.focus();
+          return;
+        }
       }
       ptRWizShow(5);
       return;
