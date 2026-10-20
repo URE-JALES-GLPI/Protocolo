@@ -91,11 +91,12 @@ if (!in_array($docTipo, ['cpf', 'rg'], true)) {
     $docTipo = 'cpf';
 }
 $doc = trim($data['doc'] ?? '');
-if ($doc !== '') {
-    $docOk = ($docTipo === 'cpf') ? Pasta::validarCPF($doc) : Pasta::validarRG($doc);
-    if (!$docOk) {
-        pt_retirada_answer(['ok' => false, 'error' => $docTipo === 'cpf' ? 'CPF inválido. Informe 11 dígitos no formato 000.000.000-00.' : 'RG inválido (7 a 9 dígitos).']);
-    }
+if ($doc === '') {
+    pt_retirada_answer(['ok' => false, 'error' => 'Informe o CPF ou RG de quem retira.']);
+}
+$docOk = ($docTipo === 'cpf') ? Pasta::validarCPF($doc) : Pasta::validarRG($doc);
+if (!$docOk) {
+    pt_retirada_answer(['ok' => false, 'error' => $docTipo === 'cpf' ? 'CPF inválido. Informe 11 dígitos no formato 000.000.000-00.' : 'RG inválido (7 a 9 dígitos).']);
 }
 $image = trim($data['image'] ?? '');
 if ($image === '' || strpos($image, 'data:image/') !== 0) {

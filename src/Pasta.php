@@ -2464,13 +2464,17 @@ class Pasta extends CommonDBTM
         $tipoRet = strtolower(trim($params['retirado_documento_tipo'] ?? 'cpf'));
         if (!in_array($tipoRet, ['cpf','rg'])) $tipoRet = 'cpf';
         $docRet = trim($params['retirado_documento'] ?? '');
-        if ($docRet !== '') {
-            $ok = ($tipoRet === 'cpf') ? self::validarCPF($docRet) : self::validarRG($docRet);
-            if (!$ok) {
-                $msg = $tipoRet === 'cpf' ? __('CPF inválido na retirada. Informe 11 dígitos no formato 000.000.000-00', 'protocolo') : __('RG inválido na retirada. Deve ter 7 a 9 dígitos', 'protocolo');
-                Session::addMessageAfterRedirect($msg, false, ERROR);
-                return false;
-            }
+        if ($docRet === '') {
+            self::$lastRetiradaError = __('Informe o CPF ou RG de quem retirou', 'protocolo');
+            Session::addMessageAfterRedirect(self::$lastRetiradaError, false, ERROR);
+            return false;
+        }
+        $ok = ($tipoRet === 'cpf') ? self::validarCPF($docRet) : self::validarRG($docRet);
+        if (!$ok) {
+            $msg = $tipoRet === 'cpf' ? __('CPF inválido na retirada. Informe 11 dígitos no formato 000.000.000-00', 'protocolo') : __('RG inválido na retirada. Deve ter 7 a 9 dígitos', 'protocolo');
+            self::$lastRetiradaError = $msg;
+            Session::addMessageAfterRedirect($msg, false, ERROR);
+            return false;
         }
         $sigImage = trim($params['retirada_assinatura_image'] ?? '');
         if ($sigImage !== '' && strpos($sigImage, 'data:image/') !== 0) $sigImage = '';
