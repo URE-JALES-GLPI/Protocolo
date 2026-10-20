@@ -141,9 +141,16 @@ body{ background:#eee; }
         $logoWeb = protocolo_web_dir('protocolo') . '/logo.png';
         $logoFile = protocolo_php_dir('protocolo') . '/logo.png';
     }
+    $logoSrc = $logoWeb;
+    if (is_readable($logoFile)) {
+        $logoBin = @file_get_contents($logoFile);
+        if ($logoBin !== false && $logoBin !== '') {
+            $logoSrc = 'data:image/png;base64,' . base64_encode($logoBin);
+        }
+    }
     ?>
     <?php if (file_exists($logoFile)): ?>
-    <img src="<?= $logoWeb ?>" alt="Logo" class="logo">
+    <img src="<?= htmlspecialchars($logoSrc, ENT_QUOTES, 'UTF-8') ?>" alt="Logo" class="logo" onerror="this.style.display='none'">
     <?php endif; ?>
     <div class="org">UNIDADE REGIONAL DE ENSINO - JALES</div>
     <div class="setor">Setor de Protocolo</div>
