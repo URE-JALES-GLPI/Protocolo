@@ -512,7 +512,6 @@ document.addEventListener('focusin', function(e){
 
 window.__ptRetIds = [];
 window.__ptRetDrawn = false;
-window.__ptRetEntgDrawn = false;
 window.__ptRetEntgData = {};
 function ptRetSelected(){
   var out = [];
@@ -561,7 +560,7 @@ window.ptOpenRetiradaModal = function(ids){
   var ob = document.getElementById('pt-ret-obs');
   if (ob) ob.value = '';
   var errBox = document.getElementById('pt-ret-err');
-  if (errBox) errBox.style.display = 'none';
+  if (errBox) errBox.classList.add('d-none');
   var esel = document.getElementById('pt-ret-entg-select');
   if (esel) esel.value = '';
   var en = document.getElementById('pt-ret-entg-nome');
@@ -575,13 +574,10 @@ window.ptOpenRetiradaModal = function(ids){
   window.__ptRetDocType = 'cpf';
   ptRetDocType('cpf', true);
   ptRetClearCanvas();
-  ptRetEntgClearCanvas();
   ptRWizShow(1);
   ptRetBindDocInput();
-  ptRetEntgBindCanvas();
   ov.classList.add('open');
   document.body.style.overflow = 'hidden';
-  setTimeout(ptRetEntgFitCanvas, 60);
   ptRetLoadEntregadores();
 };
 window.ptCloseRetiradaModal = function(){
@@ -593,69 +589,105 @@ window.__ptRetWiz = 1;
 window.__ptRetTermos = [];
 window.ptRWizShow = function(n){
   window.__ptRetWiz = n;
-  [1, 2, 3, 4, 5, 6].forEach(function(i){
-    var p = document.getElementById('pt-ret-w' + i);
-    if (p) p.style.display = (i === n) ? '' : 'none';
+  document.querySelectorAll('#pt-retirada-overlay [data-ptstep]').forEach(function(el){
+    el.style.display = (parseInt(el.getAttribute('data-ptstep'), 10) === n) ? '' : 'none';
   });
   var t = document.getElementById('pt-ret-wiz-title');
-  if (t) t.textContent = n === 6 ? 'Retirada concluída' : 'Retirada';
+  if (t) t.textContent = n === 7 ? 'Retirada concluída' : 'Registrar Retirada';
   var badge = document.getElementById('pt-ret-step-badge');
-  if (badge) badge.textContent = n === 6 ? 'Concluída' : ('Etapa ' + n + ' de 5');
-  var bar = document.getElementById('pt-ret-progress');
-  if (bar) bar.style.width = (['20%', '40%', '60%', '80%', '100%', '100%'][n - 1] || '20%');
+  if (badge) badge.textContent = n === 7 ? 'Concluída' : ('Etapa ' + n + ' de 6');
+  var bV = document.getElementById('pt-ret-wiz-back');
+  if (bV) bV.style.display = (n === 1 || n === 7) ? 'none' : '';
+  var bF = document.getElementById('pt-ret-wiz-fechar');
+  if (bF) bF.style.display = n === 1 ? '' : 'none';
+  var bN = document.getElementById('pt-ret-wiz-next');
+  if (bN) bN.style.display = (n >= 6) ? 'none' : '';
+  var bS = document.getElementById('pt-ret-confirm');
+  if (bS) bS.style.display = n === 6 ? '' : 'none';
+  var foot = document.getElementById('pt-ret-wiz-footer');
+  if (foot) foot.style.display = n === 7 ? 'none' : '';
   var errBox = document.getElementById('pt-ret-err');
-  if (errBox) errBox.style.display = 'none';
+  if (errBox) errBox.classList.add('d-none');
   if (n === 5) setTimeout(ptRetFitCanvas, 60);
 };
-window.ptRWizNext = function(cur){
-  if (cur === 1) {
-    var entgNome = document.getElementById('pt-ret-entg-nome');
-    if (!entgNome || !entgNome.value.trim()) {
-      window.ptRetErr('Selecione ou cadastre quem entrega.');
-      var es = document.getElementById('pt-ret-entg-select');
-      if (es) es.focus();
+window.ptRWizNav = function(d){
+  var cur = window.__ptRetWiz || 1;
+  if (d > 0) {
+    if (cur === 1) {
+      var entgNome = document.getElementById('pt-ret-entg-nome');
+      var entgImg = document.getElementById('pt-ret-entg-image');
+      if (!entgNome || !entgNome.value.trim()) {
+        window.ptRetErr('Selecione quem entrega.');
+        var es = document.getElementById('pt-ret-entg-select');
+        if (es) es.focus();
+        return;
+      }
+      if (!entgImg || !entgImg.value) {
+        window.ptRetErr('O entregador selecionado não possui assinatura cadastrada.');
+        return;
+      }
+      ptRWizShow(2);
+      return;
+    } else if (cur === 2) {
+      var nm = document.getElementById('pt-ret-nome');
+      if (!nm || !nm.value.trim()) { window.ptRetErr('Informe o nome de quem recebe.'); if (nm) nm.focus(); return; }
+      ptRWizShow(3);
+      return;
+    } else if (cur === 3) {
+      ptRWizShow(4);
+      return;
+    } else if (cur === 4) {
+      var docH = document.getElementById('pt-ret-doc');
+      var docTipo = window.__ptRetDocType || 'cpf';
+      var docRaw = docH ? ('' + docH.value).replace(/[^0-9xX]/gi, '').toUpperCase() : '';
+      var docVis = document.getElementById('pt-ret-doc-input');
+      if (!docRaw) {
+        window.ptRetErr('Informe o CPF ou RG de quem recebe para continuar.');
+        if (docVis) docVis.focus();
+        return;
+      }
+      if (docTipo === 'cpf' && !window.ptValidateCPF(docRaw)) {
+        window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
+        if (docVis) docVis.focus();
+        return;
+      }
+      if (docTipo === 'rg' && !window.ptValidateRG(docRaw)) {
+        window.ptRetErr('RG inválido. Informe de 7 a 9 dígitos.');
+        if (docVis) docVis.focus();
+        return;
+      }
+      ptRWizShow(5);
+      return;
+    } else if (cur === 5) {
+      if (!window.__ptRetDrawn) { window.ptRetErr('Faça a assinatura de quem recebe no quadro.'); return; }
+      ptRWizShow(6);
       return;
     }
-    if (!window.__ptRetEntgDrawn) { window.ptRetErr('Faça a assinatura de quem entrega no quadro.'); return; }
-    ptRWizShow(2);
-  } else if (cur === 2) {
-    var nm = document.getElementById('pt-ret-nome');
-    if (!nm || !nm.value.trim()) { window.ptRetErr('Informe o nome de quem recebe.'); if (nm) nm.focus(); return; }
-    ptRWizShow(3);
-  } else if (cur === 4) {
-    var docH = document.getElementById('pt-ret-doc');
-    var docTipo = window.__ptRetDocType || 'cpf';
-    var docRaw = docH ? ('' + docH.value).replace(/[^0-9xX]/gi, '').toUpperCase() : '';
-    var docVis = document.getElementById('pt-ret-doc-input');
-    if (!docRaw) {
-      window.ptRetErr('Informe o CPF ou RG de quem recebe para continuar.');
-      if (docVis) docVis.focus();
-      return;
-    }
-    if (docTipo === 'cpf' && !window.ptValidateCPF(docRaw)) {
-      window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
-      if (docVis) docVis.focus();
-      return;
-    }
-    if (docTipo === 'rg' && !window.ptValidateRG(docRaw)) {
-      window.ptRetErr('RG inválido. Informe de 7 a 9 dígitos.');
-      if (docVis) docVis.focus();
-      return;
-    }
-    ptRWizShow(5);
   }
+  if (cur <= 1 && d < 0) return;
+  ptRWizShow(Math.min(6, Math.max(1, cur + d)));
+};
+window.ptRWizNext = function(cur){
+  if (cur && cur !== window.__ptRetWiz) window.__ptRetWiz = cur;
+  window.ptRWizNav(1);
 };
 window.ptRetChooseDoc = function(t){
-  window.__ptRetDocType = (t === 'rg') ? 'rg' : 'cpf';
-  var badge = document.getElementById('pt-ret-doc-badge');
-  if (badge) badge.textContent = window.__ptRetDocType.toUpperCase();
+  window.ptRetDocType(t);
   ptRetClearDoc();
   ptRWizShow(4);
 };
 window.ptRetDocType = function(t, silent){
   window.__ptRetDocType = (t === 'rg') ? 'rg' : 'cpf';
-  var badge = document.getElementById('pt-ret-doc-badge');
-  if (badge) badge.textContent = window.__ptRetDocType.toUpperCase();
+  var h = document.getElementById('pt-ret-doc-tipo');
+  if (h) h.value = window.__ptRetDocType;
+  var hint = document.getElementById('pt-ret-doc-hint');
+  if (hint && !silent) hint.textContent = window.__ptRetDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
+  document.querySelectorAll('#pt-retirada-overlay .pt-retdoct-btn').forEach(function(b){
+    var on = b.getAttribute('data-t') === window.__ptRetDocType;
+    b.style.borderColor = on ? '#16a34a' : '';
+    b.style.background = on ? '#f0fdf4' : '';
+    b.style.color = on ? '#16a34a' : '';
+  });
 };
 window.ptRetPrintTermos = function(){
   (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
@@ -689,7 +721,7 @@ function ptRetFitCanvas(){
   var r = c.getBoundingClientRect();
   var w = Math.max(280, Math.floor(r.width));
   c.width = w;
-  c.height = 200;
+  c.height = 180;
   window.__ptRetDrawn = false;
 }
 window.ptRetClearCanvas = function(){
@@ -728,70 +760,6 @@ function ptRetBindCanvas(){
   c.addEventListener('touchmove', move, {passive: false});
   c.addEventListener('touchend', end);
 }
-function ptRetEntgFitCanvas(){
-  var c = document.getElementById('pt-ret-entg-canvas');
-  if (!c) return;
-  var r = c.getBoundingClientRect();
-  var w = Math.max(280, Math.floor(r.width));
-  c.width = w;
-  c.height = 180;
-  window.__ptRetEntgDrawn = false;
-}
-window.ptRetEntgClearCanvas = function(){
-  var c = document.getElementById('pt-ret-entg-canvas');
-  if (!c) return;
-  ptRetEntgFitCanvas();
-  var ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, c.width, c.height);
-  window.__ptRetEntgDrawn = false;
-};
-function ptRetEntgBindCanvas(){
-  var c = document.getElementById('pt-ret-entg-canvas');
-  if (!c || c.dataset.bound) return;
-  c.dataset.bound = '1';
-  var ctx = c.getContext('2d');
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#111827';
-  var drawing = false;
-  function pos(ev){
-    var r = c.getBoundingClientRect();
-    var x, y;
-    if (ev.touches && ev.touches.length) { x = ev.touches[0].clientX; y = ev.touches[0].clientY; }
-    else { x = ev.clientX; y = ev.clientY; }
-    var sx = c.width / r.width;
-    var sy = c.height / r.height;
-    return [(x - r.left) * sx, (y - r.top) * sy];
-  }
-  function start(ev){ drawing = true; var p = pos(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if (ev.preventDefault) ev.preventDefault(); }
-  function move(ev){ if (!drawing) return; var p = pos(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptRetEntgDrawn = true; if (ev.preventDefault) ev.preventDefault(); }
-  function end(){ drawing = false; }
-  c.addEventListener('mousedown', start);
-  c.addEventListener('mousemove', move);
-  document.addEventListener('mouseup', end);
-  c.addEventListener('touchstart', start, {passive: false});
-  c.addEventListener('touchmove', move, {passive: false});
-  c.addEventListener('touchend', end);
-}
-function ptRetEntgDrawImage(src){
-  var c = document.getElementById('pt-ret-entg-canvas');
-  if (!c) return;
-  ptRetEntgFitCanvas();
-  var ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, c.width, c.height);
-  if (!src || ('' + src).indexOf('data:image/') !== 0) { window.__ptRetEntgDrawn = false; return; }
-  var im = new Image();
-  im.onload = function(){
-    try {
-      var sc = Math.min(c.width / im.width, c.height / im.height, 1);
-      var w = im.width * sc, h = im.height * sc;
-      ctx.drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
-      window.__ptRetEntgDrawn = true;
-    } catch (e) { window.__ptRetEntgDrawn = false; }
-  };
-  im.onerror = function(){ window.__ptRetEntgDrawn = false; };
-  im.src = src;
-}
 function ptRetEntgApply(id){
   var row = window.__ptRetEntgData ? window.__ptRetEntgData[String(id)] : null;
   var n = document.getElementById('pt-ret-entg-nome');
@@ -803,13 +771,11 @@ function ptRetEntgApply(id){
     if (d) d.value = row.documento || '';
     if (t) t.value = row.tipo || 'cpf';
     if (im) im.value = row.image || '';
-    ptRetEntgDrawImage(row.image || '');
   } else {
     if (n) n.value = '';
     if (d) d.value = '';
     if (t) t.value = 'cpf';
     if (im) im.value = '';
-    window.ptRetEntgClearCanvas();
   }
 }
 function ptRetEntgBindSelect(){
@@ -829,7 +795,7 @@ function ptRetLoadEntregadores(selectName){
       var items = (d && d.items) || [];
       window.__ptRetEntgData = {};
       var cur = sel.value;
-      sel.innerHTML = '<option value="">-- Selecione quem entrega --</option>';
+      sel.innerHTML = '<option value="">-- Selecione o entregador --</option>';
       items.forEach(function(t){
         var id = String(t.id);
         window.__ptRetEntgData[id] = {nome: t.name || '', documento: t.doc || '', tipo: t.doc_tipo || 'cpf', image: t.image || ''};
@@ -844,7 +810,7 @@ function ptRetLoadEntregadores(selectName){
       }
       if (!target && cur && window.__ptRetEntgData[cur]) target = cur;
       sel.value = target;
-      if (target) ptRetEntgApply(target);
+      ptRetEntgApply(target);
     })
     .catch(function(){
       sel.innerHTML = '<option value="">-- Falha ao carregar --</option>';
@@ -852,19 +818,23 @@ function ptRetLoadEntregadores(selectName){
 }
 window.ptRetErr = function(msg){
   var e = document.getElementById('pt-ret-err');
-  if (e) { e.textContent = msg; e.style.display = 'block'; }
+  var m = document.getElementById('pt-ret-err-msg');
+  if (m) m.textContent = msg;
+  if (e) {
+    e.classList.remove('d-none');
+    try { e.scrollIntoView({behavior: 'smooth', block: 'center'}); } catch (ex) {}
+  }
   try { console.error('[protocolo] retirada: ' + msg); } catch (ex) {}
 };
 window.ptSubmitRetirada = function(){
   var err0 = document.getElementById('pt-ret-err');
-  if (err0) err0.style.display = 'none';
+  if (err0) err0.classList.add('d-none');
   var entgNomeEl = document.getElementById('pt-ret-entg-nome');
   var entgNome = entgNomeEl ? entgNomeEl.value.trim() : '';
   if (!entgNome) { window.ptRetErr('Selecione ou cadastre quem entrega.'); return; }
-  if (!window.__ptRetEntgDrawn) { window.ptRetErr('Faça a assinatura de quem entrega no quadro.'); return; }
-  var entgCanvas = document.getElementById('pt-ret-entg-canvas');
-  var entgImg = '';
-  try { entgImg = entgCanvas.toDataURL('image/png'); } catch (eEntg) { window.ptRetErr('Falha na assinatura de quem entrega. Assine de novo.'); return; }
+  var entgImgEl = document.getElementById('pt-ret-entg-image');
+  var entgImg = entgImgEl ? ('' + entgImgEl.value) : '';
+  if (!entgImg) { window.ptRetErr('O entregador selecionado não possui assinatura cadastrada.'); return; }
   var nomeEl = document.getElementById('pt-ret-nome');
   var nome = nomeEl ? nomeEl.value.trim() : '';
   if (!nome) { window.ptRetErr('Informe o nome de quem recebe.'); if (nomeEl) nomeEl.focus(); return; }
@@ -925,7 +895,7 @@ window.ptSubmitRetirada = function(){
         window.__ptRetTermos = d.termos || [];
         var info = document.getElementById('pt-ret-w6-info');
         if (info) info.textContent = d.done + ' pasta(s) retirada(s) com 2 assinaturas. Os termos abrirão para impressão.';
-        ptRWizShow(6);
+        ptRWizShow(7);
         (window.__ptRetTermos || []).forEach(function(t){ try { window.open(t.url, '_blank'); } catch (e) {} });
       } else {
         window.ptRetErr((d && d.error) || 'Falha ao registrar. Tente de novo.');
@@ -972,7 +942,6 @@ window.ptSetInvView = function(v){
 };
 document.addEventListener('DOMContentLoaded', function(){
   ptRetBindCanvas();
-  ptRetEntgBindCanvas();
   ptRetEntgBindSelect();
   ptRetBindDocInput();
   ptRetRefreshBar();
