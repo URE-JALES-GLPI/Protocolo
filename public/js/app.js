@@ -684,9 +684,9 @@ window.ptRetDocType = function(t, silent){
   if (hint && !silent) hint.textContent = window.__ptRetDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
   document.querySelectorAll('#pt-retirada-overlay .pt-retdoct-btn').forEach(function(b){
     var on = b.getAttribute('data-t') === window.__ptRetDocType;
-    b.style.borderColor = on ? '#16a34a' : '';
-    b.style.background = on ? '#f0fdf4' : '';
-    b.style.color = on ? '#16a34a' : '';
+    b.style.borderColor = on ? '#2563eb' : '';
+    b.style.background = on ? '#eff6ff' : '';
+    b.style.color = on ? '#2563eb' : '';
   });
 };
 window.ptRetPrintTermos = function(){

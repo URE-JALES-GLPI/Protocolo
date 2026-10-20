@@ -28,6 +28,8 @@
 .pt-btn-danger:hover{background:#dc2626;color:#fff;border-color:#dc2626}
 .pt-btn-green{background:linear-gradient(135deg,#059669,#10b981);color:#fff;box-shadow:0 2px 6px rgba(16,185,129,.3)}
 .pt-btn-green:hover{opacity:.9;transform:translateY(-1px);color:#fff}
+.pt-btn-blue{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.3)}
+.pt-btn-blue:hover{opacity:.9;transform:translateY(-1px);color:#fff}
 .pt-btn-outline{background:#fff;color:#4f46e5;border:1.5px solid #c7d2fe}
 .pt-btn-outline:hover{background:#eef2ff}
 
