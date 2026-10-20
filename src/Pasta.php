@@ -1991,7 +1991,7 @@ class Pasta extends CommonDBTM
                                 var row = document.createElement('div');
                                 row.className='row g-2 mb-2 item-row border border-warning rounded p-1';
                                 row.dataset.tipoId=tid;
-                                row.innerHTML='<div class=\"col-md-8\"><input name=\"itens['+idx+'][descricao]\" class=\"form-control\" value=\"'+nome.replace(/\"/g,'&quot;')+'\" required></div><div class=\"col-md-3\"><input name=\"itens['+idx+'][quantidade]\" type=\"number\" min=\"1\" value=\"1\" class=\"form-control\" placeholder=\"Qtd\"></div><div class=\"col-md-1\"><button type=\"button\" class=\"btn btn-outline-danger w-100 btnRemove\"><i class=\"ti ti-trash\"></i></button></div><div class=\"col-md-12\"><input name=\"itens['+idx+'][observacao]\" class=\"form-control\" placeholder=\"Obs.\"></div>';
+                                row.innerHTML='<div class=\"col-5\"><input name=\"itens['+idx+'][descricao]\" class=\"form-control\" value=\"'+nome.replace(/\"/g,'&quot;')+'\" required></div><div class=\"col-2\"><input name=\"itens['+idx+'][quantidade]\" type=\"number\" min=\"1\" value=\"1\" class=\"form-control\" placeholder=\"Qtd\"></div><div class=\"col-3\"><input name=\"itens['+idx+'][observacao]\" class=\"form-control\" placeholder=\"Obs.\"></div><div class=\"col-2\"><button type=\"button\" class=\"btn btn-outline-danger w-100 btnRemove\"><i class=\"ti ti-trash\"></i></button></div>';
                                 wrap.appendChild(row);
                             }
                         } else {
