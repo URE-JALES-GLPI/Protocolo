@@ -484,6 +484,12 @@ window.ptValidateCPF = function(cpf){
   return true;
 };
 
+window.ptValidateRG = function(rg){
+  var s = ('' + (rg || '')).replace(/[^0-9xX]/g, '').toUpperCase();
+  if (s.length < 7 || s.length > 9) return false;
+  return /^[0-9]{7,8}[0-9X]?$/.test(s);
+};
+
 function ptRetBindDocInput(){
   var inp = document.getElementById('pt-ret-doc-input');
   if (!inp || inp.dataset.maskBound) return;
@@ -592,7 +598,9 @@ window.ptRWizShow = function(n){
     if (p) p.style.display = (i === n) ? '' : 'none';
   });
   var t = document.getElementById('pt-ret-wiz-title');
-  if (t) t.textContent = n === 6 ? 'Retirada concluída' : ('Retirada — Etapa ' + n + ' de 5');
+  if (t) t.textContent = n === 6 ? 'Retirada concluída' : 'Retirada';
+  var badge = document.getElementById('pt-ret-step-badge');
+  if (badge) badge.textContent = n === 6 ? 'Concluída' : ('Etapa ' + n + ' de 5');
   var bar = document.getElementById('pt-ret-progress');
   if (bar) bar.style.width = (['20%', '40%', '60%', '80%', '100%', '100%'][n - 1] || '20%');
   var errBox = document.getElementById('pt-ret-err');
@@ -616,9 +624,21 @@ window.ptRWizNext = function(cur){
     ptRWizShow(3);
   } else if (cur === 4) {
     var docH = document.getElementById('pt-ret-doc');
-    if ((window.__ptRetDocType || 'cpf') === 'cpf' && docH && docH.value && !window.ptValidateCPF(docH.value)) {
+    var docTipo = window.__ptRetDocType || 'cpf';
+    var docRaw = docH ? ('' + docH.value).replace(/[^0-9xX]/gi, '').toUpperCase() : '';
+    var docVis = document.getElementById('pt-ret-doc-input');
+    if (!docRaw) {
+      window.ptRetErr('Informe o CPF ou RG de quem recebe para continuar.');
+      if (docVis) docVis.focus();
+      return;
+    }
+    if (docTipo === 'cpf' && !window.ptValidateCPF(docRaw)) {
       window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
-      var docVis = document.getElementById('pt-ret-doc-input');
+      if (docVis) docVis.focus();
+      return;
+    }
+    if (docTipo === 'rg' && !window.ptValidateRG(docRaw)) {
+      window.ptRetErr('RG inválido. Informe de 7 a 9 dígitos.');
       if (docVis) docVis.focus();
       return;
     }
@@ -851,13 +871,24 @@ window.ptSubmitRetirada = function(){
   if (!window.__ptRetDrawn) { window.ptRetErr('Faça a assinatura de quem recebe no quadro.'); return; }
   var docEl = document.getElementById('pt-ret-doc');
   var docTipo = window.__ptRetDocType || 'cpf';
-  if (docTipo === 'cpf' && docEl && docEl.value) {
-    if (!window.ptValidateCPF(docEl.value)) {
-      window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
-      var diFocus = document.getElementById('pt-ret-doc-input');
-      if (diFocus) diFocus.focus();
-      return;
-    }
+  var docRaw = docEl ? ('' + docEl.value).replace(/[^0-9xX]/gi, '').toUpperCase() : '';
+  if (!docRaw) {
+    window.ptRetErr('Informe o CPF ou RG de quem recebe para continuar.');
+    var diFocusVazio = document.getElementById('pt-ret-doc-input');
+    if (diFocusVazio) diFocusVazio.focus();
+    return;
+  }
+  if (docTipo === 'cpf' && !window.ptValidateCPF(docRaw)) {
+    window.ptRetErr('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.');
+    var diFocus = document.getElementById('pt-ret-doc-input');
+    if (diFocus) diFocus.focus();
+    return;
+  }
+  if (docTipo === 'rg' && !window.ptValidateRG(docRaw)) {
+    window.ptRetErr('RG inválido. Informe de 7 a 9 dígitos.');
+    var diFocusRg = document.getElementById('pt-ret-doc-input');
+    if (diFocusRg) diFocusRg.focus();
+    return;
   }
   var obsEl = document.getElementById('pt-ret-obs');
   var csrfEl = document.getElementById('pt-ret-csrf');
