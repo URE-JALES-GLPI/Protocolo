@@ -135,13 +135,16 @@ body{ background:#eee; }
 <div class="termo" id="termo">
   <div class="cab">
     <?php
-    $logoPath = protocolo_web_dir('protocolo') . '/assets/img/logo.png';
-    // fallback para logo do GLPI se não existir - tenta ambos plugins/ e marketplace/
-    $logoFile = GLPI_ROOT . '/plugins/protocolo/assets/img/logo.png';
-    if (!file_exists($logoFile)) $logoFile = GLPI_ROOT . '/marketplace/protocolo/assets/img/logo.png';
-    if (!file_exists($logoFile)) $logoFile = GLPI_ROOT . '/pics/logo.png';
+    $logoWeb = protocolo_web_dir('protocolo') . '/assets/img/logo_termo.png';
+    $logoFile = protocolo_php_dir('protocolo') . '/assets/img/logo_termo.png';
+    if (!file_exists($logoFile)) {
+        $logoWeb = protocolo_web_dir('protocolo') . '/logo.png';
+        $logoFile = protocolo_php_dir('protocolo') . '/logo.png';
+    }
     ?>
-    <img src="<?= protocolo_web_dir('protocolo') ?>/assets/img/logo.png" alt="Logo" class="logo" onerror="this.style.display='none'">
+    <?php if (file_exists($logoFile)): ?>
+    <img src="<?= $logoWeb ?>" alt="Logo" class="logo">
+    <?php endif; ?>
     <div class="org">UNIDADE REGIONAL DE ENSINO - JALES</div>
     <div class="setor">Setor de Protocolo</div>
   </div>
