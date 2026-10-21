@@ -524,6 +524,19 @@ function ptRetBindDocInput(){
 document.addEventListener('focusin', function(e){
   if (e.target && e.target.id === 'pt-ret-doc-input') ptRetBindDocInput();
 });
+// Retirada: textos digitados sempre em MAIÚSCULO (nome de quem recebe, obs e novo entregador)
+document.addEventListener('input', function(e){
+  var el = e.target;
+  if (!el || !el.id) return;
+  if (el.id !== 'pt-ret-nome' && el.id !== 'pt-ret-obs' && el.id !== 'pt-nrec-nome') return;
+  var s = null, t = null;
+  try { s = el.selectionStart; t = el.selectionEnd; } catch (ex) {}
+  var up = ('' + el.value).toUpperCase();
+  if (el.value !== up) {
+    el.value = up;
+    if (s !== null) { try { el.setSelectionRange(s, t); } catch (ex2) {} }
+  }
+});
 
 window.__ptRetIds = [];
 window.__ptRetDrawn = false;
@@ -863,7 +876,7 @@ window.ptSubmitRetirada = function(){
   var entgImg = entgImgEl ? ('' + entgImgEl.value) : '';
   if (!entgImg) { window.ptRetErr('O entregador selecionado não possui assinatura cadastrada.'); return; }
   var nomeEl = document.getElementById('pt-ret-nome');
-  var nome = nomeEl ? nomeEl.value.trim() : '';
+  var nome = nomeEl ? nomeEl.value.trim().toUpperCase() : '';
   if (!nome) { window.ptRetErr('Informe o nome de quem recebe.'); if (nomeEl) nomeEl.focus(); return; }
   if (!window.__ptRetDrawn) { window.ptRetErr('Faça a assinatura de quem recebe no quadro.'); return; }
   var docEl = document.getElementById('pt-ret-doc');
@@ -907,7 +920,7 @@ window.ptSubmitRetirada = function(){
       nome: nome,
       doc_tipo: window.__ptRetDocType || 'cpf',
       doc: docEl ? docEl.value : '',
-      obs: obsEl ? obsEl.value : '',
+      obs: obsEl ? ('' + obsEl.value).toUpperCase() : '',
       image: img,
       entregador_nome: entgNome,
       entregador_doc: entgDocEl ? entgDocEl.value : '',

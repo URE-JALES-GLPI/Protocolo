@@ -60,11 +60,11 @@ if (empty($ids)) {
     pt_retirada_answer(['ok' => false, 'error' => 'Nenhuma pasta selecionada.']);
 }
 
-$nome = trim($data['nome'] ?? '');
+$nome = mb_strtoupper(trim($data['nome'] ?? ''), 'UTF-8');
 if ($nome === '') {
     pt_retirada_answer(['ok' => false, 'error' => 'Informe o nome de quem retira.']);
 }
-$entgNome = trim($data['entregador_nome'] ?? '');
+$entgNome = mb_strtoupper(trim($data['entregador_nome'] ?? ''), 'UTF-8');
 if ($entgNome === '') {
     pt_retirada_answer(['ok' => false, 'error' => 'Informe o nome de quem entrega.']);
 }
@@ -106,6 +106,11 @@ if (strlen($image) > 1500000) {
     pt_retirada_answer(['ok' => false, 'error' => 'Assinatura muito grande. Limpe e assine de novo.']);
 }
 
+$obsRet = trim($data['obs'] ?? '');
+if ($obsRet !== '') {
+    $obsRet = mb_strtoupper($obsRet, 'UTF-8');
+}
+
 $results = [];
 $termos = [];
 foreach ($ids as $pid) {
@@ -127,7 +132,7 @@ foreach ($ids as $pid) {
         'retirado_documento_tipo' => $docTipo,
         'retirado_documento' => $doc,
         'data_retirada' => date('Y-m-d H:i:s'),
-        'observacao_retirada' => trim($data['obs'] ?? ''),
+        'observacao_retirada' => $obsRet,
         'retirada_assinatura_image' => $image,
         'entregador_nome' => $entgNome,
         'entregador_documento_tipo' => $entgTipo,

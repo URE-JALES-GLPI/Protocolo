@@ -1093,7 +1093,7 @@ class Pasta extends CommonDBTM
                 echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
                 echo Html::hidden('id', ['value' => $ID]);
                 echo "<input type='hidden' name='action' value='retirar'>";
-                echo "<div class='mb-2'><label class='form-label'>" . __('Retirado por', 'protocolo') . " *</label><input name='retirado_por' class='form-control' required placeholder='" . __('Nome de quem retirou', 'protocolo') . "'></div>";
+                echo "<div class='mb-2'><label class='form-label'>" . __('Retirado por', 'protocolo') . " *</label><input name='retirado_por' class='form-control' required style='text-transform:uppercase' placeholder='" . __('Nome de quem retirou', 'protocolo') . "'></div>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Documento', 'protocolo') . "</label><div class='input-group'><select name='retirado_documento_tipo' id='retirado_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'>CPF</option><option value='rg'>RG</option></select><input name='retirado_documento' id='retirado_documento' class='form-control' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='retirado_doc_hint'>CPF: 11 dígitos | RG: 7-9 dígitos</small>";
                 echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
                 foreach (['1','2','3','4','5','6','7','8','9'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"retirado_documento\",\"retirado_documento_tipo\",\"$nk\")'>$nk</button>";
@@ -1102,7 +1102,7 @@ class Pasta extends CommonDBTM
                 echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"retirado_documento\",\"retirado_documento_tipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
                 echo "</div></div>";
                 echo "<div class='mb-2'><label class='form-label'>" . __('Data/hora retirada', 'protocolo') . "</label><input type='datetime-local' name='data_retirada' id='data_retirada_field' class='form-control' value='" . date('Y-m-d\TH:i') . "'></div>";
-                echo "<div class='mb-3'><label class='form-label'>" . __('Observação', 'protocolo') . "</label><textarea name='observacao_retirada' class='form-control' rows='2'></textarea></div>";
+                echo "<div class='mb-3'><label class='form-label'>" . __('Observação', 'protocolo') . "</label><textarea name='observacao_retirada' class='form-control' rows='2' style='text-transform:uppercase'></textarea></div>";
                 echo "<button class='pt-btn pt-btn-green w-100'><i class='ti ti-check'></i> " . __('Confirmar retirada', 'protocolo') . "</button>";
                 echo "</form>";
 
@@ -2452,7 +2452,7 @@ class Pasta extends CommonDBTM
             Session::addMessageAfterRedirect(__('Pasta não está aguardando', 'protocolo'), false, ERROR);
             return false;
         }
-        $retiradoPor = trim($params['retirado_por'] ?? '');
+        $retiradoPor = mb_strtoupper(trim($params['retirado_por'] ?? ''), 'UTF-8');
         if ($retiradoPor === '') {
             Session::addMessageAfterRedirect(__('Informe quem retirou', 'protocolo'), false, ERROR);
             return false;
@@ -2483,7 +2483,7 @@ class Pasta extends CommonDBTM
         if (strlen($sigImage) > 1500000) $sigImage = '';
         $sigData = date('Y-m-d H:i:s');
         $sigIp = $_SERVER['REMOTE_ADDR'] ?? null;
-        $entgNome = trim($params['entregador_nome'] ?? '');
+        $entgNome = mb_strtoupper(trim($params['entregador_nome'] ?? ''), 'UTF-8');
         if ($entgNome === '') {
             Session::addMessageAfterRedirect(__('Informe quem entregou', 'protocolo'), false, ERROR);
             return false;
@@ -2508,7 +2508,7 @@ class Pasta extends CommonDBTM
             'retirado_por' => $retiradoPor,
             'retirado_documento' => $docRet ?: null,
             'retirado_documento_tipo' => $tipoRet,
-            'observacao_retirada' => trim($params['observacao_retirada'] ?? '') ?: null,
+            'observacao_retirada' => mb_strtoupper(trim($params['observacao_retirada'] ?? ''), 'UTF-8') ?: null,
             'users_id_retirada' => Session::getLoginUserID(),
             'date_mod' => date('Y-m-d H:i:s')
         ];
