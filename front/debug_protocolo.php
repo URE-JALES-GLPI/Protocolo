@@ -11,8 +11,8 @@ global $DB, $CFG_GLPI;
 
 $uid = Session::getLoginUserID();
 $uname = $_SESSION['glpiname'] ?? 'unknown';
-$pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
-$pname = $_SESSION['glpiactive_profile']['name'] ?? 'unknown';
+$pid = (int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0);
+$pname = $_SESSION['glpiactiveprofile']['name'] ?? $_SESSION['glpiactive_profile']['name'] ?? 'unknown';
 
 echo "<div class='container-fluid'>";
 echo "<h3>Debug Protocolo - Permissões</h3>";

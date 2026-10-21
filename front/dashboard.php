@@ -8,11 +8,13 @@ use GlpiPlugin\Protocolo\Config;
 use GlpiPlugin\Protocolo\Recebedor;
 use GlpiPlugin\Protocolo\Profile;
 
+$ptPid = (int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0);
+$ptSessUse = $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] ?? $_SESSION['glpiactive_profile']['plugin_protocolo_use'] ?? 'unset';
 if (!Pasta::canView()) {
-    error_log("[protocolo] DASHBOARD BLOQUEADO pid=" . ($_SESSION['glpiactive_profile']['id'] ?? 'no_pid') . " uid=" . Session::getLoginUserID() . " rights_db_check FAIL");
+    error_log("[protocolo] DASHBOARD BLOQUEADO pid=$ptPid sess_use=" . var_export($ptSessUse, true) . " uid=" . Session::getLoginUserID() . " rights_db_check FAIL");
     Html::displayRightError();
 }
-error_log("[protocolo] DASHBOARD LIBERADO pid=" . ($_SESSION['glpiactive_profile']['id'] ?? 'no_pid') . " uid=" . Session::getLoginUserID());
+error_log("[protocolo] DASHBOARD LIBERADO pid=$ptPid sess_use=" . var_export($ptSessUse, true) . " uid=" . Session::getLoginUserID());
 
 Html::header(__('Protocolo - Dashboard', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 

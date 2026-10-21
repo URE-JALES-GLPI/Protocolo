@@ -360,9 +360,9 @@ class Install
                                 'rights'      => $default
                             ]);
                             // Sincroniza sessão ativa se for perfil logado
-                            if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $profileId) {
-                                $_SESSION['glpiactive_profile'][$rightName] = $default;
+                            if ((int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0) === $profileId) {
                                 $_SESSION['glpiactiveprofile'][$rightName] = $default;
+                                $_SESSION['glpiactive_profile'][$rightName] = $default;
                             }
                         }
                     } catch (\Throwable $e) {
@@ -411,9 +411,9 @@ class Install
                     if ($DB->affectedRows() === 0) {
                         try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_use', 'rights' => $full]); } catch (\Throwable $e) {}
                     }
-                    if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
-                        $_SESSION['glpiactive_profile']['plugin_protocolo_use'] = $full;
+                    if ((int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0) === $pid) {
                         $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] = $full;
+                        $_SESSION['glpiactive_profile']['plugin_protocolo_use'] = $full;
                     }
                 }
                 if ($adminRights === 0 && $hasConfig) {
@@ -422,9 +422,9 @@ class Install
                     if ($DB->affectedRows() === 0) {
                         try { $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => 'plugin_protocolo_admin', 'rights' => $full]); } catch (\Throwable $e) {}
                     }
-                    if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
-                        $_SESSION['glpiactive_profile']['plugin_protocolo_admin'] = $full;
+                    if ((int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0) === $pid) {
                         $_SESSION['glpiactiveprofile']['plugin_protocolo_admin'] = $full;
+                        $_SESSION['glpiactive_profile']['plugin_protocolo_admin'] = $full;
                     }
                 }
             }
@@ -806,9 +806,9 @@ class Install
                     }
                     $DB->insert('glpi_profilerights', ['profiles_id' => $pid, 'name' => $rname, 'rights' => $default]);
                     if ($forceLog) error_log("[protocolo] repairActiveProfile $rname profile $pid criado $default (faltante)");
-                    if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
-                        $_SESSION['glpiactive_profile'][$rname] = $default;
+                    if ((int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0) === $pid) {
                         $_SESSION['glpiactiveprofile'][$rname] = $default;
+                        $_SESSION['glpiactive_profile'][$rname] = $default;
                     }
                 }
                 // NUNCA faz UPDATE em valor existente - 0 é intencional

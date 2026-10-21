@@ -70,7 +70,7 @@ function protocolo_rights_diag(): array
     global $DB;
     $uid = 0;
     try { $uid = (int)Session::getLoginUserID(); } catch (\Throwable $e) {}
-    $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+    $pid = (int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0);
     $dbVal = null;
     try {
         if ($pid > 0 && isset($DB) && $DB->tableExists('glpi_profilerights')) {
@@ -83,7 +83,7 @@ function protocolo_rights_diag(): array
             foreach ($it as $r) { $dbVal = (int)$r['rights']; break; }
         }
     } catch (\Throwable $e) {}
-    $sessVal = $_SESSION['glpiactive_profile']['plugin_protocolo_use'] ?? $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] ?? null;
+    $sessVal = $_SESSION['glpiactiveprofile']['plugin_protocolo_use'] ?? $_SESSION['glpiactive_profile']['plugin_protocolo_use'] ?? null;
     return ['uid' => $uid, 'pid' => $pid, 'db' => $dbVal, 'sess' => $sessVal !== null ? (int)$sessVal : null];
 }
 
@@ -109,7 +109,7 @@ if (isset($_POST['add'])) {
     error_log("[protocolo] ADD attempt: uid=" . $diag['uid'] . " pid=" . $diag['pid'] . " db=" . var_export($diag['db'], true) . " sess=" . var_export($diag['sess'], true) . " canCreate=" . ($canCreate ? '1' : '0') . " canView=" . ($canView ? '1' : '0') . " csrf=$csrfOk ajax=" . ($isAjax ? '1' : '0') . " postkeys=" . implode(',', array_keys($_POST)));
     if (!$canCreate) {
         $dbgUid = (int)Session::getLoginUserID();
-        $dbgPid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        $dbgPid = (int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0);
         $dbgPname = '';
         try {
             if ($dbgPid > 0 && isset($DB) && $DB->tableExists('glpi_profiles')) {

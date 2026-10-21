@@ -41,11 +41,12 @@ class Profile extends \CommonDBTM
      */
     public static function changeProfile(): void
     {
-        if (!isset($_SESSION['glpiactive_profile']['id']) || !Session::getLoginUserID()) {
+        $activePid = (int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0);
+        if ($activePid <= 0 || !Session::getLoginUserID()) {
             return;
         }
         $prof = new GlpiProfile();
-        $prof->getFromDB((int)$_SESSION['glpiactive_profile']['id']);
+        $prof->getFromDB($activePid);
         // GLPI já carrega rights de glpi_profilerights para sessão, nada a fazer
     }
 
@@ -223,7 +224,7 @@ class Profile extends \CommonDBTM
         if (!self::isNewRight($right)) {
             return Session::haveRight($right, $level);
         }
-        $v = $_SESSION['glpiactive_profile'][$right] ?? $_SESSION['glpiactiveprofile'][$right] ?? null;
+        $v = $_SESSION['glpiactiveprofile'][$right] ?? $_SESSION['glpiactive_profile'][$right] ?? null;
         if ($v !== null) {
             return (int)$v > 0;
         }
@@ -243,7 +244,7 @@ class Profile extends \CommonDBTM
         if (!self::isNewRight($right)) {
             return Session::haveRight($right, $level);
         }
-        $pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+        $pid = (int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0);
         if ($pid > 0 && isset($DB)) {
             try {
                 if ($DB->tableExists('glpi_profilerights')) {
@@ -327,9 +328,9 @@ class Profile extends \CommonDBTM
                         // 0 = sem acesso (mantém); >0 e <31 = legado (1, 3, etc.) → 31
                         if ($val > 0 && $val !== self::RIGHT_YES) {
                             $DB->update('glpi_profilerights', ['rights' => self::RIGHT_YES], ['profiles_id' => $pid, 'name' => $rname]);
-                            if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $pid) {
-                                $_SESSION['glpiactive_profile'][$rname] = self::RIGHT_YES;
+                            if ((int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0) === $pid) {
                                 $_SESSION['glpiactiveprofile'][$rname] = self::RIGHT_YES;
+                                $_SESSION['glpiactive_profile'][$rname] = self::RIGHT_YES;
                             }
                         }
                     }

@@ -58,8 +58,19 @@ foreach ($rights as $rightName => $label) {
 }
 
 Session::addMessageAfterRedirect(__('Permissões Protocolo salvas com sucesso', 'protocolo'), false, INFO);
+// GLPI 11 só recarrega a sessão de direitos quando last_rights_update muda.
+// Como gravamos glpi_profilerights direto, atualizamos o timestamp manualmente
+// para o usuário-alvo ver a mudança no próximo request, sem precisar relogar.
+try {
+    if ($DB->fieldExists('glpi_profiles', 'last_rights_update')) {
+        $now = $_SESSION['glpi_currenttime'] ?? date('Y-m-d H:i:s');
+        $DB->update('glpi_profiles', ['last_rights_update' => $now], ['id' => $profiles_id]);
+    }
+} catch (\Throwable $e) {
+    error_log('[protocolo] profile save last_rights_update: ' . $e->getMessage());
+}
 // força recarregar sessão de direitos na próxima requisição (dropdown sequencial precisa refletir na hora)
-if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_profile']['id'] === $profiles_id) {
+if ((int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0) === $profiles_id) {
     try { if (method_exists('Session', 'reloadCurrentProfile')) \Session::reloadCurrentProfile(); } catch (\Throwable $e) {}
     // sincroniza sessão imediatamente para o redirect já ver novo nível
     try {
@@ -73,6 +84,5 @@ if (isset($_SESSION['glpiactive_profile']['id']) && (int)$_SESSION['glpiactive_p
             $_SESSION['glpiactiveprofile'][$rightName] = $val;
         }
     } catch (\Throwable $e) {}
-    try { unset($_SESSION['glpiactive_profile'][$_SESSION['glpiactive_profile']['id'] ?? 0]); } catch (\Throwable $e) {}
 }
 Html::redirect($CFG_GLPI['root_doc'] . "/front/profile.form.php?id=" . $profiles_id . "&forcetab=GlpiPlugin\\Protocolo\\Profile\$1");

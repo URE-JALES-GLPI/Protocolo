@@ -15,7 +15,7 @@ Session::checkLoginUser();
 
 header('Content-Type: application/json; charset=utf-8');
 
-$pid = (int)($_SESSION['glpiactive_profile']['id'] ?? 0);
+$pid = (int)($_SESSION['glpiactiveprofile']['id'] ?? $_SESSION['glpiactive_profile']['id'] ?? 0);
 $pname = '';
 try {
     global $DB;
