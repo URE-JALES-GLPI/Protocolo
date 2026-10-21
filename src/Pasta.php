@@ -1355,10 +1355,12 @@ class Pasta extends CommonDBTM
                     } else if(cur === 6){
                         var rdt = (window.__ptRecDocType || 'cpf');
                         var rdv = document.getElementById('recebido_documento');
-                        if(rdt === 'cpf' && rdv && rdv.value){
-                            if(typeof window.ptValidateCPF !== 'function' || !window.ptValidateCPF(rdv.value)){
-                                ptWizAlertMsg('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.', rdv); return;
-                            }
+                        var rdocRaw = rdv ? ('' + rdv.value).replace(/[^0-9xX]/gi, '').toUpperCase() : '';
+                        if(!rdocRaw){
+                            ptWizAlertMsg('Informe o número do documento para continuar.', rdv); return;
+                        }
+                        if(rdt === 'cpf' && (typeof window.ptValidateCPF !== 'function' || !window.ptValidateCPF(rdv.value))){
+                            ptWizAlertMsg('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.', rdv); return;
                         }
                     } else if(cur === 7){
                         if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }

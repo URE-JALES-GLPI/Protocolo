@@ -425,7 +425,7 @@ echo "</tbody>";
 echo "<tbody data-ptstep='4' style='display:none'>";
 echo "<tr class='tab_bg_1'>";
 echo "<td><label>Número do documento</label></td>";
-echo "<td colspan='3'><div class='input-group'><input type='text' id='pt-ret-doc-input' class='form-control' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' id='pt-ret-doc' value=''><input type='hidden' id='pt-ret-doc-tipo' value='cpf'><small class='text-muted' id='pt-ret-doc-hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
+echo "<td colspan='3'><div class='input-group'><input type='text' id='pt-ret-doc-input' class='form-control' placeholder='000.000.000-00' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' id='pt-ret-doc' value=''><input type='hidden' id='pt-ret-doc-tipo' value='cpf'><small class='text-muted' id='pt-ret-doc-hint'>CPF: 11 dígitos (000.000.000-00) | RG: 7 a 9 dígitos</small>";
 echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
 foreach (['1','2','3','4','5','6','7','8','9'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptRetPress(\"$nk\")'>$nk</button>";
 echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptRetClearDoc()'>C</button>";

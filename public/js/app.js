@@ -702,8 +702,13 @@ window.ptRetDocType = function(t, silent){
   window.__ptRetDocType = (t === 'rg') ? 'rg' : 'cpf';
   var h = document.getElementById('pt-ret-doc-tipo');
   if (h) h.value = window.__ptRetDocType;
+  var di = document.getElementById('pt-ret-doc-input');
+  if (di) {
+    di.placeholder = window.__ptRetDocType === 'rg' ? '00.000.000-0' : '000.000.000-00';
+    di.maxLength = window.__ptRetDocType === 'rg' ? 12 : 14;
+  }
   var hint = document.getElementById('pt-ret-doc-hint');
-  if (hint && !silent) hint.textContent = window.__ptRetDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
+  if (hint) hint.textContent = window.__ptRetDocType === 'cpf' ? 'CPF: 11 dígitos (000.000.000-00)' : 'RG: 7 a 9 dígitos (00.000.000-0)';
   document.querySelectorAll('#pt-retirada-overlay .pt-retdoct-btn').forEach(function(b){
     var on = b.getAttribute('data-t') === window.__ptRetDocType;
     b.style.borderColor = on ? '#2563eb' : '';
