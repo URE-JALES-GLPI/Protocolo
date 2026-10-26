@@ -6,7 +6,7 @@
 
 O **Protocolo de Pastas** controla o fluxo de pastas físicas que transitam entre o setor central e as unidades vinculadas. Cada pasta recebe um código sequencial, gera termos de recebimento e entrega e mantém o comprovante assinado arquivado — garantindo comprovação, padronização e auditoria.
 
-Evoluiu de sistema standalone em PHP para plugin nativo do GLPI 11/12.
+Evoluiu de sistema standalone em PHP para plugin nativo do GLPI 12.
 
 ## Para que serve
 
@@ -26,7 +26,7 @@ Evoluiu de sistema standalone em PHP para plugin nativo do GLPI 11/12.
 
 ## Tecnologias
 
-GLPI 11–12 · PHP 8.2+ · MySQL · GLPI Plugin API
+GLPI 12 · PHP 8.2+ · MySQL · GLPI Plugin API
 
 ## Licença
 
