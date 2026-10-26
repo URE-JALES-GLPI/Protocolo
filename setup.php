@@ -8,7 +8,7 @@
 
 require_once __DIR__ . '/src/compat.php';
 
-define('PLUGIN_PROTOCOLO_VERSION', '2.5.5');
+define('PLUGIN_PROTOCOLO_VERSION', '2.6.0');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.99');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');
@@ -57,6 +57,15 @@ function plugin_protocolo_check_config(bool $verbose = false): bool
 function plugin_init_protocolo(): void
 {
     global $PLUGIN_HOOKS, $CFG_GLPI;
+
+    // Endpoint do Assignat-ure: autenticado só pelo token, sem sessão GLPI (GLPI 12).
+    if (class_exists(\Glpi\Http\Firewall::class)) {
+        \Glpi\Http\Firewall::addPluginStrategyForLegacyScripts(
+            'protocolo',
+            '#^/front/assignature\.php$#',
+            \Glpi\Http\Firewall::STRATEGY_NO_CHECK
+        );
+    }
 
     $plugin = new Plugin();
     if (!$plugin->isActivated('protocolo')) {
@@ -193,5 +202,14 @@ function plugin_init_protocolo(): void
         }
     } catch (\Throwable $e) {
         error_log("[protocolo] migrateEntities auto falhou: " . $e->getMessage());
+    }
+}
+
+
+/** Endpoints entre plugins usam apenas o token, sem sessão GLPI. */
+function plugin_protocolo_boot(): void
+{
+    if (class_exists(\Glpi\Http\SessionManager::class)) {
+        \Glpi\Http\SessionManager::registerPluginStatelessPath('protocolo', '#^/front/assignature\.php$#');
     }
 }

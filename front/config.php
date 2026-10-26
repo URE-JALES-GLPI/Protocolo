@@ -3,6 +3,7 @@ include('../../../inc/includes.php');
 require_once __DIR__ . '/../src/compat.php';
 
 use GlpiPlugin\Protocolo\Config;
+use GlpiPlugin\Protocolo\Assignature;
 use GlpiPlugin\Protocolo\Pasta;
 use GlpiPlugin\Protocolo\EntityMail;
 use GlpiPlugin\Protocolo\Escola;
@@ -189,6 +190,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php');
 }
 
+// --- Integração Assignat-ure ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['save_assignature']) || isset($_POST['regen_assignature_token']))) {
+    protocolo_check_csrf_or_bypass();
+    if (!Config::canEdit()) {
+        Html::displayRightError();
+    }
+    if (isset($_POST['regen_assignature_token'])) {
+        Assignature::regenerateToken();
+        Session::addMessageAfterRedirect(__('Novo token gerado. Atualize o token da fonte no Assignat-ure.', 'protocolo'), false, INFO);
+    } else {
+        $url = trim((string) ($_POST['assignature_url'] ?? ''));
+        if ($url !== '' && (!filter_var($url, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $url))) {
+            Session::addMessageAfterRedirect(__('URL do Assignat-ure inválida.', 'protocolo'), false, ERROR);
+        } else {
+            Config::set([Assignature::URL_KEY => $url]);
+            Session::addMessageAfterRedirect(__('Integração com o Assignat-ure salva.', 'protocolo'), false, INFO);
+        }
+    }
+    Html::redirect(protocolo_web_dir('protocolo') . '/front/config.php#assignature');
+}
+
 Html::header(__('Configuração - Protocolo', 'protocolo'), $_SERVER['PHP_SELF'], 'tools', Pasta::class);
 
 echo "<div class='container-fluid pt-page'>";
@@ -333,6 +355,30 @@ echo "<button type='submit' name='update' value='1' class='btn btn-primary'><i c
 echo "<a href='" . Pasta::getSearchURL() . "' class='btn btn-outline-secondary'>" . __('Cancelar') . "</a>";
 echo "</div></div>";
 echo "</form>";
+
+// --- Integração Assignat-ure ---
+$asToken = Assignature::token();
+$asUrl = Assignature::requestUrl();
+$asScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$asEndpoint = $asScheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'SEU-GLPI') . protocolo_web_dir('protocolo') . '/front/assignature.php';
+echo "<div id='assignature' class='card shadow-sm mt-4'><div class='card-header bg-white'><strong><i class='ti ti-signature'></i> assignat-ure</strong></div><div class='card-body'>";
+echo "<p class='small text-muted mb-3'>" . __('Vincule o Protocolo ao Assignat-ure para coletar a assinatura de quem retira e concluir a retirada automaticamente.', 'protocolo') . "</p>";
+echo "<form method='post' action='" . protocolo_web_dir('protocolo') . "/front/config.php#assignature'>";
+echo '<input type="hidden" name="_glpi_csrf_token" value="' . protocolo_csrf_token() . '">';
+echo "<div class='row g-3'>";
+echo "<div class='col-md-6'><label class='form-label fw-semibold'>" . __('URL do assignat-ure', 'protocolo') . "</label>";
+echo "<input type='url' name='assignature_url' class='form-control' maxlength='255' placeholder='https://SEU-GLPI/plugins/assignature/front/request.php' value='" . htmlspecialchars($asUrl, ENT_QUOTES) . "'>";
+echo "<div class='form-text'>" . __('O Protocolo envia <code>?source=protocolo&amp;ref={id}</code> para esta URL (botão Assinar no Dashboard).', 'protocolo') . "</div></div>";
+echo "<div class='col-md-6'><label class='form-label fw-semibold'>" . __('Token de acesso', 'protocolo') . "</label>";
+echo "<div class='input-group'><input type='text' class='form-control font-monospace' readonly value='" . htmlspecialchars($asToken, ENT_QUOTES) . "' onclick='this.select()'>";
+echo "<button type='submit' name='regen_assignature_token' value='1' class='btn btn-outline-secondary' onclick=\"return confirm('" . __('Gerar um novo token? O token atual deixa de funcionar no Assignat-ure.', 'protocolo') . "')\"><i class='ti ti-refresh'></i> " . __('Gerar novo', 'protocolo') . "</button></div>";
+echo "<div class='form-text'>" . __('Copie este token para a fonte do Protocolo no Assignat-ure.', 'protocolo') . "</div></div>";
+echo "<div class='col-12'><label class='form-label fw-semibold'>" . __('URL do endpoint (cadastrar no Assignat-ure)', 'protocolo') . "</label>";
+echo "<input type='text' class='form-control font-monospace' readonly value='" . htmlspecialchars($asEndpoint, ENT_QUOTES) . "' onclick='this.select()'>";
+echo "<div class='form-text'>" . __('No Assignat-ure: Identificador <code>protocolo</code>, Integração <strong>Genérica</strong>, esta URL e o token acima.', 'protocolo') . "</div></div>";
+echo "</div></div><div class='card-footer bg-white'>";
+echo "<button type='submit' name='save_assignature' value='1' class='btn btn-primary'><i class='ti ti-device-floppy'></i> " . __('Salvar', 'protocolo') . "</button>";
+echo "</div></form></div>";
 
 // --- Teste de envio (3 modelos) ---
 $testDefault = '';
