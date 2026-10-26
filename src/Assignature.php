@@ -170,6 +170,30 @@ class Assignature
         return array_values(array_filter($nomes, static fn($n) => $n !== ''));
     }
 
+    /** Itens cadastrados na pasta (descrição, quantidade, observação). */
+    public static function itensDaPasta(int $id): array
+    {
+        global $DB;
+        $out = [];
+        foreach ($DB->request([
+            'FROM'  => 'glpi_plugin_protocolo_itens',
+            'WHERE' => ['plugin_protocolo_pastas_id' => $id],
+            'ORDER' => 'id ASC',
+        ]) as $it) {
+            $nome = trim((string) $it['name']);
+            if ($nome === '') {
+                continue;
+            }
+            $qtd = max(1, (int) $it['quantidade']);
+            $out[] = [
+                'id'     => (int) $it['id'],
+                'label'  => $qtd > 1 ? $nome . ' (' . $qtd . ')' : $nome,
+                'report' => trim((string) ($it['comment'] ?? '')),
+            ];
+        }
+        return $out;
+    }
+
     /**
      * Dados do pedido no formato do Assignat-ure. Sem lista de itens: o termo
      * mostra apenas os tipos de arquivo da pasta.
@@ -187,6 +211,7 @@ class Assignature
         $kindLabel = $kind === self::KIND_ENTRADA ? 'Entrada' : 'Retirada';
         $statusLabel = $kind === self::KIND_ENTRADA ? 'Aguardando assinatura de entrada' : 'Aguardando retirada';
         $tipos = self::tiposDaPasta($id);
+        $itens = $kind === self::KIND_ENTRADA ? self::itensDaPasta($id) : [];
 
         $description = [$kindLabel . ' de ' . mb_strtolower($especie, 'UTF-8')];
         if ($assunto !== '') {
@@ -195,6 +220,9 @@ class Assignature
         $description[] = $origem . ' → ' . $destino;
         if ($tipos !== []) {
             $description[] = 'Tipos: ' . implode(', ', $tipos);
+        }
+        if ($itens !== []) {
+            $description[] = 'Itens: ' . implode(', ', array_column($itens, 'label'));
         }
         if ($kind === self::KIND_RETIRADA && trim((string) ($row['recebido_de'] ?? '')) !== '') {
             $description[] = 'Entregue por: ' . trim((string) $row['recebido_de']);
@@ -217,8 +245,11 @@ class Assignature
             'recebido_de'      => (string) ($row['recebido_de'] ?? ''),
             'data_recebimento' => $row['data_recebimento'] ?? null,
             'board'            => ['name' => $destino],
-            // um "item" por tipo, para o termo listar o que está sendo assinado
-            'machines'         => array_map(static fn($n, $i) => [
+            // entrada: um item por linha do termo; retirada: só os tipos (sem itens)
+            'machines'         => $itens !== [] ? array_map(static fn($it) => [
+                'id' => $it['id'], 'label' => $it['label'], 'model_name' => $especie,
+                'serial' => '', 'status_label' => $statusLabel, 'report' => $it['report'],
+            ], $itens) : array_map(static fn($n, $i) => [
                 'id' => $i + 1, 'label' => $n, 'model_name' => $especie,
                 'serial' => '', 'status_label' => $statusLabel, 'report' => '',
             ], $tipos, array_keys($tipos)),

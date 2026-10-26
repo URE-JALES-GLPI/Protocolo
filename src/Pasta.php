@@ -903,7 +903,7 @@ class Pasta extends CommonDBTM
         if (!$isNew) echo "<small class='text-muted'>" . __('Gerado automaticamente', 'protocolo') . "</small>";
         echo "</td>";
         echo "<td><label>" . __('Status', 'protocolo') . "</label></td>";
-        echo "<td>" . (!$isNew ? self::getStatusBadge($this->fields['status']) : "<span class='badge bg-warning text-dark'>Aguardando retirada</span>") . "</td>";
+        echo "<td>" . (!$isNew ? self::getStatusBadge($this->fields['status']) : "<span class='badge bg-warning text-dark'>Aguardando assinatura</span>") . "</td>";
         echo "</tr>";
 
         echo "<tr class='tab_bg_1'>";
@@ -932,8 +932,8 @@ class Pasta extends CommonDBTM
         if ($isNew) {
             echo "<div data-ptstep='3' style='display:none'>";
             echo "<div class='spaced'><div class='pt-s9-card'>";
-            echo "<div class='pt-s9-head'><span class='pt-s9-ico'><i class='ti ti-list-check'></i></span><div><div class='pt-s9-title'>" . __('O que está entrando', 'protocolo') . "</div><div class='pt-s9-sub'>" . __('Marque os tipos de arquivo desta pasta', 'protocolo') . "</div></div></div>";
-            echo "<div class='pt-s9-summary' role='status'><i class='ti ti-info-circle'></i><span><span id='pt-tipos-count'>0</span> " . __('tipo(s) selecionado(s)', 'protocolo') . "</span></div>";
+            echo "<div class='pt-s9-head'><span class='pt-s9-ico'><i class='ti ti-list-check'></i></span><div><div class='pt-s9-title'>" . __('Itens da pasta', 'protocolo') . "</div><div class='pt-s9-sub'>" . __('Marque os tipos e confira os itens gerados', 'protocolo') . "</div></div></div>";
+            echo "<div class='pt-s9-summary' role='status'><i class='ti ti-info-circle'></i><span id='pt-itens-count'>0 item(ns)</span><span class='pt-s9-dot'>•</span><span><span id='pt-tipos-count'>0</span> " . __('tipo(s) selecionado(s)', 'protocolo') . "</span></div>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
@@ -948,10 +948,27 @@ class Pasta extends CommonDBTM
                     echo "<span class='pt-tipo-chip'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . htmlspecialchars($t['name']) . "' $checked><label for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></span>";
                 }
                 echo "</div>";
-                echo "<div class='form-text mt-2'>" . __('Selecione pelo menos 1 tipo de arquivo', 'protocolo') . "</div>";
+                echo "<div class='form-text mt-2'>" . __('Selecione pelo menos 1. Os itens abaixo são preenchidos automaticamente', 'protocolo') . "</div>";
             }
             echo "</div>";
 
+            $lastItens = $lastInput['itens'] ?? [];
+            echo "<div class='pt-s9-sec'><div class='pt-s9-sec-head'><span class='pt-s9-sec-title'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " <span class='required'>*</span></span></div>";
+            echo "<div class='row g-2 mb-1 pt-s9-cols' aria-hidden='true'><div class='col-5'>Descrição</div><div class='col-2'>Qtd</div><div class='col-3'>Obs.</div><div class='col-2'></div></div>";
+            if (!empty($lastItens) && is_array($lastItens)) {
+                echo "<div id='itensWrap'>";
+                foreach ($lastItens as $idx => $it) {
+                    $desc = htmlspecialchars($it['descricao'] ?? '');
+                    $qtd = max(1, (int)($it['quantidade'] ?? 1));
+                    $obs = htmlspecialchars($it['observacao'] ?? '');
+                    if ($desc === '' && $qtd === 1 && $obs === '' && $idx !== 0) continue;
+                    echo "<div class='row g-2 mb-2 item-row'><div class='col-5'><input name='itens[$idx][descricao]' class='form-control' value='$desc' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-2'><input name='itens[$idx][quantidade]' type='number' min='1' value='$qtd' class='form-control' placeholder='Qtd'></div><div class='col-3'><input name='itens[$idx][observacao]' class='form-control' value='$obs' placeholder='Obs.'></div><div class='col-2'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div>";
+                }
+                echo "</div>";
+            } else {
+                echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-5'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-2'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-3'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div><div class='col-2'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div></div>";
+            }
+            echo "<div class='form-text mb-0'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
             echo "</div></div>";
             echo "</div>";
         }
@@ -1268,7 +1285,13 @@ class Pasta extends CommonDBTM
                 doc.value = v;
                 doc.dispatchEvent(new Event('input', {bubbles: true}));
             };
-            if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; ptWizShow(1); }
+            function ptItensCount(){
+                var n = 0;
+                document.querySelectorAll('#itensWrap input[name*=\"[descricao]\"]').forEach(function(i){ if(i.value.trim()) n++; });
+                var cc = document.getElementById('pt-itens-count');
+                if(cc) cc.textContent = n + ' item(ns)';
+            }
+            if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; ptWizShow(1); var iw0=document.getElementById('itensWrap'); if(iw0){ iw0.addEventListener('input', ptItensCount); iw0.addEventListener('click', function(){ setTimeout(ptItensCount, 60); }); try { new MutationObserver(ptItensCount).observe(iw0, {childList: true, subtree: true}); } catch(e1) {} ptItensCount(); } }
             window.ptTiposCount = function(){
                 try{
                     var el = document.getElementById('pt-tipos-count');
@@ -1474,6 +1497,9 @@ class Pasta extends CommonDBTM
                         }
                         var tiposChk = form.querySelectorAll('input[name=\"tipos[]\"]:checked');
                         if(tiposChk.length===0){ e.preventDefault(); showAlert('Marque pelo menos 1 tipo de arquivo.', document.querySelector('.tipo-check')); return; }
+                        var itensDesc = form.querySelectorAll('input[name*=\"[descricao]\"]');
+                        var hasItem=false; itensDesc.forEach(function(inp){ if(inp.value.trim()) hasItem=true; });
+                        if(!hasItem){ e.preventDefault(); showAlert('Adicione pelo menos 1 item com descrição.', document.querySelector('input[name*=\"[descricao]\"]')); return; }
                         // Dentro da janela flutuante: envia via AJAX (fica na tela; erro vira popup)
                         if (form.closest && form.closest('#pt-register-overlay') && typeof window.ptSubmitRegisterAjax === 'function') {
                             e.preventDefault();
@@ -1692,6 +1718,10 @@ class Pasta extends CommonDBTM
             $desc = trim($it['descricao'] ?? '');
             if ($desc === '') continue;
             $filtered[] = ['descricao' => $desc, 'quantidade' => max(1, (int)($it['quantidade'] ?? 1)), 'observacao' => trim($it['observacao'] ?? '')];
+        }
+        if (count($filtered) === 0) {
+            Session::addMessageAfterRedirect(__('Adicione pelo menos 1 item', 'protocolo'), false, ERROR);
+            return false;
         }
         $tipos = array_filter(array_map('intval', (array)($input['tipos'] ?? [])));
         // Só valida tipos se houver tipos ativos
