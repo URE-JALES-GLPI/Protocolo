@@ -159,6 +159,38 @@ if ($hasSpreadsheet) {
             $sheet->getStyle($range)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         };
 
+        // Ajusta a largura das colunas ao conteúdo, sem espaçamento excessivo.
+        // O autoSize do PhpSpreadsheet superestima a largura; aqui calculamos pelo texto,
+        // com limite máximo e quebra de linha para valores longos.
+        $fitColumns = function($sheet, $maxWidth = 45, $minWidth = 6) {
+            $widths = [];
+            foreach ($sheet->getRowIterator() as $row) {
+                $cells = $row->getCellIterator();
+                $cells->setIterateOnlyExistingCells(true);
+                foreach ($cells as $cell) {
+                    $value = (string) $cell->getFormattedValue();
+                    if ($value === '') continue;
+                    $len = 0;
+                    foreach (preg_split('/\R/u', $value) as $line) {
+                        $len = max($len, mb_strlen($line, 'UTF-8'));
+                    }
+                    $col = $cell->getColumn();
+                    $widths[$col] = max($widths[$col] ?? 0, $len);
+                }
+            }
+            foreach ($widths as $col => $len) {
+                $width = max($minWidth, min($maxWidth, $len + 1.5));
+                $dim = $sheet->getColumnDimension($col);
+                $dim->setAutoSize(false);
+                $dim->setWidth($width);
+                if ($len + 1.5 > $maxWidth) {
+                    $sheet->getStyle($col . '1:' . $col . $sheet->getHighestRow())->getAlignment()->setWrapText(true);
+                }
+            }
+            $sheet->getStyle('A1:' . $sheet->getHighestColumn() . $sheet->getHighestRow())
+                ->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+        };
+
         // Resumo
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Resumo');
@@ -176,7 +208,6 @@ if ($hasSpreadsheet) {
         ];
         $sheet->fromArray($resumoData, null, 'A1');
         $styleHeader($sheet, 'A1:B1');
-        foreach (range('A', 'B') as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
         $sheet->freezePane('A2');
 
         // Entradas por mês
@@ -184,7 +215,6 @@ if ($hasSpreadsheet) {
         $sheet2->setTitle('Entradas por mes');
         $sheet2->fromArray(array_merge([['Mês (mm/aa)', 'Quantidade']], $entradasRows), null, 'A1');
         $styleHeader($sheet2, 'A1:B1');
-        foreach (range('A', 'B') as $col) $sheet2->getColumnDimension($col)->setAutoSize(true);
         $sheet2->freezePane('A2');
         // Total
         $totalEntradas6m = array_sum(array_column($entradasRows, 1));
@@ -197,7 +227,6 @@ if ($hasSpreadsheet) {
         $sheet3->setTitle('Por status');
         $sheet3->fromArray(array_merge([['Status', 'Quantidade']], $statusRows), null, 'A1');
         $styleHeader($sheet3, 'A1:B1');
-        foreach (range('A', 'B') as $col) $sheet3->getColumnDimension($col)->setAutoSize(true);
         $sheet3->freezePane('A2');
 
         // Tempo médio
@@ -205,7 +234,6 @@ if ($hasSpreadsheet) {
         $sheet4->setTitle('Tempo medio');
         $sheet4->fromArray(array_merge([['Mês (mm/aa)', 'Média dias']], $tempoRows), null, 'A1');
         $styleHeader($sheet4, 'A1:B1');
-        foreach (range('A', 'B') as $col) $sheet4->getColumnDimension($col)->setAutoSize(true);
         $sheet4->freezePane('A2');
 
         // Atrasadas
@@ -213,13 +241,16 @@ if ($hasSpreadsheet) {
         $sheet5->setTitle('Atrasadas');
         $sheet5->fromArray(array_merge([['Código', 'Escola', 'Recebido de', 'Data Recebimento', 'Dias parada']], $atrasadasExport), null, 'A1');
         $styleHeader($sheet5, 'A1:E1');
-        foreach (range('A', 'E') as $col) $sheet5->getColumnDimension($col)->setAutoSize(true);
         $sheet5->freezePane('A2');
         if (empty($atrasadasExport)) {
             $sheet5->setCellValue('A2', 'Nenhuma pasta atrasada');
         }
 
         // Pendências
+
+        foreach ($spreadsheet->getWorksheetIterator() as $ws) {
+            $fitColumns($ws);
+        }
 
         $spreadsheet->setActiveSheetIndex(0);
 
