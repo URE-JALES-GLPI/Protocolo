@@ -8,7 +8,7 @@
 
 require_once __DIR__ . '/src/compat.php';
 
-define('PLUGIN_PROTOCOLO_VERSION', '2.6.0');
+define('PLUGIN_PROTOCOLO_VERSION', '2.7.0');
 define('PLUGIN_PROTOCOLO_MIN_GLPI', '11.0.0');
 define('PLUGIN_PROTOCOLO_MAX_GLPI', '12.0.99');
 define('PLUGIN_PROTOCOLO_NAMESPACE', 'GlpiPlugin\\Protocolo');

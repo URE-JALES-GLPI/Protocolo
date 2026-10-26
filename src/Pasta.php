@@ -439,6 +439,7 @@ class Pasta extends CommonDBTM
             $options['name'] = $name;
             $options['display'] = false;
             return Dropdown::showFromArray($name, [
+                'aguardando_assinatura' => __('Aguardando assinatura', 'protocolo'),
                 'aguardando' => __('Aguardando retirada', 'protocolo'),
                 'retirada'   => __('Retirada', 'protocolo'),
                 'cancelada'  => __('Cancelada', 'protocolo'),
@@ -476,6 +477,7 @@ class Pasta extends CommonDBTM
     {
         // Identidade visual padronizada com assetmgrstatus (pt-badge-*)
         $map = [
+            'aguardando_assinatura' => '<span class="pt-badge pt-badge-assinatura">' . __('Aguardando assinatura', 'protocolo') . '</span>',
             'aguardando' => '<span class="pt-badge pt-badge-aguardando">' . __('Aguardando retirada', 'protocolo') . '</span>',
             'retirada'   => '<span class="pt-badge pt-badge-retirada">' . __('Retirada', 'protocolo') . '</span>',
             'cancelada'  => '<span class="pt-badge pt-badge-cancelada">' . __('Cancelada', 'protocolo') . '</span>',
@@ -702,35 +704,6 @@ class Pasta extends CommonDBTM
         if ($isNew) {
             echo "<div id='pt-wiz-ind' style='display:none' aria-hidden='true'></div>";
             echo "<tbody data-ptstep='1'>";
-            echo "<tr class='tab_bg_1'><td colspan='4'>";
-            echo "<div style='font-weight:800;font-size:1rem;margin-bottom:4px;'>Quem vai receber?</div>";
-            echo "<div class='text-muted small' style='margin-bottom:10px;'>Selecione o atendente responsável. A assinatura cadastrada será usada no termo.</div>";
-            echo "<select id='pt-receb-select' class='form-select' style='font-size:1.05rem;padding:12px;'><option value=''>-- " . __('Carregando recebedores...', 'protocolo') . " --</option></select>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='margin-top:10px;' onclick='ptRecNewOpen()'><i class='ti ti-plus'></i> Novo recebedor</button>";
-            echo "<input type='hidden' name='recebedor_nome' id='recebedor_nome' value='" . htmlspecialchars($this->fields['recebedor_nome'] ?? '') . "'>";
-            echo "<input type='hidden' name='recebedor_documento' id='recebedor_documento_h' value='" . htmlspecialchars($this->fields['recebedor_documento'] ?? '') . "'>";
-            echo "<input type='hidden' name='recebedor_documento_tipo' id='recebedor_documento_tipo_h' value='" . htmlspecialchars($this->fields['recebedor_documento_tipo'] ?? 'cpf') . "'>";
-            echo "<input type='hidden' name='recebedor_assinatura_image' id='pt-recb-image' value=''>";
-            echo "</td></tr>";
-            echo "</tbody><tbody data-ptstep='2' style='display:none'>";
-            echo "<div id='pt-recnew-overlay' style='display:none;position:fixed;inset:0;background:rgba(17,24,39,.6);z-index:10080;align-items:center;justify-content:center;padding:20px;'>";
-            echo "<div style='background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:20px;'>";
-            echo "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;'><strong style='font-size:1rem;'>Novo recebedor</strong><button type='button' onclick='ptRecNewClose()' style='background:#f3f4f6;border:0;border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:800;'>X</button></div>";
-            echo "<div style='margin-bottom:10px;'><label class='form-label'>Nome completo *</label><input type='text' id='pt-nrec-nome' class='form-control' placeholder='Ex: Maria Souza' autocomplete='off'></div>";
-            echo "<div style='margin-bottom:10px;'><label class='form-label'>Documento</label><div style='display:flex;gap:8px;margin-bottom:8px;'>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-nrecdoct-btn' data-t='rg' onclick='ptNRecDocType(\"rg\")' style='flex:1;'>RG</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-nrecdoct-btn' data-t='cpf' onclick='ptNRecDocType(\"cpf\")' style='flex:1;'>CPF</button>";
-            echo "</div><input type='text' id='pt-nrec-doc' class='form-control' placeholder='Somente números' maxlength='14' inputmode='numeric'><input type='hidden' id='pt-nrec-doctipo' value='cpf'></div>";
-            echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;margin-bottom:12px;'>";
-            foreach (['1','2','3','4','5','6','7','8','9'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"$nk\")'>$nk</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"clr\")'>C</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"0\")'>0</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"pt-nrec-doc\",\"pt-nrec-doctipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
-            echo "</div>";
-            echo "<div style='margin-bottom:12px;'><label class='form-label'>Assinatura *</label><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-nrec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='text-align:right;margin-top:6px;'><button type='button' class='pt-btn pt-btn-secondary pt-btn-sm' onclick='ptNRecClear()'>Limpar</button></div></div>";
-            echo "<div id='pt-nrec-err' style='display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.85rem;'></div>";
-            echo "<button type='button' id='pt-nrec-save' class='pt-btn pt-btn-green' style='width:100%;' onclick='ptNRecSave()'><i class='ti ti-check'></i> Salvar recebedor</button>";
-            echo "</div></div>";
         }
 
         if (!$isNew) {
@@ -780,7 +753,7 @@ class Pasta extends CommonDBTM
         echo "<td width='15%'><label>" . __('Assunto', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td colspan='3'><input type='text' name='assunto' id='assunto_field' class='form-control' required maxlength='255' style='width:100%' value='" . htmlspecialchars($this->fields['assunto'] ?? '') . "' placeholder='Ex: Ofício nº 123/2026 — matrícula'></td>";
         echo "</tr>";
-        if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
+        if ($isNew) echo "</tbody><tbody data-ptstep='2' style='display:none'>";
 
         // Origem/Interessado (Escola ou Outros; URE só aparece em registros antigos)
         $origemTipoRaw = $this->fields['origem_tipo'] ?? '';
@@ -913,51 +886,15 @@ class Pasta extends CommonDBTM
         // compat: mantém plugin_protocolo_escolas_id escondido para buscas antigas (espelha destino quando escola)
         echo "<input type='hidden' name='plugin_protocolo_escolas_id' id='compat_escola_id' value='$destinoEnt'>";
         echo "</td></tr>";
-        if ($isNew) echo "</tbody><tbody data-ptstep='4' style='display:none'>";
+        if ($isNew) echo "</tbody><tbody data-ptstep='3' style='display:none'>";
 
-        if ($isNew) {
-            echo "<tr class='tab_bg_1'>";
-            echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para a pessoa preencher</small></td>";
-            echo "<td colspan='3'><input type='text' name='recebido_de' id='recebido_de_field' class='form-control' required value='" . htmlspecialchars($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria' style='font-size:1.05rem;padding:12px;'></td>";
-            echo "</tr>";
-            echo "</tbody><tbody data-ptstep='5' style='display:none'>";
-            echo "<tr class='tab_bg_1'>";
-            echo "<td><label>" . __('Documento de quem deixou', 'protocolo') . "</label><br><small class='text-muted'>Toque em RG ou CPF</small></td>";
-            echo "<td colspan='3'><div style='display:flex;gap:10px;'>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='rg' onclick='ptRecDocChoose(\"rg\")' style='flex:1;padding:18px 14px;'><i class='ti ti-id' style='font-size:1.8rem;'></i><br><span style='font-weight:800;font-size:1.05rem;'>RG</span></button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary pt-recdoc-btn' data-t='cpf' onclick='ptRecDocChoose(\"cpf\")' style='flex:1;padding:18px 14px;'><i class='ti ti-id-badge-2' style='font-size:1.8rem;'></i><br><span style='font-weight:800;font-size:1.05rem;'>CPF</span></button>";
-            echo "</div></td>";
-            echo "</tr>";
-            echo "</tbody><tbody data-ptstep='6' style='display:none'>";
-            echo "<tr class='tab_bg_1'>";
-            echo "<td><label>Número do documento</label></td>";
-            echo "<td colspan='3'><div class='input-group'><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . htmlspecialchars($this->fields['recebido_documento'] ?? '') . "' placeholder='Somente números' maxlength='14' inputmode='numeric' style='font-size:1.3rem;padding:12px;text-align:center;letter-spacing:2px;'></div><input type='hidden' name='recebido_documento_tipo' id='recebido_documento_tipo' value='" . htmlspecialchars($this->fields['recebido_documento_tipo'] ?? 'cpf') . "'><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos | RG: 7 a 9 dígitos</small>";
-            echo "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>";
-            foreach (['1','2','3','4','5','6','7','8','9'] as $nk) echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"$nk\")'>$nk</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-weight:700;color:#dc2626;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"clr\")'>C</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;font-weight:700;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"0\")'>0</button>";
-            echo "<button type='button' class='pt-btn pt-btn-secondary' style='flex:1 1 30%;padding:12px;font-size:1.15rem;' onclick='ptNumPress(\"recebido_documento\",\"recebido_documento_tipo\",\"del\")'><i class='ti ti-backspace'></i></button>";
-            echo "</div></td>";
-            echo "</tr>";
-            echo "</tbody><tbody data-ptstep='7' style='display:none'>";
-        } else {
+        if (!$isNew) {
         echo "<tr class='tab_bg_1'>";
         echo "<td><label>" . __('Recebido de (quem deixou)', 'protocolo') . " <span class='required'>*</span></label></td>";
         echo "<td><input type='text' name='recebido_de' class='form-control' required value='" . htmlspecialchars($this->fields['recebido_de'] ?? '') . "' placeholder='Ex: João da Silva - Secretaria'></td>";
         echo "<td><label>" . __('Documento', 'protocolo') . "</label></td>";
         echo "<td><div class='input-group'><select name='recebido_documento_tipo' id='recebido_documento_tipo' class='form-select' style='max-width:95px'><option value='cpf'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='cpf')?' selected':'') . ">CPF</option><option value='rg'" . ((($this->fields['recebido_documento_tipo'] ?? 'cpf')==='rg')?' selected':'') . ">RG</option></select><input type='text' name='recebido_documento' id='recebido_documento' class='form-control' value='" . htmlspecialchars($this->fields['recebido_documento'] ?? '') . "' placeholder='000.000.000-00' maxlength='14'></div><small class='text-muted' id='recebido_doc_hint'>CPF: 11 dígitos (000.000.000-00) | RG: 7-9 dígitos</small></td>";
         echo "</tr>";
-        }
-        if ($isNew) {
-            echo "<tr class='tab_bg_1'><td><label>Assinatura de quem deixou <span class='required'>*</span></label><br><small class='text-muted'>Entregue o tablet para assinatura</small></td>";
-            echo "<td colspan='3'><div style='background:#fff;border:2px solid #e8eaf0;border-radius:12px;overflow:hidden;touch-action:none;'><canvas id='pt-rec-canvas' style='width:100%;height:180px;display:block;touch-action:none;cursor:crosshair;'></canvas></div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:6px;'><small class='text-muted'>Assine com dedo/caneta</small><button type='button' id='pt-rec-clear' class='pt-btn pt-btn-secondary pt-btn-sm'><i class='ti ti-eraser'></i> Limpar</button></div><input type='hidden' name='recebido_assinatura_image' id='pt-rec-image' value=''></td></tr>";
-            echo "</tbody><tbody data-ptstep='8' style='display:none'>";
-            echo "<tr class='tab_bg_1'><td colspan='4' style='text-align:center;padding:36px 16px;'>";
-            echo "<div style='width:84px;height:84px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'><i class='ti ti-device-tablet' style='font-size:2.4rem;color:#fff;'></i></div>";
-            echo "<div style='font-weight:800;font-size:1.5rem;color:#92400e;margin-bottom:10px;'>DEVOLVA O APARELHO AO FUNCIONÁRIO</div>";
-            echo "<p style='font-size:1rem;color:#374151;'>A assinatura de quem deixou foi coletada.<br>Passe o tablet de volta ao responsável para continuar.</p>";
-            echo "</td></tr>";
-            echo "</tbody><tbody data-ptstep='9' style='display:none'>";
         }
 
         echo "<tr class='tab_bg_1'>";
@@ -993,10 +930,10 @@ class Pasta extends CommonDBTM
 
         // Se for novo: tipos + itens (preserva input se reexibindo após falha)
         if ($isNew) {
-            echo "<div data-ptstep='9' style='display:none'>";
+            echo "<div data-ptstep='3' style='display:none'>";
             echo "<div class='spaced'><div class='pt-s9-card'>";
-            echo "<div class='pt-s9-head'><span class='pt-s9-ico'><i class='ti ti-list-check'></i></span><div><div class='pt-s9-title'>" . __('Itens da pasta', 'protocolo') . "</div><div class='pt-s9-sub'>" . __('Marque os tipos e confira os itens gerados', 'protocolo') . "</div></div></div>";
-            echo "<div class='pt-s9-summary' role='status'><i class='ti ti-info-circle'></i><span id='pt-itens-count'>0 item(ns)</span><span class='pt-s9-dot'>•</span><span><span id='pt-tipos-count'>0</span> " . __('tipo(s) selecionado(s)', 'protocolo') . "</span></div>";
+            echo "<div class='pt-s9-head'><span class='pt-s9-ico'><i class='ti ti-list-check'></i></span><div><div class='pt-s9-title'>" . __('O que está entrando', 'protocolo') . "</div><div class='pt-s9-sub'>" . __('Marque os tipos de arquivo desta pasta', 'protocolo') . "</div></div></div>";
+            echo "<div class='pt-s9-summary' role='status'><i class='ti ti-info-circle'></i><span><span id='pt-tipos-count'>0</span> " . __('tipo(s) selecionado(s)', 'protocolo') . "</span></div>";
             // Tipos
             $tipos = TipoArquivo::getAllActive();
             $lastTipos = $lastInput['tipos'] ?? [];
@@ -1011,27 +948,10 @@ class Pasta extends CommonDBTM
                     echo "<span class='pt-tipo-chip'><input class='form-check-input tipo-check' type='checkbox' name='tipos[]' value='" . (int)$t['id'] . "' id='tipo" . (int)$t['id'] . "' data-nome='" . htmlspecialchars($t['name']) . "' $checked><label for='tipo" . (int)$t['id'] . "'>" . htmlspecialchars($t['name']) . "</label></span>";
                 }
                 echo "</div>";
-                echo "<div class='form-text mt-2'>" . __('Selecione pelo menos 1. Os itens abaixo são preenchidos automaticamente', 'protocolo') . "</div>";
+                echo "<div class='form-text mt-2'>" . __('Selecione pelo menos 1 tipo de arquivo', 'protocolo') . "</div>";
             }
             echo "</div>";
 
-            $lastItens = $lastInput['itens'] ?? [];
-            echo "<div class='pt-s9-sec'><div class='pt-s9-sec-head'><span class='pt-s9-sec-title'><i class='ti ti-list-check'></i> " . __('Itens da pasta', 'protocolo') . " <span class='required'>*</span></span></div>";
-            echo "<div class='row g-2 mb-1 pt-s9-cols' aria-hidden='true'><div class='col-5'>Descrição</div><div class='col-2'>Qtd</div><div class='col-3'>Obs.</div><div class='col-2'></div></div>";
-            if (!empty($lastItens) && is_array($lastItens)) {
-                echo "<div id='itensWrap'>";
-                foreach ($lastItens as $idx => $it) {
-                    $desc = htmlspecialchars($it['descricao'] ?? '');
-                    $qtd = max(1, (int)($it['quantidade'] ?? 1));
-                    $obs = htmlspecialchars($it['observacao'] ?? '');
-                    if ($desc === '' && $qtd === 1 && $obs === '' && $idx !== 0) continue;
-                    echo "<div class='row g-2 mb-2 item-row'><div class='col-5'><input name='itens[$idx][descricao]' class='form-control' value='$desc' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-2'><input name='itens[$idx][quantidade]' type='number' min='1' value='$qtd' class='form-control' placeholder='Qtd'></div><div class='col-3'><input name='itens[$idx][observacao]' class='form-control' value='$obs' placeholder='Obs.'></div><div class='col-2'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div>";
-                }
-                echo "</div>";
-            } else {
-                echo "<div id='itensWrap'><div class='row g-2 mb-2 item-row'><div class='col-5'><input name='itens[0][descricao]' class='form-control' placeholder='" . __('Descrição do item', 'protocolo') . "' required></div><div class='col-2'><input name='itens[0][quantidade]' type='number' min='1' value='1' class='form-control' placeholder='Qtd'></div><div class='col-3'><input name='itens[0][observacao]' class='form-control' placeholder='Obs.'></div><div class='col-2'><button type='button' class='btn btn-outline-danger w-100 btnRemove'><i class='ti ti-trash'></i></button></div></div></div>";
-            }
-            echo "<div class='form-text mb-0'>" . __('Exemplos: Ofício nº 123/2026, Processo de matrícula...', 'protocolo') . "</div></div>";
             echo "</div></div>";
             echo "</div>";
         }
@@ -1178,16 +1098,7 @@ class Pasta extends CommonDBTM
                 update();
             }
             setupDoc(document.getElementById('recebido_documento_tipo'), document.getElementById('recebido_documento'), document.getElementById('recebido_doc_hint'));
-            setupDoc(document.getElementById('recebedor_documento_tipo'), document.getElementById('recebedor_documento'), document.getElementById('recebedor_doc_hint'));
             setupDoc(document.getElementById('retirado_documento_tipo'), document.getElementById('retirado_documento'), document.getElementById('retirado_doc_hint'));
-            var ptNrecDocEl = document.getElementById('pt-nrec-doc');
-            if(ptNrecDocEl && !ptNrecDocEl.dataset.mask){
-                ptNrecDocEl.dataset.mask = '1';
-                ptNrecDocEl.addEventListener('input', function(){
-                    if(window.__ptNRecDoc === 'rg') this.value = formatRG(this.value);
-                    else this.value = formatCPF(this.value);
-                });
-            }
 
             // Origem/Destino toggle + compat escola_id
             function setupOrigemDestino(){
@@ -1287,7 +1198,6 @@ class Pasta extends CommonDBTM
                 }
             }, true);
             window.__ptWizStep = 1;
-            window.__ptRecDrawn = false;
             function ptWizAlertMsg(msg, el){
                 var ab = document.getElementById('protocoloAlert');
                 var am = document.getElementById('protocoloAlertMsg');
@@ -1299,26 +1209,21 @@ class Pasta extends CommonDBTM
                 document.querySelectorAll('[data-ptstep]').forEach(function(el){
                     el.style.display = (el.getAttribute('data-ptstep') === String(n)) ? '' : 'none';
                 });
-                var names = {1:'Quem recebe',2:'Dados da pasta',3:'Origem e destino',4:'Quem entrega',5:'Documento',6:'Número do documento',7:'Assinatura',8:'Devolver aparelho',9:'Itens'};
                 var ttl = document.getElementById('pt-wiz-steptitle');
-                if(ttl) ttl.textContent = 'Etapa ' + n + ' de 9';
+                if(ttl) ttl.textContent = 'Etapa ' + n + ' de 3';
                 var bV = document.getElementById('pt-wiz-back');
                 if(bV) bV.style.display = n === 1 ? 'none' : '';
                 var bF = document.getElementById('pt-wiz-fechar');
                 if(bF) bF.style.display = n === 1 ? '' : 'none';
                 var bN = document.getElementById('pt-wiz-next');
-                if(bN) bN.style.display = n === 9 ? 'none' : '';
+                if(bN) bN.style.display = n === 3 ? 'none' : '';
                 var bS = document.getElementById('pt-reg-submit');
-                if(bS) bS.style.display = n === 9 ? '' : 'none';
-                if(n === 7) setTimeout(ptRecFit, 60);
+                if(bS) bS.style.display = n === 3 ? '' : 'none';
             }
             window.ptWizNav = function(d){
                 var cur = window.__ptWizStep || 1;
                 if(d > 0){
                     if(cur === 1){
-                        var rpk = document.getElementById('recebedor_nome');
-                        if(!rpk || !rpk.value.trim()){ ptWizAlertMsg('Selecione quem vai receber.', document.getElementById('pt-receb-select')); return; }
-                    } else if(cur === 2){
                         var esp = document.getElementById('especieSelect');
                         if(!esp || !esp.value){ ptWizAlertMsg('Selecione a Espécie.', esp); return; }
                         if(esp.value === 'outro'){
@@ -1327,7 +1232,7 @@ class Pasta extends CommonDBTM
                         }
                         var asf = document.getElementById('assunto_field');
                         if(!asf || !asf.value.trim()){ ptWizAlertMsg('Preencha o Assunto.', asf); return; }
-                    } else if(cur === 3){
+                    } else if(cur === 2){
                         var os = document.querySelector('input[name=\"origem_tipo\"]:checked');
                         if(!os){ ptWizAlertMsg('Selecione a Origem/Interessado (Escola, URE ou Outros).', document.getElementById('origem_escola')); return; }
                         if(os.value === 'outro'){
@@ -1346,180 +1251,10 @@ class Pasta extends CommonDBTM
                             var dse = document.querySelector('#destino_escola_wrap select');
                             if(!dse || !dse.value){ ptWizAlertMsg('Destino = Escola: selecione a escola.', dse); return; }
                         }
-                    } else if(cur === 3){
-                        var rn3 = document.querySelector('input[name=\"origem_tipo\"]:checked');
-                        if(!rn3){ ptWizAlertMsg('Selecione a Origem/Interessado (Escola, URE ou Outros).', document.getElementById('origem_escola')); return; }
-                    } else if(cur === 4){
-                        var rn4 = document.querySelector('input[name=\"recebido_de\"]');
-                        if(!rn4 || !rn4.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn4); return; }
-                    } else if(cur === 6){
-                        var rdt = (window.__ptRecDocType || 'cpf');
-                        var rdv = document.getElementById('recebido_documento');
-                        var rdocRaw = rdv ? ('' + rdv.value).replace(/[^0-9xX]/gi, '').toUpperCase() : '';
-                        if(!rdocRaw){
-                            ptWizAlertMsg('Informe o número do documento para continuar.', rdv); return;
-                        }
-                        if(rdt === 'cpf' && (typeof window.ptValidateCPF !== 'function' || !window.ptValidateCPF(rdv.value))){
-                            ptWizAlertMsg('CPF inválido. Informe 11 dígitos no formato 000.000.000-00.', rdv); return;
-                        }
-                    } else if(cur === 7){
-                        if(!window.__ptRecDrawn){ ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', document.getElementById('pt-rec-canvas')); return; }
                     }
                 }
-                ptWizShow(Math.min(9, Math.max(1, cur + d)));
+                ptWizShow(Math.min(3, Math.max(1, cur + d)));
             };
-            function ptRecFit(){
-                var c = document.getElementById('pt-rec-canvas');
-                if(!c) return;
-                var r = c.getBoundingClientRect();
-                c.width = Math.max(280, Math.floor(r.width));
-                c.height = 180;
-            }
-            function ptRecBind(){
-                var c = document.getElementById('pt-rec-canvas');
-                if(!c || c.dataset.bound) return;
-                c.dataset.bound = '1';
-                var ctx = c.getContext('2d');
-                ctx.lineWidth = 2.5;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = '#111827';
-                var dw = false;
-                function pp(ev){
-                    var r = c.getBoundingClientRect();
-                    var x = (ev.touches && ev.touches.length) ? ev.touches[0].clientX : ev.clientX;
-                    var y = (ev.touches && ev.touches.length) ? ev.touches[0].clientY : ev.clientY;
-                    return [(x - r.left) * (c.width / r.width), (y - r.top) * (c.height / r.height)];
-                }
-                function st(ev){ dw = true; var p = pp(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if(ev.preventDefault) ev.preventDefault(); }
-                function mv(ev){ if(!dw) return; var p = pp(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptRecDrawn = true; if(ev.preventDefault) ev.preventDefault(); }
-                function en(){ dw = false; }
-                c.addEventListener('mousedown', st);
-                c.addEventListener('mousemove', mv);
-                document.addEventListener('mouseup', en);
-                c.addEventListener('touchstart', st, {passive: false});
-                c.addEventListener('touchmove', mv, {passive: false});
-                c.addEventListener('touchend', en);
-                var cl = document.getElementById('pt-rec-clear');
-                if(cl) cl.addEventListener('click', function(){ ptRecFit(); var cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); window.__ptRecDrawn = false; var hi = document.getElementById('pt-rec-image'); if(hi) hi.value = ''; });
-            }
-            window.__ptS2 = 1;
-            window.__ptRecDocType = 'cpf';
-            function ptS2Show(m){
-                window.__ptS2 = m;
-                [1, 2, 3].forEach(function(i){
-                    document.querySelectorAll('[data-pts2=\"r' + i + '\"]').forEach(function(el){ el.style.display = (i === m) ? '' : 'none'; });
-                });
-                var bB = document.getElementById('pt-s2-back');
-                if(bB) bB.style.display = m === 1 ? 'none' : '';
-                var bN = document.getElementById('pt-s2-next');
-                if(bN) bN.style.display = m === 3 ? 'none' : '';
-                if(m === 3) setTimeout(ptRecFit, 60);
-            }
-            window.ptS2Nav = function(d){
-                var cur = window.__ptS2 || 1;
-                if(d > 0){
-                    if(cur === 1){
-                        var rn = document.querySelector('input[name=\"recebido_de\"]');
-                        if(!rn || !rn.value.trim()){ ptWizAlertMsg('Preencha o nome de quem deixou.', rn); return; }
-                    }
-                    if(cur === 2) ptRecDocPaint();
-                }
-                ptS2Show(Math.min(3, Math.max(1, cur + d)));
-            };
-            window.ptRecDocType = function(t){
-                window.__ptRecDocType = (t === 'rg') ? 'rg' : 'cpf';
-                var h = document.getElementById('recebido_documento_tipo');
-                if(h) h.value = window.__ptRecDocType;
-                var hint = document.getElementById('recebido_doc_hint');
-                if(hint) hint.textContent = window.__ptRecDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
-                ptRecDocPaint();
-            };
-            window.ptRecDocChoose = function(t){
-                window.ptRecDocType(t);
-                if((window.__ptWizStep || 1) === 5) ptWizShow(6);
-            };
-            function ptRecDocPaint(){
-                document.querySelectorAll('.pt-recdoc-btn').forEach(function(b){
-                    var on = b.getAttribute('data-t') === (window.__ptRecDocType || 'cpf');
-                    b.style.borderColor = on ? '#16a34a' : '';
-                    b.style.background = on ? '#f0fdf4' : '';
-                    b.style.color = on ? '#16a34a' : '';
-                });
-            }
-            window.__ptS3 = 1;
-            window.__ptRecbDrawn = false;
-            window.__ptRecbDocType = 'cpf';
-            function ptS3Show(m){
-                window.__ptS3 = m;
-                [1, 2, 3].forEach(function(i){
-                    document.querySelectorAll('[data-pts3=\"r' + i + '\"]').forEach(function(el){ el.style.display = (i === m) ? '' : 'none'; });
-                });
-                var bB3 = document.getElementById('pt-s3-back');
-                if(bB3) bB3.style.display = m === 1 ? 'none' : '';
-                var bN3 = document.getElementById('pt-s3-next');
-                if(bN3) bN3.style.display = m === 3 ? 'none' : '';
-                if(m === 3) setTimeout(ptRecbFit, 60);
-            }
-            window.ptS3Nav = function(d){
-                var cur = window.__ptS3 || 1;
-                if(d > 0){
-                    if(cur === 1){
-                        var rb = document.querySelector('input[name=\"recebedor_nome\"]');
-                        if(!rb || !rb.value.trim()){ ptWizAlertMsg('Preencha o nome de quem recebe.', rb); return; }
-                    }
-                }
-                ptS3Show(Math.min(3, Math.max(1, cur + d)));
-            };
-            window.ptRecbDocType = function(t){
-                window.__ptRecbDocType = (t === 'rg') ? 'rg' : 'cpf';
-                var h = document.getElementById('recebedor_documento_tipo');
-                if(h) h.value = window.__ptRecbDocType;
-                var hint = document.getElementById('recebedor_doc_hint');
-                if(hint) hint.textContent = window.__ptRecbDocType === 'cpf' ? 'CPF: 11 dígitos' : 'RG: 7 a 9 dígitos';
-                ptRecbDocPaint();
-            };
-            function ptRecbDocPaint(){
-                document.querySelectorAll('.pt-recbdoc-btn').forEach(function(b){
-                    var on = b.getAttribute('data-t') === (window.__ptRecbDocType || 'cpf');
-                    b.style.borderColor = on ? '#16a34a' : '';
-                    b.style.background = on ? '#f0fdf4' : '';
-                    b.style.color = on ? '#16a34a' : '';
-                });
-            }
-            function ptRecbFit(){
-                var c = document.getElementById('pt-recb-canvas');
-                if(!c) return;
-                var r = c.getBoundingClientRect();
-                c.width = Math.max(280, Math.floor(r.width));
-                c.height = 180;
-            }
-            function ptRecbBind(){
-                var c = document.getElementById('pt-recb-canvas');
-                if(!c || c.dataset.bound) return;
-                c.dataset.bound = '1';
-                var ctx = c.getContext('2d');
-                ctx.lineWidth = 2.5;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = '#111827';
-                var dw = false;
-                function pp(ev){
-                    var r = c.getBoundingClientRect();
-                    var x = (ev.touches && ev.touches.length) ? ev.touches[0].clientX : ev.clientX;
-                    var y = (ev.touches && ev.touches.length) ? ev.touches[0].clientY : ev.clientY;
-                    return [(x - r.left) * (c.width / r.width), (y - r.top) * (c.height / r.height)];
-                }
-                function st(ev){ dw = true; var p = pp(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if(ev.preventDefault) ev.preventDefault(); }
-                function mv(ev){ if(!dw) return; var p = pp(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptRecbDrawn = true; if(ev.preventDefault) ev.preventDefault(); }
-                function en(){ dw = false; }
-                c.addEventListener('mousedown', st);
-                c.addEventListener('mousemove', mv);
-                document.addEventListener('mouseup', en);
-                c.addEventListener('touchstart', st, {passive: false});
-                c.addEventListener('touchmove', mv, {passive: false});
-                c.addEventListener('touchend', en);
-                var cl = document.getElementById('pt-recb-clear');
-                if(cl) cl.addEventListener('click', function(){ ptRecbFit(); var cx = c.getContext('2d'); cx.clearRect(0, 0, c.width, c.height); window.__ptRecbDrawn = false; var hi = document.getElementById('pt-recb-image'); if(hi) hi.value = ''; });
-            }
             window.ptNumPress = function(docId, tipoId, k){
                 var doc = document.getElementById(docId);
                 if(!doc) return;
@@ -1533,13 +1268,7 @@ class Pasta extends CommonDBTM
                 doc.value = v;
                 doc.dispatchEvent(new Event('input', {bubbles: true}));
             };
-            function ptItensCount(){
-                var n = 0;
-                document.querySelectorAll('#itensWrap input[name*=\"[descricao]\"]').forEach(function(i){ if(i.value.trim()) n++; });
-                var cc = document.getElementById('pt-itens-count');
-                if(cc) cc.textContent = n + ' item(ns)';
-            }
-            if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; var dh1=document.getElementById('recebedor_documento_tipo'); if(dh1 && dh1.value!=='rg') dh1.value='cpf'; ptRecBind(); ptWizShow(1); ptS2Show(1); ptRecDocPaint(); ptRecbBind(); ptS3Show(1); ptRecbDocPaint(); ptNRecBind(); ptRecebLoad(); var iw0=document.getElementById('itensWrap'); if(iw0){ iw0.addEventListener('input', ptItensCount); iw0.addEventListener('click', function(){ setTimeout(ptItensCount, 60); }); try { new MutationObserver(ptItensCount).observe(iw0, {childList: true, subtree: true}); } catch(e1) {} ptItensCount(); } }
+            if(document.getElementById('pt-wiz-ind')){ var dh0=document.getElementById('recebido_documento_tipo'); if(dh0 && dh0.value!=='rg') dh0.value='cpf'; ptWizShow(1); }
             window.ptTiposCount = function(){
                 try{
                     var el = document.getElementById('pt-tipos-count');
@@ -1561,198 +1290,6 @@ class Pasta extends CommonDBTM
                 }catch(eTI){}
             }
             if(document.getElementById('pt-wiz-ind')){ try{ ptTiposCountInit(); }catch(eTCI){} }
-            window.__ptRecebId = null;
-            window.__ptNRecDrawn = false;
-            window.__ptNRecDoc = 'cpf';
-            function ptRecebBase(){
-                try { if(typeof ptPluginBase === 'function') return ptPluginBase(); } catch(e0) {}
-                var m = window.location.pathname.match(/^(.*\/(?:plugins|marketplace)\/protocolo)/);
-                return m ? m[1] : '/plugins/protocolo';
-            }
-            function ptRecebLoad(selectedId){
-                var sel = document.getElementById('pt-receb-select');
-                if(!sel) return;
-                sel.innerHTML = '';
-                var lo = document.createElement('option');
-                lo.value = '';
-                lo.textContent = '-- Carregando... --';
-                sel.appendChild(lo);
-                fetch(ptRecebBase() + '/ajax/recebedor.php?action=list', {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-                    .then(function(r){ return r.json(); })
-                    .then(function(d){
-                        window.__ptRecebData = {};
-                        sel.innerHTML = '';
-                        var first = document.createElement('option');
-                        first.value = '';
-                        first.textContent = '-- Selecione o recebedor --';
-                        sel.appendChild(first);
-                        var items = (d && d.items) || [];
-                        items.forEach(function(t){
-                            var id = t.id;
-                            var nome = t.nome || t.name || '';
-                            var doc = t.documento || t.doc || '';
-                            var tipo = t.tipo || t.doc_tipo || 'cpf';
-                            var img = t.image || '';
-                            window.__ptRecebData[String(id)] = {nome: nome, documento: doc, tipo: tipo, image: img};
-                            var o = document.createElement('option');
-                            o.value = String(id);
-                            o.textContent = doc ? (nome + ' (' + doc + ')') : nome;
-                            sel.appendChild(o);
-                        });
-                        if(selectedId) sel.value = String(selectedId);
-                        else sel.value = '';
-                        if(selectedId && sel.value){
-                            var row0 = window.__ptRecebData[sel.value];
-                            if(row0){
-                                var n0 = document.getElementById('recebedor_nome');
-                                if(n0) n0.value = row0.nome || '';
-                                var d0 = document.getElementById('recebedor_documento_h');
-                                if(d0) d0.value = row0.documento || '';
-                                var t0 = document.getElementById('recebedor_documento_tipo_h');
-                                if(t0) t0.value = row0.tipo || 'cpf';
-                                var i0 = document.getElementById('pt-recb-image');
-                                if(i0) i0.value = row0.image || '';
-                                window.__ptRecebId = sel.value;
-                            }
-                        }
-                        if(!sel.dataset.bound){
-                            sel.dataset.bound = '1';
-                            sel.addEventListener('change', function(){
-                                var row = window.__ptRecebData ? window.__ptRecebData[sel.value] : null;
-                                if(row){
-                                    window.__ptRecebId = sel.value;
-                                    var n = document.getElementById('recebedor_nome');
-                                    if(n) n.value = row.nome || '';
-                                    var dd = document.getElementById('recebedor_documento_h');
-                                    if(dd) dd.value = row.documento || '';
-                                    var dt = document.getElementById('recebedor_documento_tipo_h');
-                                    if(dt) dt.value = row.tipo || 'cpf';
-                                    var im = document.getElementById('pt-recb-image');
-                                    if(im) im.value = row.image || '';
-                                } else {
-                                    window.__ptRecebId = null;
-                                }
-                            });
-                        }
-                    })
-                    .catch(function(){
-                        sel.innerHTML = '';
-                        var e = document.createElement('option');
-                        e.value = '';
-                        e.textContent = '-- Falha ao carregar --';
-                        sel.appendChild(e);
-                    });
-            }
-            window.ptRecNewOpen = function(){
-                var ov = document.getElementById('pt-recnew-overlay');
-                if(!ov) return;
-                var nm = document.getElementById('pt-nrec-nome');
-                if(nm) nm.value = '';
-                var dc = document.getElementById('pt-nrec-doc');
-                if(dc) dc.value = '';
-                window.__ptNRecDrawn = false;
-                var er = document.getElementById('pt-nrec-err');
-                if(er) er.style.display = 'none';
-                ov.style.display = 'flex';
-                setTimeout(ptNRecFit, 60);
-                ptNRecDocType('cpf');
-            };
-            window.ptRecNewClose = function(){
-                var ov = document.getElementById('pt-recnew-overlay');
-                if(ov) ov.style.display = 'none';
-            };
-            window.ptNRecDocType = function(t){
-                window.__ptNRecDoc = (t === 'rg') ? 'rg' : 'cpf';
-                document.querySelectorAll('.pt-nrecdoct-btn').forEach(function(b){
-                    var on = b.getAttribute('data-t') === window.__ptNRecDoc;
-                    b.style.borderColor = on ? '#16a34a' : '';
-                    b.style.background = on ? '#f0fdf4' : '';
-                    b.style.color = on ? '#16a34a' : '';
-                });
-                var ht = document.getElementById('pt-nrec-doctipo');
-                if(ht) ht.value = (window.__ptNRecDoc === 'rg' ? 'rg' : 'cpf');
-                var dc = document.getElementById('pt-nrec-doc');
-                if(dc){
-                    dc.placeholder = (window.__ptNRecDoc === 'rg' ? '00.000.000-0' : '000.000.000-00');
-                    dc.maxLength = (window.__ptNRecDoc === 'rg' ? 12 : 14);
-                    if(window.__ptNRecDoc === 'rg') dc.value = formatRG(dc.value);
-                    else dc.value = formatCPF(dc.value);
-                }
-            };
-            function ptNRecFit(){
-                var c = document.getElementById('pt-nrec-canvas');
-                if(!c) return;
-                var r = c.getBoundingClientRect();
-                c.width = Math.max(280, Math.floor(r.width));
-                c.height = 180;
-            }
-            function ptNRecBind(){
-                var c = document.getElementById('pt-nrec-canvas');
-                if(!c || c.dataset.bound) return;
-                c.dataset.bound = '1';
-                var ctx = c.getContext('2d');
-                ctx.lineWidth = 2.5;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = '#111827';
-                var dw = false;
-                function pp(ev){
-                    var r = c.getBoundingClientRect();
-                    var x = (ev.touches && ev.touches.length) ? ev.touches[0].clientX : ev.clientX;
-                    var y = (ev.touches && ev.touches.length) ? ev.touches[0].clientY : ev.clientY;
-                    return [(x - r.left) * (c.width / r.width), (y - r.top) * (c.height / r.height)];
-                }
-                function st(ev){ dw = true; var p = pp(ev); ctx.beginPath(); ctx.moveTo(p[0], p[1]); if(ev.preventDefault) ev.preventDefault(); }
-                function mv(ev){ if(!dw) return; var p = pp(ev); ctx.lineTo(p[0], p[1]); ctx.stroke(); window.__ptNRecDrawn = true; if(ev.preventDefault) ev.preventDefault(); }
-                function en(){ dw = false; }
-                c.addEventListener('mousedown', st);
-                c.addEventListener('mousemove', mv);
-                document.addEventListener('mouseup', en);
-                c.addEventListener('touchstart', st, {passive: false});
-                c.addEventListener('touchmove', mv, {passive: false});
-                c.addEventListener('touchend', en);
-            }
-            window.ptNRecClear = function(){
-                var c = document.getElementById('pt-nrec-canvas');
-                if(!c) return;
-                ptNRecFit();
-                var cx = c.getContext('2d');
-                cx.clearRect(0, 0, c.width, c.height);
-                window.__ptNRecDrawn = false;
-            };
-            window.ptNRecErr = function(msg){
-                var e = document.getElementById('pt-nrec-err');
-                if(e){ e.textContent = msg; e.style.display = 'block'; }
-            };
-            window.ptNRecSave = function(){
-                var er0 = document.getElementById('pt-nrec-err');
-                if(er0) er0.style.display = 'none';
-                var nmEl = document.getElementById('pt-nrec-nome');
-                var nome = nmEl ? nmEl.value.trim().toUpperCase() : '';
-                if(!nome){ window.ptNRecErr('Informe o nome.'); if(nmEl) nmEl.focus(); return; }
-                var dcChk = document.getElementById('pt-nrec-doc');
-                if((window.__ptNRecDoc || 'cpf') === 'cpf' && dcChk && dcChk.value && !window.ptValidateCPF(dcChk.value)){ window.ptNRecErr('CPF inválido. Confira os dígitos e tente novamente.'); if(dcChk) dcChk.focus(); return; }
-                if(!window.__ptNRecDrawn){ window.ptNRecErr('Faça a assinatura no quadro.'); return; }
-                var dcEl = document.getElementById('pt-nrec-doc');
-                var c = document.getElementById('pt-nrec-canvas');
-                var img = '';
-                try { img = c.toDataURL('image/png'); } catch(eimg) { window.ptNRecErr('Falha na assinatura. Tente de novo.'); return; }
-                var csrfEl = document.querySelector('#plugin_protocolo_pasta_form input[name=\"_glpi_csrf_token\"]');
-                var tok = csrfEl ? csrfEl.value : '';
-                var btn = document.getElementById('pt-nrec-save');
-                if(btn) btn.disabled = true;
-                fetch(ptRecebBase() + '/ajax/recebedor.php', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-Glpi-Csrf-Token': tok},
-                    body: JSON.stringify({action: 'save', nome: nome, doc_tipo: window.__ptNRecDoc || 'cpf', doc: dcEl ? dcEl.value : '', image: img, _glpi_csrf_token: tok})
-                }).then(function(r){ return r.json(); })
-                    .then(function(d){
-                        if(btn) btn.disabled = false;
-                        if(d && d.ok){ window.ptRecNewClose(); ptRecebLoad(d.id); }
-                        else window.ptNRecErr((d && d.error) || 'Falha ao salvar.');
-                    })
-                    .catch(function(){ if(btn) btn.disabled = false; window.ptNRecErr('Falha de conexão.'); });
-            };
             function ptSchoolEnsure(){
                 var ov = document.getElementById('pt-school-overlay');
                 if(ov) return ov;
@@ -1895,7 +1432,7 @@ class Pasta extends CommonDBTM
                     form.addEventListener('change', hideAlert);
                     form.addEventListener('submit', function(e){
                         hideAlert();
-                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 9){ e.preventDefault(); ptWizNav(1); return; }
+                        if(document.getElementById('pt-wiz-ind') && (window.__ptWizStep || 1) < 3){ e.preventDefault(); ptWizNav(1); return; }
                         try{
                             var upEls=form.querySelectorAll('input[type=\"text\"]');
                             for(var ui=0;ui<upEls.length;ui++){
@@ -1905,20 +1442,6 @@ class Pasta extends CommonDBTM
                                 upEls[ui].value=upEls[ui].value.toUpperCase();
                             }
                         }catch(ue){}
-                        try{
-                            var rcv = document.getElementById('pt-rec-canvas');
-                            var rhi = document.getElementById('pt-rec-image');
-                            if(rcv && rhi && window.__ptRecDrawn){ rhi.value = rcv.toDataURL('image/png'); }
-                        }catch(rce){}
-                        try{
-                            var rbv = document.getElementById('pt-recb-canvas');
-                            var bhi = document.getElementById('pt-recb-image');
-                            if(rbv && bhi && window.__ptRecbDrawn){ bhi.value = rbv.toDataURL('image/png'); }
-                        }catch(bce){}
-                        var rcv2 = document.getElementById('pt-rec-canvas');
-                        if(rcv2 && !window.__ptRecDrawn){ e.preventDefault(); ptWizShow(7); ptWizAlertMsg('Colete a assinatura de quem deixou no quadro.', rcv2); return; }
-                        var rcb2 = document.getElementById('pt-recb-canvas');
-                        if(rcb2 && !window.__ptRecbDrawn){ e.preventDefault(); ptWizShow(9); ptWizAlertMsg('Colete a assinatura de quem recebe no quadro.', rcb2); return; }
                         var espSel = form.querySelector('select[name=\"categoria\"]');
                         if(!espSel || !espSel.value){
                             e.preventDefault(); showAlert('Selecione a Espécie.', document.getElementById('especieSelect')); return;
@@ -1949,13 +1472,8 @@ class Pasta extends CommonDBTM
                             var dSel = document.querySelector('#destino_escola_wrap select');
                             if(!dSel || !dSel.value){ e.preventDefault(); showAlert('Destino = Escola: selecione a escola.', dSel); return; }
                         }
-                        var recDe = form.querySelector('input[name=\"recebido_de\"]');
-                        if(!recDe || !recDe.value.trim()){ e.preventDefault(); showAlert('Preencha \"Recebido de (quem deixou)\".', recDe); return; }
                         var tiposChk = form.querySelectorAll('input[name=\"tipos[]\"]:checked');
                         if(tiposChk.length===0){ e.preventDefault(); showAlert('Marque pelo menos 1 tipo de arquivo.', document.querySelector('.tipo-check')); return; }
-                        var itensDesc = form.querySelectorAll('input[name*=\"[descricao]\"]');
-                        var hasItem=false; itensDesc.forEach(function(inp){ if(inp.value.trim()) hasItem=true; });
-                        if(!hasItem){ e.preventDefault(); showAlert('Adicione pelo menos 1 item com descrição.', document.querySelector('input[name*=\"[descricao]\"]')); return; }
                         // Dentro da janela flutuante: envia via AJAX (fica na tela; erro vira popup)
                         if (form.closest && form.closest('#pt-register-overlay') && typeof window.ptSubmitRegisterAjax === 'function') {
                             e.preventDefault();
@@ -2118,11 +1636,7 @@ class Pasta extends CommonDBTM
             $input['plugin_protocolo_escolas_id'] = 0;
         }
 
-        if (empty($input['recebido_de'])) {
-            error_log("[protocolo][lab-debug] prepareInputForAdd falhou: recebido_de vazio POST=" . json_encode($input, JSON_UNESCAPED_UNICODE|JSON_PARTIAL_OUTPUT_ON_ERROR));
-            Session::addMessageAfterRedirect(__('Recebido de é obrigatório', 'protocolo'), false, ERROR);
-            return false;
-        }
+        $input['recebido_de'] = trim($input['recebido_de'] ?? '');
         $recDocTipo = strtolower(trim($input['recebido_documento_tipo'] ?? 'cpf'));
         if (!in_array($recDocTipo, ['cpf', 'rg'], true)) $recDocTipo = 'cpf';
         $input['recebido_documento_tipo'] = $recDocTipo;
@@ -2147,10 +1661,6 @@ class Pasta extends CommonDBTM
             }
         } catch (\Throwable $e) { unset($input['recebido_assinatura_image']); }
         $recbNome = trim($input['recebedor_nome'] ?? '');
-        if ($recbNome === '') {
-            Session::addMessageAfterRedirect(__('Informe o nome de quem recebe', 'protocolo'), false, ERROR);
-            return false;
-        }
         $input['recebedor_nome'] = $recbNome;
         $recbDocTipo = strtolower(trim($input['recebedor_documento_tipo'] ?? 'cpf'));
         if (!in_array($recbDocTipo, ['cpf', 'rg'], true)) $recbDocTipo = 'cpf';
@@ -2168,10 +1678,6 @@ class Pasta extends CommonDBTM
         if (strlen($recbSig) > 1500000) $recbSig = '';
         try {
             if ($DB->fieldExists(self::getTable(), 'recebedor_assinatura_image')) {
-                if ($recSig === '' || $recbSig === '') {
-                    Session::addMessageAfterRedirect(__('Colete as duas assinaturas (quem deixa e quem recebe)', 'protocolo'), false, ERROR);
-                    return false;
-                }
                 $input['recebedor_assinatura_image'] = $recbSig;
                 $input['recebedor_assinatura_data'] = date('Y-m-d H:i:s');
                 $input['recebedor_assinatura_ip'] = $_SERVER['REMOTE_ADDR'] ?? null;
@@ -2186,11 +1692,6 @@ class Pasta extends CommonDBTM
             $desc = trim($it['descricao'] ?? '');
             if ($desc === '') continue;
             $filtered[] = ['descricao' => $desc, 'quantidade' => max(1, (int)($it['quantidade'] ?? 1)), 'observacao' => trim($it['observacao'] ?? '')];
-        }
-        if (count($filtered) === 0) {
-            error_log("[protocolo][lab-debug] prepareInputForAdd falhou: nenhum item filtrado POST.itens=" . json_encode($input['itens'] ?? [], JSON_UNESCAPED_UNICODE));
-            Session::addMessageAfterRedirect(__('Adicione pelo menos 1 item', 'protocolo'), false, ERROR);
-            return false;
         }
         $tipos = array_filter(array_map('intval', (array)($input['tipos'] ?? [])));
         // Só valida tipos se houver tipos ativos
@@ -2218,7 +1719,7 @@ class Pasta extends CommonDBTM
 
         // Gera código e datas (prefixo depende da categoria)
         $input['codigo'] = Install::gerarCodigoPasta($input['categoria'] ?? 'pasta');
-        $input['status'] = 'aguardando';
+        $input['status'] = 'aguardando_assinatura';
         $input['data_recebimento'] = $input['data_recebimento'] ?? date('Y-m-d H:i:s');
         if (strpos($input['data_recebimento'], 'T') !== false) {
             $input['data_recebimento'] = str_replace('T', ' ', $input['data_recebimento']);
@@ -2272,14 +1773,7 @@ class Pasta extends CommonDBTM
             'date_creation' => date('Y-m-d H:i:s')
         ]);
 
-        // Notificação automática de entrada
-        try {
-            if (class_exists(Notificacao::class)) {
-                Notificacao::createForPasta($this, 'entrada');
-            }
-        } catch (\Throwable $e) {
-            error_log("[protocolo] Notificacao entrada falhou: " . $e->getMessage());
-        }
+        // O aviso de entrada sai quando a entrada é assinada no Assignat-ure (Assignature::complete).
     }
 
     public function prepareInputForUpdate($input)
@@ -2600,7 +2094,7 @@ class Pasta extends CommonDBTM
     public function doCancelar(): bool
     {
         global $DB;
-        if ($this->fields['status'] !== 'aguardando') return false;
+        if (!in_array($this->fields['status'], ['aguardando', 'aguardando_assinatura'], true)) return false;
         $DB->update(self::getTable(), ['status' => 'cancelada', 'date_mod' => date('Y-m-d H:i:s')], ['id' => $this->getID()]);
         Session::addMessageAfterRedirect(__('Pasta cancelada', 'protocolo'), false, INFO);
         return true;

@@ -8,9 +8,14 @@ use Throwable;
  * Integração com o Assignat-ure (adaptador "Genérica").
  *
  * Contrato (ver README do Assignat-ure):
- *  GET  ?list=pending&limit=500&offset=0 → pastas aguardando retirada
- *  GET  ?id=123                          → detalhe de uma pasta
- *  POST {"action":"signature_completed", ...} → marca a pasta como retirada
+ * Dois tipos de pedido, identificados pelo prefixo do id:
+ *  entrada:123  → pasta "aguardando assinatura" (assina quem deixou); ao assinar passa a "aguardando" retirada
+ *  retirada:123 → pasta "aguardando" retirada (assina quem retira); ao assinar passa a "retirada"
+ *  (id sem prefixo = retirada, por compatibilidade)
+ *
+ *  GET  ?list=pending&limit=500&offset=0 → entradas e retiradas pendentes
+ *  GET  ?id=entrada:123                  → detalhe
+ *  POST {"action":"signature_completed", ...} → conclui a assinatura
  * Autenticação: cabeçalho X-Assignature-Token.
  */
 class Assignature
@@ -63,8 +68,10 @@ class Assignature
         global $DB;
         $table = 'glpi_plugin_protocolo_pastas';
         $cols = [
-            'assignature_sha256'    => 'VARCHAR(64) DEFAULT NULL',
-            'assignature_signed_at' => 'DATETIME DEFAULT NULL',
+            'assignature_sha256'            => 'VARCHAR(64) DEFAULT NULL',
+            'assignature_signed_at'         => 'DATETIME DEFAULT NULL',
+            'assignature_entrada_sha256'    => 'VARCHAR(64) DEFAULT NULL',
+            'assignature_entrada_signed_at' => 'DATETIME DEFAULT NULL',
         ];
         $changed = false;
         foreach ($cols as $col => $def) {
@@ -78,29 +85,56 @@ class Assignature
         }
     }
 
-    public static function statusFor(string $status): string
+    public const KIND_ENTRADA  = 'entrada';
+    public const KIND_RETIRADA = 'retirada';
+
+    /** Status da pasta que gera cada tipo de pedido. */
+    private static function statusOf(string $kind): string
     {
-        return match ($status) {
-            'aguardando' => 'pending',
-            'retirada'   => 'done',
-            'cancelada'  => 'cancelled',
-            default      => $status,
-        };
+        return $kind === self::KIND_ENTRADA ? 'aguardando_assinatura' : 'aguardando';
     }
 
-    /** Pastas aguardando retirada, paginadas. */
+    /** "entrada:12" → ['entrada', 12]; "12" → ['retirada', 12]. */
+    public static function parseRef(string $ref): array
+    {
+        $ref = trim($ref);
+        if (preg_match('/^(entrada|retirada):(\d+)$/', $ref, $m)) {
+            return [$m[1], (int) $m[2]];
+        }
+        return [self::KIND_RETIRADA, ctype_digit($ref) ? (int) $ref : 0];
+    }
+
+    public static function refFor(string $kind, int $id): string
+    {
+        return $kind . ':' . $id;
+    }
+
+    /** Link para abrir o pedido (entrada ou retirada, conforme o status) no Assignat-ure. */
+    public static function linkForRow(array $row): string
+    {
+        $kind = (string) ($row['status'] ?? '') === 'aguardando_assinatura' ? self::KIND_ENTRADA : self::KIND_RETIRADA;
+        $url = self::requestUrl();
+        $id = (int) ($row['id'] ?? 0);
+        if ($url === '' || $id <= 0) {
+            return '';
+        }
+        return $url . (str_contains($url, '?') ? '&' : '?') . 'source=protocolo&ref=' . rawurlencode(self::refFor($kind, $id));
+    }
+
+    /** Pedidos pendentes (entradas primeiro), paginados. */
     public static function listPending(int $limit, int $offset): array
     {
         global $DB;
         $requests = [];
         foreach ($DB->request([
             'FROM'  => 'glpi_plugin_protocolo_pastas',
-            'WHERE' => ['status' => 'aguardando', 'is_deleted' => 0],
-            'ORDER' => ['data_recebimento ASC', 'id ASC'],
+            'WHERE' => ['status' => ['aguardando_assinatura', 'aguardando'], 'is_deleted' => 0],
+            'ORDER' => ['status ASC', 'data_recebimento ASC', 'id ASC'],
             'START' => $offset,
             'LIMIT' => $limit,
         ]) as $row) {
-            $requests[] = self::payload($row);
+            $kind = (string) $row['status'] === 'aguardando_assinatura' ? self::KIND_ENTRADA : self::KIND_RETIRADA;
+            $requests[] = self::payload($row, $kind);
         }
         return $requests;
     }
@@ -119,83 +153,87 @@ class Assignature
         return is_array($row) ? $row : null;
     }
 
-    /**
-     * Dados de uma pasta no formato do Assignat-ure. Os itens vão em "machines"
-     * para aparecerem linha a linha no termo (mesmo formato usado pelo Tralla).
-     */
-    public static function payload(array $row): array
+    /** Tipos de arquivo marcados na pasta (substituem a antiga lista de itens). */
+    public static function tiposDaPasta(int $id): array
     {
         global $DB;
+        $nomes = [];
+        foreach ($DB->request([
+            'SELECT'    => ['t.name'],
+            'FROM'      => 'glpi_plugin_protocolo_pastatipos AS pt',
+            'INNER JOIN' => ['glpi_plugin_protocolo_tipos AS t' => ['ON' => ['pt' => 'plugin_protocolo_tipos_id', 't' => 'id']]],
+            'WHERE'     => ['pt.plugin_protocolo_pastas_id' => $id],
+            'ORDER'     => 't.name ASC',
+        ]) as $r) {
+            $nomes[] = trim((string) $r['name']);
+        }
+        return array_values(array_filter($nomes, static fn($n) => $n !== ''));
+    }
+
+    /**
+     * Dados do pedido no formato do Assignat-ure. Sem lista de itens: o termo
+     * mostra apenas os tipos de arquivo da pasta.
+     */
+    public static function payload(array $row, ?string $kind = null): array
+    {
         $id = (int) $row['id'];
+        if ($kind === null) {
+            $kind = (string) $row['status'] === 'aguardando_assinatura' ? self::KIND_ENTRADA : self::KIND_RETIRADA;
+        }
         $especie = Pasta::getEspecieLabel((string) ($row['categoria'] ?? 'pasta'), $row['especie_outro'] ?? null);
         $origem = trim(strip_tags(html_entity_decode(Pasta::getOrigemDestinoDisplay($row, 'origem'))));
         $destino = trim(strip_tags(html_entity_decode(Pasta::getOrigemDestinoDisplay($row, 'destino'))));
         $assunto = trim((string) ($row['assunto'] ?? ''));
-        $statusLabel = match ((string) $row['status']) {
-            'aguardando' => 'Aguardando retirada',
-            'retirada'   => 'Retirada',
-            'cancelada'  => 'Cancelada',
-            default      => (string) $row['status'],
-        };
+        $kindLabel = $kind === self::KIND_ENTRADA ? 'Entrada' : 'Retirada';
+        $statusLabel = $kind === self::KIND_ENTRADA ? 'Aguardando assinatura de entrada' : 'Aguardando retirada';
+        $tipos = self::tiposDaPasta($id);
 
-        $itens = [];
-        $machines = [];
-        foreach ($DB->request([
-            'FROM'  => 'glpi_plugin_protocolo_itens',
-            'WHERE' => ['plugin_protocolo_pastas_id' => $id],
-            'ORDER' => 'id ASC',
-        ]) as $item) {
-            $qtd = max(1, (int) $item['quantidade']);
-            $nome = trim((string) $item['name']);
-            $label = $qtd > 1 ? $nome . ' (' . $qtd . ')' : $nome;
-            $itens[] = $label;
-            $machines[] = [
-                'id'           => (int) $item['id'],
-                'label'        => $label,
-                'model_name'   => $especie,
-                'serial'       => '',
-                'status_label' => $statusLabel,
-                'report'       => trim((string) ($item['comment'] ?? '')),
-            ];
-        }
-
-        $description = [];
+        $description = [$kindLabel . ' de ' . mb_strtolower($especie, 'UTF-8')];
         if ($assunto !== '') {
             $description[] = $assunto;
         }
         $description[] = $origem . ' → ' . $destino;
-        if (trim((string) ($row['recebido_de'] ?? '')) !== '') {
-            $description[] = 'Recebido de: ' . trim((string) $row['recebido_de']);
+        if ($tipos !== []) {
+            $description[] = 'Tipos: ' . implode(', ', $tipos);
         }
-        if ($itens !== []) {
-            $description[] = 'Itens: ' . implode(', ', $itens);
+        if ($kind === self::KIND_RETIRADA && trim((string) ($row['recebido_de'] ?? '')) !== '') {
+            $description[] = 'Entregue por: ' . trim((string) $row['recebido_de']);
         }
 
         return [
-            'id'               => (string) $id,
+            'id'               => self::refFor($kind, $id),
+            'kind'             => $kind,
+            'pasta_id'         => $id,
             'code'             => (string) $row['codigo'],
-            'title'            => $especie . ' ' . $row['codigo'] . ' — ' . $destino,
+            'title'            => $kindLabel . ' — ' . $especie . ' ' . $row['codigo'] . ' — ' . $destino,
             'description'      => implode("\n", $description),
-            'status'           => self::statusFor((string) $row['status']),
+            'status'           => 'pending',
             'status_label'     => $statusLabel,
             'especie'          => $especie,
             'assunto'          => $assunto,
             'origem'           => $origem,
             'destino'          => $destino,
+            'tipos'            => $tipos,
             'recebido_de'      => (string) ($row['recebido_de'] ?? ''),
             'data_recebimento' => $row['data_recebimento'] ?? null,
             'board'            => ['name' => $destino],
-            'machines'         => $machines,
+            // um "item" por tipo, para o termo listar o que está sendo assinado
+            'machines'         => array_map(static fn($n, $i) => [
+                'id' => $i + 1, 'label' => $n, 'model_name' => $especie,
+                'serial' => '', 'status_label' => $statusLabel, 'report' => '',
+            ], $tipos, array_keys($tipos)),
         ];
     }
 
     /**
-     * Retorno do Assignat-ure: conclui a retirada da pasta. Idempotente — repetir
-     * o mesmo retorno não altera nada.
+     * Retorno do Assignat-ure. Idempotente — repetir o mesmo retorno não altera nada.
+     *  entrada:  aguardando_assinatura → aguardando (quem assinou passa a ser "recebido de")
+     *  retirada: aguardando → retirada
      */
-    public static function complete(int $id, string $signerName, string $signedAt, string $sha256): void
+    public static function complete(string $ref, string $signerName, string $signedAt, string $sha256): void
     {
         global $DB;
+        [$kind, $id] = self::parseRef($ref);
         $signerName = mb_strtoupper(trim($signerName), 'UTF-8');
         if ($id <= 0 || $signerName === '' || !preg_match('/^[a-f0-9]{64}$/', $sha256)) {
             throw new RuntimeException('Dados da assinatura inválidos.');
@@ -204,6 +242,8 @@ class Assignature
         $signedAt = $date !== false ? $date->format('Y-m-d H:i:s') : date('Y-m-d H:i:s');
 
         self::ensureColumns();
+        $entrada = $kind === self::KIND_ENTRADA;
+        $shaCol = $entrada ? 'assignature_entrada_sha256' : 'assignature_sha256';
 
         $DB->beginTransaction();
         try {
@@ -212,36 +252,50 @@ class Assignature
             if ($row === null) {
                 throw new RuntimeException('Pasta não encontrada.');
             }
-            if ((string) $row['status'] === 'retirada' && (string) ($row['assignature_sha256'] ?? '') === $sha256) {
+            $status = (string) $row['status'];
+            if ((string) ($row[$shaCol] ?? '') === $sha256) {
+                // mesmo retorno repetido: já aplicado
                 $DB->commit();
                 return;
             }
-            if ((string) $row['status'] !== 'aguardando') {
-                throw new RuntimeException('Esta pasta não está aguardando retirada.');
+            if ($status !== self::statusOf($kind)) {
+                throw new RuntimeException($entrada
+                    ? 'Esta pasta não está aguardando assinatura de entrada.'
+                    : 'Esta pasta não está aguardando retirada.');
             }
-            $DB->update('glpi_plugin_protocolo_pastas', [
-                'status'                => 'retirada',
-                'data_retirada'         => $signedAt,
-                'retirado_por'          => mb_substr($signerName, 0, 150),
-                'observacao_retirada'   => 'RETIRADA ASSINADA NO ASSIGNAT-URE. SHA-256: ' . $sha256,
-                'assignature_sha256'    => $sha256,
-                'assignature_signed_at' => $signedAt,
-                'date_mod'              => date('Y-m-d H:i:s'),
-            ], ['id' => $id]);
+            if ($entrada) {
+                $DB->update('glpi_plugin_protocolo_pastas', [
+                    'status'                        => 'aguardando',
+                    'recebido_de'                   => mb_substr($signerName, 0, 150),
+                    'assignature_entrada_sha256'    => $sha256,
+                    'assignature_entrada_signed_at' => $signedAt,
+                    'date_mod'                      => date('Y-m-d H:i:s'),
+                ], ['id' => $id]);
+            } else {
+                $DB->update('glpi_plugin_protocolo_pastas', [
+                    'status'                => 'retirada',
+                    'data_retirada'         => $signedAt,
+                    'retirado_por'          => mb_substr($signerName, 0, 150),
+                    'observacao_retirada'   => 'RETIRADA ASSINADA NO ASSIGNAT-URE. SHA-256: ' . $sha256,
+                    'assignature_sha256'    => $sha256,
+                    'assignature_signed_at' => $signedAt,
+                    'date_mod'              => date('Y-m-d H:i:s'),
+                ], ['id' => $id]);
+            }
             $DB->commit();
         } catch (Throwable $e) {
             $DB->rollBack();
             throw $e;
         }
 
-        // Mesmo aviso por e-mail da retirada feita pelo Protocolo.
+        // Avisos por e-mail: entrada (ao concluir a assinatura) e retirada.
         try {
             $pasta = new Pasta();
             if ($pasta->getFromDB($id) && class_exists(Notificacao::class)) {
-                Notificacao::createForPasta($pasta, 'retirada');
+                Notificacao::createForPasta($pasta, $entrada ? 'entrada' : 'retirada');
             }
         } catch (Throwable $e) {
-            error_log('[protocolo] Assignat-ure: notificação de retirada falhou (pasta ' . $id . '): ' . $e->getMessage());
+            error_log('[protocolo] Assignat-ure: notificação falhou (pasta ' . $id . '): ' . $e->getMessage());
         }
     }
 }

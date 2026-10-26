@@ -36,6 +36,7 @@
 /* ---- Badges (mesmo linguagem do am-badge) ---- */
 .pt-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
 .pt-badge-aguardando{background:#fef3c7;color:#92400e}
+.pt-badge-assinatura{background:#e0e7ff;color:#3730a3}
 .pt-badge-retirada{background:#d1fae5;color:#065f46}
 .pt-badge-cancelada{background:#f3f4f6;color:#374151}
 .pt-badge-pasta{background:#eef2ff;color:#4f46e5}

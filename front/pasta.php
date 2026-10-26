@@ -56,7 +56,7 @@ if (function_exists('getEntitiesRestrictRequest')) {
         $where .= " AND p.entities_id IN ($ids)";
     }
 }
-if (in_array($status, ['aguardando','retirada','cancelada'])) {
+if (in_array($status, ['aguardando','aguardando_assinatura','retirada','cancelada'])) {
     $where .= " AND p.status=" . $DB->quoteValue($status);
 }
 if ($q !== '') {
@@ -204,7 +204,7 @@ foreach ($escolas as $e) {
     echo "<option value='" . (int)$e['id'] . "' $sel>" . htmlspecialchars($e['name']) . "</option>";
 }
 echo "</select></div>";
-echo "<div class='pt-filter-group'><label>Status</label><select name='status' class='pt-select'><option value=''>Todos</option><option value='aguardando' " . ($status==='aguardando'?'selected':'') . ">Aguardando</option><option value='retirada' " . ($status==='retirada'?'selected':'') . ">Retirada</option><option value='cancelada' " . ($status==='cancelada'?'selected':'') . ">Cancelada</option></select></div>";
+echo "<div class='pt-filter-group'><label>Status</label><select name='status' class='pt-select'><option value=''>Todos</option><option value='aguardando' " . ($status==='aguardando'?'selected':'') . ">Aguardando</option><option value='aguardando_assinatura' " . ($status==='aguardando_assinatura'?'selected':'') . ">Aguardando assinatura</option><option value='retirada' " . ($status==='retirada'?'selected':'') . ">Retirada</option><option value='cancelada' " . ($status==='cancelada'?'selected':'') . ">Cancelada</option></select></div>";
 echo "<div class='pt-filter-group'><label>Por página</label><select name='per_page' class='pt-select'><option " . ($perPage==10?'selected':'') . ">10</option><option " . ($perPage==20?'selected':'') . ">20</option><option " . ($perPage==50?'selected':'') . ">50</option><option " . ($perPage==100?'selected':'') . ">100</option></select></div>";
 // preserva sort/order/minhas ao filtrar
 echo "<input type='hidden' name='sort' value='" . htmlspecialchars($sort) . "'><input type='hidden' name='order' value='" . htmlspecialchars($order) . "'>";

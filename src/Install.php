@@ -161,7 +161,7 @@ class Install
               `destino_outro` VARCHAR(150) DEFAULT NULL,
               `destino_entities_id` INT DEFAULT NULL,
               `plugin_protocolo_escolas_id` INT NOT NULL,
-              `status` ENUM('aguardando','retirada','cancelada') NOT NULL DEFAULT 'aguardando',
+              `status` ENUM('aguardando','aguardando_assinatura','retirada','cancelada') NOT NULL DEFAULT 'aguardando',
               `data_recebimento` DATETIME NOT NULL,
               `recebido_de` VARCHAR(150) NOT NULL,
               `recebido_documento` VARCHAR(30) DEFAULT NULL,
@@ -580,6 +580,34 @@ class Install
                     'retirada_assinatura_ip'    => 'VARCHAR(45) DEFAULT NULL',
                 ];
                 foreach ($sigCols as $col => $def) {
+                    try {
+                        if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', $col)) {
+                            $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `$col` $def");
+                        }
+                    } catch (\Throwable $e) { error_log("[protocolo] migrateEntities: coluna $col falhou: " . $e->getMessage()); }
+                }
+                // --- 2.7.0: entrada assinada no Assignat-ure (novo status) + prova da assinatura ---
+                try {
+                    $needs = true;
+                    $res = $DB->doQuery("SHOW COLUMNS FROM `glpi_plugin_protocolo_pastas` LIKE 'status'");
+                    if ($res) {
+                        while ($row = $DB->fetchAssoc($res)) {
+                            if (strpos((string) ($row['Type'] ?? ''), 'aguardando_assinatura') !== false) $needs = false;
+                            break;
+                        }
+                    }
+                    if ($needs) {
+                        $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` MODIFY COLUMN `status` ENUM('aguardando','aguardando_assinatura','retirada','cancelada') NOT NULL DEFAULT 'aguardando'");
+                        error_log('[protocolo] migrateEntities: status aguardando_assinatura adicionado (2.7.0)');
+                    }
+                } catch (\Throwable $e) { error_log('[protocolo] migrateEntities: expansao status falhou: ' . $e->getMessage()); }
+                $entradaCols = [
+                    'assignature_entrada_sha256'    => 'VARCHAR(64) DEFAULT NULL',
+                    'assignature_entrada_signed_at' => 'DATETIME DEFAULT NULL',
+                    'assignature_sha256'            => 'VARCHAR(64) DEFAULT NULL',
+                    'assignature_signed_at'         => 'DATETIME DEFAULT NULL',
+                ];
+                foreach ($entradaCols as $col => $def) {
                     try {
                         if (!$DB->fieldExists('glpi_plugin_protocolo_pastas', $col)) {
                             $DB->doQuery("ALTER TABLE `glpi_plugin_protocolo_pastas` ADD COLUMN `$col` $def");

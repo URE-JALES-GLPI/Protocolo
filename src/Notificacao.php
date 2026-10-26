@@ -261,6 +261,13 @@ class Notificacao
             $itensResumo = implode(', ', $names);
             $itensLista = implode("\n- ", $names);
             if ($itensLista) $itensLista = "- " . $itensLista;
+            if (!$names) {
+                // Pastas novas não têm itens: lista os tipos de arquivo marcados.
+                $tn = \GlpiPlugin\Protocolo\Assignature::tiposDaPasta((int)$pasta->getID());
+                $quantidadeItens = count($tn);
+                $itensResumo = implode(', ', $tn);
+                $itensLista = $tn ? "- " . implode("\n- ", $tn) : '';
+            }
             if (!$itensResumo) $itensResumo = $quantidadeItens . " item(s)";
         } catch (\Throwable $e) {
             $itensResumo = $quantidadeItens . " item(s)";

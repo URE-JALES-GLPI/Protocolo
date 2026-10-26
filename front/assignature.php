@@ -3,7 +3,7 @@
  * Endpoint do Assignat-ure (integração "Genérica").
  *
  * GET  /plugins/protocolo/front/assignature.php?list=pending&limit=500&offset=0
- * GET  /plugins/protocolo/front/assignature.php?id=123
+ * GET  /plugins/protocolo/front/assignature.php?id=entrada:123  (ou retirada:123)
  * POST /plugins/protocolo/front/assignature.php  {"action":"signature_completed",...}
  *
  * Autenticação: cabeçalho X-Assignature-Token (token em Configuração do Protocolo).
@@ -45,7 +45,7 @@ try {
         }
         try {
             Assignature::complete(
-                (int) ($data['id'] ?? 0),
+                (string) ($data['id'] ?? ''),
                 (string) ($data['signer_name'] ?? ''),
                 (string) ($data['signed_at'] ?? ''),
                 (string) ($data['signature_sha256'] ?? '')
@@ -63,11 +63,12 @@ try {
         pt_assignature_json(['ok' => true, 'data' => ['requests' => $requests, 'count' => count($requests)]]);
     }
 
-    $row = Assignature::get((int) ($_GET['id'] ?? 0));
+    [$kind, $pastaId] = Assignature::parseRef((string) ($_GET['id'] ?? ''));
+    $row = Assignature::get($pastaId);
     if ($row === null) {
         pt_assignature_json(['ok' => false, 'error' => 'Pasta não encontrada.'], 404);
     }
-    pt_assignature_json(['ok' => true, 'data' => Assignature::payload($row)]);
+    pt_assignature_json(['ok' => true, 'data' => Assignature::payload($row, $kind)]);
 } catch (Throwable $e) {
     error_log('[protocolo] endpoint Assignat-ure: ' . $e->getMessage());
     pt_assignature_json(['ok' => false, 'error' => 'Erro interno no Protocolo.'], 500);

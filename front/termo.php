@@ -51,6 +51,8 @@ $it2 = $DB->request([
     'ORDER' => 't.name'
 ]);
 foreach ($it2 as $r) $tipos[] = $r['name'];
+// Pastas novas não têm itens: o termo lista os tipos de arquivo marcados.
+if (!$itens) { foreach ($tipos as $tn) { $itens[] = ['name' => $tn, 'quantidade' => 1, 'comment' => '']; } }
 
 // Termo
 $termo = Termo::getOrCreate($id, $tipo);
