@@ -148,7 +148,9 @@ if (isset($_POST['add'])) {
     }
     if ($newID) {
         if ($isAjax) {
-            protocolo_ajax_answer(['ok' => true, 'code' => 'OK', 'id' => $newID, 'url' => Pasta::getFormURLWithID($newID)]);
+            $assinarUrl = '';
+            try { $assinarUrl = \GlpiPlugin\Protocolo\Assignature::linkForRow(['id' => (int)$newID, 'status' => 'aguardando_assinatura']); } catch (\Throwable $eAs) { $assinarUrl = ''; }
+            protocolo_ajax_answer(['ok' => true, 'code' => 'OK', 'id' => $newID, 'url' => Pasta::getFormURLWithID($newID), 'assinar_url' => $assinarUrl]);
         }
         Html::redirect(Pasta::getFormURLWithID($newID));
     } else {

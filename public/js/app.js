@@ -316,17 +316,21 @@ window.ptSubmitRegisterAjax = function(form) {
       if (data && typeof data.ok !== 'undefined') {
         if (data.ok) {
           restore();
-          var termoUrl = ptPluginBase() + '/front/termo.php?id=' + encodeURIComponent(data.id) + '&tipo=recebimento';
+          var assinarUrl = data.assinar_url || '';
           var dashUrl = ptPluginBase() + '/front/dashboard.php';
           var ov = document.createElement('div');
           ov.id = 'pt-msg-overlay';
           ov.className = 'pt-modal-overlay open';
+          var msgTxt = assinarUrl
+            ? 'Falta a assinatura de entrada de quem está deixando o item. Clique em Assinar para abrir o Assignat-ure.'
+            : 'A pasta foi registrada e aguarda a assinatura de entrada no Assignat-ure. Configure a URL do Assignat-ure em Configurações para liberar o botão Assinar.';
           ov.innerHTML = '<div class="pt-modal" style="max-width:440px;" role="alertdialog" aria-modal="true">'
             + '<div class="pt-modal-header"><div class="pt-modal-title"><i class="ti ti-check"></i><span>Pasta registrada!</span></div></div>'
-            + '<div class="pt-modal-body"><p style="margin:0;font-size:.9rem;">O termo de entrada foi gerado.' + (data.id ? ' Imprima a via de quem está deixando o item.' : '') + '</p></div>'
+            + '<div class="pt-modal-body"><p style="margin:0;font-size:.9rem;">' + msgTxt + '</p></div>'
             + '<div style="padding:12px 24px;border-top:1px solid #f0f2f8;display:flex;gap:8px;justify-content:flex-end;background:#fafbff;border-radius:0 0 20px 20px;">'
             + '<a class="pt-btn pt-btn-secondary pt-btn-sm" href="' + dashUrl + '">Fechar</a>'
-            + '<a class="pt-btn pt-btn-green pt-btn-sm" target="_blank" href="' + termoUrl + '"><i class="ti ti-printer"></i> Gerar termo</a></div></div>';
+            + (assinarUrl ? '<a class="pt-btn pt-btn-green pt-btn-sm" href="' + assinarUrl.replace(/"/g, '&quot;') + '"><i class="ti ti-writing-sign"></i> Assinar</a>' : '')
+            + '</div></div>';
           document.body.appendChild(ov);
           return;
         }
